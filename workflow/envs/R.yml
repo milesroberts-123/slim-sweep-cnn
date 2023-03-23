@@ -1,0 +1,7 @@
+name: R
+
+dependencies:
+ - r-base=4.2.3
+ - r-ggplot2=3.4.1
+ - r-ggnewscale=0.4.8
+ - r-cowplot=1.1.1

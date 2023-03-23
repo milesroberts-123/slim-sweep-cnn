@@ -1,0 +1,4 @@
+name: slim
+
+dependencies:
+ - slim=4.0.1
