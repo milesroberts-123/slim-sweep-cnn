@@ -2,13 +2,13 @@ def get_gene(wildcards):
         gene = parameters.loc[parameters["ID"] == wildcards.ID, "gene"]
         return str(gene)
 
+def get_mean(wildcards):
+        mean = parameters.loc[parameters["ID"] == wildcards.ID, "mean"]
+        return str(mean)
+
 def get_alpha(wildcards):
         alpha = parameters.loc[parameters["ID"] == wildcards.ID, "alpha"]
         return str(alpha)
-
-def get_beta(wildcards):
-        beta = parameters.loc[parameters["ID"] == wildcards.ID, "beta"]
-        return str(beta)
 
 rule slim:
 	input:
@@ -17,8 +17,8 @@ rule slim:
 		"data/tables/slim_{ID}.table"
 	params:
 		gene=get_gene,
-		alpha=get_alpha,
-		beta=get_beta
+		mean=get_mean,
+		alpha=get_alpha
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000
@@ -34,7 +34,7 @@ rule slim:
 		cut -f 5 slim_{wildcards.ID}_04sites.bed > types_{wildcards.ID}.txt
 
 		# run simulation
-		slim -d ID={wildcards.ID} -d alpha={params.alpha} -d beta={params.beta} scripts/simulation.slim
+		slim -d ID={wildcards.ID} -d mean={params.mean} -d alpha={params.alpha} scripts/simulation.slim
 		
 		# convert vcf to simple table
 		# remove hastag from CHROM

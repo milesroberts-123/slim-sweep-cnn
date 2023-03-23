@@ -1,5 +1,5 @@
 # hyperparameters for simulation parameters
-K = 1000 # number of sims 
+K = 100 # number of sims 
 train_test_val_split = c(0.8, 0.1, 0.1) # train/test/validation split
 gff = "../workflow/data/genome/Osativa_323_v7.0.gene.gff3" # path to genome annotation
 
