@@ -3,14 +3,19 @@ library(reshape2)
 library(ggnewscale)
 library(cowplot)
 
+args = commandArgs(trailingOnly=TRUE)
+
+input = args[1]
+output = args[2]
+
 # load simulation output
-simvar = read.table("slim.table", header = T)
+simvar = read.table(input, header = T)
 
 # label syn and nonsyn sites
 simvar$INFO[grepl("MT=0;", simvar$INFO)] = "s"
 simvar$INFO[grepl("MT=4;", simvar$INFO)] = "n"
 
-# melt sorted matrix to dataframe
+# melt sorted matrix to dataframe, so you can use ggplot
 simvar = melt(simvar, id.vars = c("CHROM", "POS", "INFO"))
 
 # create new position column where monomorphic sites are collapsed
@@ -21,7 +26,7 @@ for (j in sort(unique(simvar$POS))) {
 	i = i + 1
 }
 
-# split variants by type
+# split variants by type, so that you can color them differently
 svar = simvar[(simvar$INFO == "s"),]
 nvar = simvar[(simvar$INFO == "n"),]
 
@@ -42,43 +47,4 @@ ggplot(mapping = aes(POS2, variable)) +
   scale_x_discrete(expand=c(0,0)) +
   scale_y_discrete(expand=c(0,0))
 
-ggsave("slim-no-monomorphisms.jpg", width = 128, height = 128, units = "px", dpi = 300)
-  
-  #theme_void()
-# plot alignments separately, then combine them
-#ggplot(simvar) +
-#	geom_tile(simvar[(simvar$INFO == "s"),], aes(x = POS2, y = variable, fill = value)) +
-
-#splot = ggplot(svar, aes(x = POS2, y = variable, fill = value)) +
-#        geom_tile() +
-#        scale_fill_gradient(low="black", high="white") +
-#        theme_classic()
-
-#nplot = ggplot(nvar, aes(x = POS2, y = variable, fill = value)) +
-#        geom_tile() +
-#        scale_fill_gradient(low="black", high="green") +
-#        theme_classic()
-
-#splot + nplot
-
-#ggsave("slim-no-monomorphisms.jpg")
-
-# plot alignments, compare sorted and unsorted
-# ggplot(simvar, aes(x = POS, y = variable, fill = value, color = INFO)) +
-#	geom_tile() +
-#	scale_fill_gradient(low="black", high="white") +
-#	scale_color_manual(values=c("#0000FF", "#00FF00")) +
-#	theme_classic()
-
-
-#ggsave("slim.jpg")
-
-#ggplot(simvar, aes(x = POS2, y = variable, fill = value, alpha = as.integer(as.factor(INFO)))) +
-#       geom_tile() +
-#	scale_fill_gradient(low="black", high="white") +
-	#scale_color_manual(values=c("#0000FF", "#00FF00")) +
-#	scale_alpha_continuous(name = "INFO", range = c(0.25, 0.75)) +
-#	theme_classic()
-
-
-# print(simvar)
+ggsave(output, width = 128, height = 128, units = "px", dpi = 300)

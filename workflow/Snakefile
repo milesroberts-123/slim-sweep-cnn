@@ -3,12 +3,13 @@ import pandas as pd
 import re
 
 # load samples
-parameters = pd.read_table("data/parameters.tsv", sep="\t", dtype={"id": str}).set_index(["id"], drop=False)
+parameters = pd.read_table("data/parameters.tsv", sep="\t", dtype={"ID": str}).set_index(["ID"], drop=False)
 
 # gather all images for training CNN
 rule all:
 	input:
-		expand("data/images/slim_{id}.jpg", id=parameters.index.get_level_values("id"))
+		expand("data/images/slim_{ID}.jpg", ID=parameters.index.get_level_values("ID"))
 
 include: "rules/slim.smk"
+include: "rules/degenotate.smk"
 include: "rules/create_image.smk"

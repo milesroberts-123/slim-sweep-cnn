@@ -1,15 +1,34 @@
 # hyperparameters for simulation parameters
-K = 100 # number of sims 
+K = 1000 # number of sims 
 train_test_val_split = c(0.8, 0.1, 0.1) # train/test/validation split
+gff = "../workflow/data/genome/Osativa_323_v7.0.gene.gff3" # path to genome annotation
+
+# load list of genes
+print("Reading genome annotation...")
+genome = read.table(gff, skip = 3, sep = "\t", header = F)
+
+head(genome)
+
+# extract gene names
+print("Extracting gene IDs...")
+genome = genome[(genome[,3] == "gene"),]
+
+genes = genome[,9]
+genes = gsub(";.*", "", genes)
+genes = gsub("ID=", "", genes)
+
+head(genes)
 
 # build table of paramters
+print("Building table of parameters...")
 params = data.frame(
   ID = 1:K,
+  gene = sample(genes, size = K, replace = T),
   #Nc = round(runif(K, min = 100, max = 40000)),
   #t = round(runif(K, min = 2, max = 9999)),
   #Na = round(runif(K, min = 100, max = 40000)),
-  alpha = runif(K, min = -0.1, max = 0.1), # mean fitness effect of nonsynonymous DFE
-  beta = runif(K, min = 0, max = 4) # shape parameter of nonsynonymous DFE
+  mean = runif(K, min = -0.1, max = 0.1), # mean fitness effect of nonsynonymous DFE
+  alpha = runif(K, min = 0, max = 1) # shape parameter of nonsynonymous DFE
   #h = runif(K, min = 0, max = 1), # dominance of nonsynonymous mutations
   #mu = runif(K, min = 1e-9, max = 1e-8),
   #rho = runif(K, min = 1e-9, max = 1e-8)
@@ -17,7 +36,7 @@ params = data.frame(
 
 # If there are multiple parameters, make sure they're not correlated by chance
 print("Correlations between parameters across simulations:")
-cor(params[,-1])
+cor(params[,c(-1,-2)])
 
 # split into training and testing sets
 params_split = c(
@@ -45,13 +64,3 @@ print("Saving table of parameter results...")
 write.table(params, "../workflow/data/parameters.tsv", quote = F, row.names = F, sep = "\t")
 
 print("Done! :)")
-#sample(c("train", "test", "val"), replace = T, size = K, prob = train_test_val_split)
-#train = params[sample(1:K, size = 0.99*K),]
-
-#test = params[!(params$ID %in% train$ID),]
-
-# want TRUE
-#nrow(params) == nrow(train) + nrow(test)
-
-# want FALSE
-#any(test$ID %in% train$ID)

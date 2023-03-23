@@ -2,10 +2,9 @@
 initialize() { 
 	// parse out constants if using gui, otherwise these will be passed from command line
 	if (exists("slimgui")) {
-		defineConstant("Ls", 1000); 
-		defineConstant("Ln", 1000);
-		defineConstant("self", 0.95);
-		defineConstant("output", "slim.vcf");
+		defineConstant("alpha", -0.03)
+		defineConstant("beta", 0.2)
+		defineConstant("ID", 1)
 	}
 
 	//initializeSLiMOptions(nucleotideBased=T); 
@@ -13,7 +12,7 @@ initialize() {
 	//initializeMutationTypeNuc("m1", 0.5, "f", 0.0); // neutral
 	//initializeMutationTypeNuc("m2", 0.1, "g", -0.03, 0.2); // deleterious
 	initializeMutationType("m0", 0.5, "f", 0.0); // neutral
-	initializeMutationType("m4", 0.1, "g", -0.03, 0.2); // deleterious
+	initializeMutationType("m4", 0.1, "g", alpha, beta); // deleterious
 	
 	//initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(1e-6)); // synonymous sites 
 	//initializeGenomicElementType("g2", m2, 1.0, mmJukesCantor(1e-6)); // nonsynonymous sites
@@ -25,8 +24,8 @@ initialize() {
 	initializeMutationRate(1e-6);  // mutation rate
 
 	// Load 4-fold and 0-fold degenerate sites
-	types = asString(readFile("types.txt"));
-	starts = asInteger(readFile("starts.txt"));
+	types = asInteger(readFile(paste("types_", str(ID), ".txt", sep = "")));
+	starts = asInteger(readFile(paste("starts_", str(ID), ".txt", sep = "")));
 	//ends = asInteger(readFile("ends.txt"));
 
 	// remove empty space at 5' end
@@ -38,12 +37,12 @@ initialize() {
 		type = types[i];
 		start = starts[i];
 		//end = ends[i];
-		if (type == "g4"){
+		if (type == 4){
 			//initializeGenomicElement(g4, start, end); 
 			initializeGenomicElement(g4, start, start); 
 		}
 
-		if (type == "g0"){
+		if (type == 0){
 			//initializeGenomicElement(g0, start, end); 
 			initializeGenomicElement(g0, start, start); 
 		} 
@@ -54,13 +53,12 @@ initialize() {
 // create a population of 500 individuals
 1 late() { 
 	sim.addSubpop("p1", 500); 
-	p1.setSelfingRate(0.5); // can't figure out how to specify this as a constant
+	p1.setSelfingRate(0.25); // can't figure out how to specify this as a constant
 } 
 
 // run to generation 10000
 10000 late() { 
 	//p1.outputMSSample(20, filePath = "slim.table", filterMonomorphic = T);
-
 	g = p1.sampleIndividuals(128).genomes; 
  	g.outputVCF(filePath = output, simplifyNucleotides=F, outputNonnucleotides=T);
 }
