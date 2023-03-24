@@ -3,7 +3,7 @@ def get_gene(wildcards):
 	index = int(wildcards.ID) - 1
         gene = parameters.iloc[index, 1]
 	gene = str(gene)
-	gene = re.sub(".MSUv7.0", "", gene)
+	gene = re.sub(".MSUv7.0", ".1", gene)
         return gene
 
 def get_mean(wildcards):
