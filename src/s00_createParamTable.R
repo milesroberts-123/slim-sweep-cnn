@@ -11,7 +11,7 @@ head(genome)
 
 # extract gene names
 print("Extracting gene IDs...")
-genome = genome[(genome[,3] == "gene"),]
+genome = genome[(genome[,3] == "mRNA"),]
 
 genes = genome[,9]
 genes = gsub(";.*", "", genes)
