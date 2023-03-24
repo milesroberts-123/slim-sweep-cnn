@@ -60,5 +60,5 @@ initialize() {
 10000 late() { 
 	//p1.outputMSSample(20, filePath = "slim.table", filterMonomorphic = T);
 	g = p1.sampleIndividuals(128).genomes; 
- 	g.outputVCF(filePath = output, simplifyNucleotides=F, outputNonnucleotides=T);
+ 	g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
 }
