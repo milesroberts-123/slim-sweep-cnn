@@ -2,7 +2,9 @@ def get_gene(wildcards):
 	# for some reason, ID will be included in output if I use loc subsetting 
 	index = int(wildcards.ID) - 1
         gene = parameters.iloc[index, 1]
-        return str(gene)
+	gene = str(gene)
+	gene = re.sub(".MSUv7.0", "", gene)
+        return gene
 
 def get_mean(wildcards):
         mean = parameters.loc[parameters["ID"] == wildcards.ID, "mean"]
