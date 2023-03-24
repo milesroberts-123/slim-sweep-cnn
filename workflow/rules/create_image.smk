@@ -9,4 +9,4 @@ rule create_image:
 	conda:
 		"../envs/R.yml"
 	shell:
-		"scripts/create-images.R {input} {output}"
+		"Rscript scripts/create-images.R {input} {output}"

@@ -1,12 +1,16 @@
+# load packages
 library(ggplot2)
 library(reshape2)
 library(ggnewscale)
 library(cowplot)
 
+# parse arguments
 args = commandArgs(trailingOnly=TRUE)
-
 input = args[1]
 output = args[2]
+
+print(input)
+print(output)
 
 # load simulation output
 simvar = read.table(input, header = T)
