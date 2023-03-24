@@ -24,8 +24,8 @@ initialize() {
 	initializeMutationRate(1e-6);  // mutation rate
 
 	// Load 4-fold and 0-fold degenerate sites
-	types = asInteger(readFile(paste(c("types_", str(ID), ".txt"), sep = "")));
-	starts = asInteger(readFile(paste(c("starts_", str(ID), ".txt"), sep = "")));
+	types = asInteger(readFile("types_" + str(ID) + ".txt"));
+	starts = asInteger(readFile("starts_" + str(ID) + ".txt"));
 	//ends = asInteger(readFile("ends.txt"));
 
 	// remove empty space at 5' end
