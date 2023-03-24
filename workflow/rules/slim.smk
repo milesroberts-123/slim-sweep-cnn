@@ -4,11 +4,11 @@ def get_gene(wildcards):
 
 def get_mean(wildcards):
         mean = parameters.loc[parameters["ID"] == wildcards.ID, "mean"]
-        return str(mean)
+        return float(mean)
 
 def get_alpha(wildcards):
         alpha = parameters.loc[parameters["ID"] == wildcards.ID, "alpha"]
-        return str(alpha)
+        return float(alpha)
 
 rule slim:
 	input:
@@ -26,7 +26,13 @@ rule slim:
 		"../envs/slim.yml"
 	shell:
 		"""
+		echo Parameter values for this simulation:
+		echo {params.gene}
+		echo {params.mean}
+		echo {params.alpha}
+
 		# get individual 0 and 4 sites for each gene
+		echo Getting 0 and 4-fold degenerate sites for {params.gene}...
 		grep "{params.gene}" {input} > slim_{wildcards.ID}_04sites.bed
 
 		# get just single vector of positions and types because this is all SLiM can read
