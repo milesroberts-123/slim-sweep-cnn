@@ -2,8 +2,8 @@
 initialize() { 
 	// parse out constants if using gui, otherwise these will be passed from command line
 	if (exists("slimgui")) {
-		defineConstant("alpha", -0.03)
-		defineConstant("beta", 0.2)
+		defineConstant("mean", -0.03)
+		defineConstant("alpha", 0.2)
 		defineConstant("ID", 1)
 	}
 
@@ -12,7 +12,7 @@ initialize() {
 	//initializeMutationTypeNuc("m1", 0.5, "f", 0.0); // neutral
 	//initializeMutationTypeNuc("m2", 0.1, "g", -0.03, 0.2); // deleterious
 	initializeMutationType("m0", 0.5, "f", 0.0); // neutral
-	initializeMutationType("m4", 0.1, "g", alpha, beta); // deleterious
+	initializeMutationType("m4", 0.1, "g", mean, alpha); // deleterious
 	
 	//initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(1e-6)); // synonymous sites 
 	//initializeGenomicElementType("g2", m2, 1.0, mmJukesCantor(1e-6)); // nonsynonymous sites
