@@ -41,6 +41,11 @@ train_params = slim_params[slim_params["split"] == "train"]
 val_params = slim_params[slim_params["split"] == "val"]
 test_params = slim_params[slim_params["split"] == "test"]
 
+print("Splitting response variable into training, validation, and testing...")
+train_y = train_params["mean"] 
+val_y = val_params["mean"]
+test_y = test_params["mean"]
+
 train_ids = list(train_params["ID"])
 val_ids = list(val_params["ID"])
 test_ids = list(test_params["ID"])
@@ -56,16 +61,17 @@ print(val_images.shape)
 print(test_images.shape)
 
 # load tables to get position information from slim
-train_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in train_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
-val_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in val_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
-test_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in test_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
+#train_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in train_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
+#val_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in val_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
+#test_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in test_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
 
-print("Shapes of training, validation, and testing positions:")
-print(train_pos.shape)
-print(val_pos.shape)
-print(test_pos.shape)
+#print("Shapes of training, validation, and testing positions:")
+#print(train_pos.shape)
+#print(val_pos.shape)
+#print(test_pos.shape)
 
 # Create model with functional API
+print("Creating model...")
 input_A = keras.layers.Input(shape = [128,128,3], name = "images")
 conv1 = keras.layers.Conv2D(filters = 16, kernel_size = 5, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
 pool1 = keras.layers.MaxPooling2D(2)(conv1)
@@ -77,14 +83,24 @@ dropped = keras.layers.Dropout(0.25)(dense)
 output = keras.layers.Dense(1, name = "output")(dropped)
 model = keras.Model(inputs = [input_A], outputs = [output])
 
-# compile model, adding early stopping and saving at checkpoints
+# compile model
+print("Compiling model...")
 model.compile(loss='mean_squared_error', optimizer='adam')
+
+# add callbacks: early stopping and saving at checkpoints
 earlystop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=3, verbose=0, mode='auto')
 checkpoint = keras.callbacks.ModelCheckpoint(weightFileName, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 callbacks = [earlystop, checkpoint]
 
 # fit model
-#model.fit([X, posX], y, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=([valX, valPosX], valy), callbacks=callbacks)
+print("Fitting model...")
+history = model.fit(train_images, train_y, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(val_images, val_y), callbacks=callbacks)
+
+# test model
+print("Testing model...")
+model.predict(test_images)
+
+print("Done! :)")
 
 # convert image to numpy array
 # data = np.asarray(image)
