@@ -1,0 +1,10 @@
+name: cnn
+
+dependencies:
+ - python=3.11.0
+ - numpy=1.23.5
+ - pandas=1.5.3
+ - keras=2.12.0
+ - tensorflow=2.11.0
+ - matplotlib=3.7.1
+ - pillow=9.4.0
