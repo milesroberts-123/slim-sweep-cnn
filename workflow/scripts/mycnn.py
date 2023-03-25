@@ -11,6 +11,7 @@ import keras
 path = "data/images/"
 batch_size = 32
 epochs = 100
+patience = 10
 slim_params = "data/parameters.tsv"
 weightFileName = "data/weightfile.txt"
 
@@ -88,7 +89,7 @@ print("Compiling model...")
 model.compile(loss='mean_squared_error', optimizer='adam')
 
 # add callbacks: early stopping and saving at checkpoints
-earlystop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0, patience=3, verbose=0, mode='auto')
+earlystop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0, patience=patience, verbose=0, mode='auto')
 checkpoint = keras.callbacks.ModelCheckpoint(weightFileName, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 callbacks = [earlystop, checkpoint]
 
@@ -96,10 +97,19 @@ callbacks = [earlystop, checkpoint]
 print("Fitting model...")
 history = model.fit(train_images, train_y, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(val_images, val_y), callbacks=callbacks)
 
+# evaluate total error in model
+print("Evaluating model...")
+model.evaluate(test_images, test_y)
+
 # test model
 print("Testing model...")
-model.predict(test_images)
+final_pred = model.predict(test_images)
 
+print("Predictions:")
+print(final_pred)
+
+print("Real values:")
+print(test_y)
 print("Done! :)")
 
 # convert image to numpy array
