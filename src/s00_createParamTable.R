@@ -27,8 +27,8 @@ params = data.frame(
   #Nc = round(runif(K, min = 100, max = 40000)),
   #t = round(runif(K, min = 2, max = 9999)),
   #Na = round(runif(K, min = 100, max = 40000)),
-  mean = runif(K, min = -0.1, max = 0.1), # mean fitness effect of nonsynonymous DFE
-  alpha = c(runif(K/3, min = 0, max = 1), rep(1, times = K/3), runif(K/3, min = 1, max = 16)) # shape parameter of nonsynonymous DFE
+  mean = runif(K, min = -0.05, max = 0.05), # mean fitness effect of nonsynonymous DFE
+  alpha = c(runif(K/2, min = 0, max = 1), runif(K/2, min = 1, max = 16)) # shape parameter of nonsynonymous DFE
   #h = runif(K, min = 0, max = 1), # dominance of nonsynonymous mutations
   #mu = runif(K, min = 1e-9, max = 1e-8),
   #rho = runif(K, min = 1e-9, max = 1e-8)
