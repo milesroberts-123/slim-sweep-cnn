@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 import keras
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # define parameters
 path = "data/images/"
@@ -87,9 +87,16 @@ model.evaluate(test_images, test_y)
 print("Testing model...")
 final_pred = model.predict(test_images)
 
-print("Predictions:")
-print(final_pred)
+# plot predictions against real values
+plt.scatter(test_y, final_pred)
+plt.xlabel("Mean selection coefficient")
+plt.ylabel("Predicted mean selection coefficient")
+plt.savefig('real_vs_predictions.png')
 
-print("Real values:")
-print(test_y)
+#print("Predictions:")
+#print(final_pred)
+
+#print("Real values:")
+#print(test_y)
+
 print("Done! :)")
