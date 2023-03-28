@@ -62,7 +62,7 @@ conv2 = keras.layers.Conv2D(filters = 32, kernel_size = 3, strides = 1, padding 
 pool2 = keras.layers.MaxPooling2D(2)(conv2)
 flat = keras.layers.Flatten()(pool2)
 dense = keras.layers.Dense(64, activation = "relu")(flat)
-dropped = keras.layers.Dropout(0.25)(dense)
+dropped = keras.layers.Dropout(0.4)(dense)
 output = keras.layers.Dense(1, name = "output")(dropped)
 model = keras.Model(inputs = [input_A], outputs = [output])
 
