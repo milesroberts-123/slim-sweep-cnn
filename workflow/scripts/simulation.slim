@@ -1,4 +1,4 @@
-// set up a simple neutral simulation
+// set up a simple simulation
 initialize() { 
 	// parse out constants if using gui, otherwise these will be passed from command line
 	if (exists("slimgui")) {
@@ -35,18 +35,21 @@ initialize() {
 			initializeGenomicElement(g0, start, start); 
 		} 
 	} 
-
 }
  
-// create a population of 500 individuals
+// create a population
 1 late() { 
 	sim.addSubpop("p1", 1000); 
 	// p1.setSelfingRate(0.25); // can't figure out how to specify this as a constant
 } 
 
-// run to generation 10000
+// run simulation for many generations
 20000 late() { 
 	//p1.outputMSSample(20, filePath = "slim.table", filterMonomorphic = T);
+	
+	// random sample of individuals from simulation
 	g = p1.sampleIndividuals(128).genomes; 
- 	g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
+ 	
+	// output sampled genomes as VCF
+	g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
 }

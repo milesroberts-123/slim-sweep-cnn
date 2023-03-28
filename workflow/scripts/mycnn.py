@@ -15,24 +15,6 @@ patience = 10
 slim_params = "data/parameters.tsv"
 weightFileName = "data/weightfile.txt"
 
-#print("Getting paths to input images...")
-#image_paths = os.listdir(path)
-#image_paths = [path + x for x in image_paths]
-
-#print("List of input images:")
-#print(image_paths)
-
-# load the images into a numpy array, normalizing to get values between 0-1
-#print("Loading the images to a numpy array")
-#images = np.asarray([np.asarray(Image.open(x))/255 for x in image_paths])
-
-#print(images.shape)
-#print(images[0].shape)
-
-# plot image to ensure code works correctly
-#plt.imshow(images[0])
-#plt.savefig('test.jpg')
-
 # split data into training, testing, and validation
 print("Reading table of parameters...")
 slim_params = pd.read_table(slim_params)
@@ -111,10 +93,3 @@ print(final_pred)
 print("Real values:")
 print(test_y)
 print("Done! :)")
-
-# convert image to numpy array
-# data = np.asarray(image)
-#print(type(data))
-
-# summarize shape
-# print(data.shape)
