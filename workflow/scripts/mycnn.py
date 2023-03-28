@@ -14,6 +14,7 @@ epochs = 100
 patience = 10
 slim_params = "data/parameters.tsv"
 weightFileName = "data/weightfile.txt"
+finalModelName = "best_cnn.h5"
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -81,7 +82,7 @@ history = model.fit(train_images, train_y, batch_size=batch_size, epochs=epochs,
 
 # evaluate total error in model
 print("Evaluating model...")
-model.evaluate(test_images, test_y)
+total_error = model.evaluate(test_images, test_y)
 
 # test model
 print("Testing model...")
@@ -93,10 +94,8 @@ plt.xlabel("Mean selection coefficient")
 plt.ylabel("Predicted mean selection coefficient")
 plt.savefig('real_vs_predictions.png')
 
-#print("Predictions:")
-#print(final_pred)
-
-#print("Real values:")
-#print(test_y)
+# save model
+print("Saving final model...")
+model.save(finalModelName)
 
 print("Done! :)")
