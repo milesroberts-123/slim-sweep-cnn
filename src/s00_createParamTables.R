@@ -1,6 +1,6 @@
 # hyperparameters for simulation parameters
-K = 500 # number of sims 
-train_test_val_split = c(0.8, 0.1, 0.1) # train/test/validation split
+K = 5000 # number of sims 
+train_test_val_split = c(0.9, 0.05, 0.05) # train/test/validation split
 gff = "../workflow/data/genome/Osativa_323_v7.0.gene.gff3" # path to genome annotation
 
 # load list of genes
@@ -25,7 +25,11 @@ params = data.frame(
   ID = 1:K,
   gene = sample(genes, size = K, replace = T),
   mean = runif(K, min = -0.05, max = 0.05), # mean fitness effect of nonsynonymous DFE
-  alpha = c(runif(K/2, min = 0, max = 1), runif(K/2, min = 1, max = 16)) # shape parameter of nonsynonymous DFE
+  alpha = c(runif(K/2, min = 0, max = 1), runif(K/2, min = 1, max = 24)), # shape parameter of nonsynonymous DFE
+  h = runif(K, min = 0, max = 1), # dominance coefficient
+  n = runif(K, min = 2000, 50000), # population size
+  self = runif(K, min = 0, max = 1), # selfing rate
+  mu = runif(K, min = 1e-9, max = 1e-7) # mutation rate
 )
 
 # If there are multiple parameters, make sure they're not correlated by chance

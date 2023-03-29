@@ -28,7 +28,9 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 # To-do
 
-- [ ] add rule for fitting neural network
+- [x] add rule for fitting neural network
+
+- [ ] calculate realized selection coefficient for each gene (due to sampling error, the actual selection coefficient in a gene might not be the same as the distribution it was drawn from)
 
 - [ ] re-write neural network as a function with hyperparameters
 
