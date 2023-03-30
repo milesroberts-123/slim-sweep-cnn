@@ -46,7 +46,7 @@ initialize() {
 1 late() { 
 	sim.addSubpop("p1", N); // create a population
 	p1.setSelfingRate(sigma); // can't figure out how to specify this as a constant
-	sim.rescheduleScriptBlock(s1, T, T); // set length of simulation
+	sim.rescheduleScriptBlock(s1, G, G); // set length of simulation
 } 
 
 // run simulation for many generations
