@@ -43,14 +43,16 @@ initialize() {
 }
  
 // initialize properties of population
-1 late() { 
+1 early() { 
 	sim.addSubpop("p1", N); // create a population
+	community.rescheduleScriptBlock(s1, start=G, end=G);
+	// sim.rescheduleScriptBlock() method deprecated in slim 4: https://groups.google.com/g/slim-discuss/c/827_5SAIJtM/m/k074ovLSBAAJ
+	//sim.rescheduleScriptBlock(s1, start = G, end = G); // set length of simulation
 	p1.setSelfingRate(sigma); // can't figure out how to specify this as a constant
-	sim.rescheduleScriptBlock("s1", G, G); // set length of simulation
 } 
 
 // run simulation for many generations
-s1 1000000000 late() { 
+s1 2000 late() { 
 	// output random sample of phased chromosomes
 	//p1.outputMSSample(20, filePath = "slim.table", filterMonomorphic = T);
 	
