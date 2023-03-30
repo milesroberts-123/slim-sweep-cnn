@@ -2,14 +2,14 @@
 initialize() { 
 	// parse out constants if using gui, otherwise these will be passed from command line
 	if (exists("slimgui")) {
-		defineConstant("ID", 1); \\ unique ID for simulation
-		defineConstant("meanS", -0.03); \\ average selection coefficient for DFE
-		defineConstant("alpha", 0.2); \\ shape parameter for DFE
-		defineConstant("sigma", 0.1); \\ selfing rate
-		defineConstant("N", 1000); \\ population size
-		defineConstant("R", 1e-8); \\ recombination rate
-		defineConstant("mu", 1e-6); \\ mutation rate
-		defineConstant("T", 25000); \\ simulation length in generations
+		defineConstant("ID", 1); // unique ID for simulation
+		defineConstant("meanS", -0.03); // average selection coefficient for DFE
+		defineConstant("alpha", 0.2); // shape parameter for DFE
+		defineConstant("sigma", 0.1); // selfing rate
+		defineConstant("N", 1000); // population size
+		defineConstant("R", 1e-8); // recombination rate
+		defineConstant("mu", 1e-6); // mutation rate
+		defineConstant("T", 25000); // simulation length in generations
 	}
 
 	initializeMutationType("m0", 0.5, "f", 0.0); // neutral
