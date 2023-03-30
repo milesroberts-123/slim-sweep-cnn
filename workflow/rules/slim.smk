@@ -5,9 +5,9 @@ def get_gene(wildcards):
 	gene = str(gene)
 	return gene
 
-def get_mean(wildcards):
-        mean = parameters.loc[parameters["ID"] == wildcards.ID, "mean"]
-        return float(mean)
+def get_meanS(wildcards):
+        meanS = parameters.loc[parameters["ID"] == wildcards.ID, "meanS"]
+        return float(meanS)
 
 def get_alpha(wildcards):
         alpha = parameters.loc[parameters["ID"] == wildcards.ID, "alpha"]
@@ -20,7 +20,7 @@ rule slim:
 		"data/tables/slim_{ID}.table"
 	params:
 		gene=get_gene,
-		mean=get_mean,
+		meanS=get_meanS,
 		alpha=get_alpha
 	threads: 1
 	resources:
@@ -31,7 +31,7 @@ rule slim:
 		"""
 		echo Parameter values for this simulation:
 		echo {params.gene}
-		echo {params.mean}
+		echo {params.meanS}
 		echo {params.alpha}
 
 		# get individual 0 and 4 sites for each gene
@@ -43,7 +43,7 @@ rule slim:
 		cut -f 5 slim_{wildcards.ID}_04sites.bed > types_{wildcards.ID}.txt
 
 		# run simulation
-		slim -d ID={wildcards.ID} -d mean={params.mean} -d alpha={params.alpha} scripts/simulation.slim
+		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} scripts/simulation.slim
 		
 		# convert vcf to simple table
 		# remove hastag from CHROM
@@ -54,6 +54,7 @@ rule slim:
 		rm slim_{wildcards.ID}.vcf
 		rm starts_{wildcards.ID}.txt
 		rm types_{wildcards.ID}.txt
+		rm slim_{wildcards.ID}_04sites.bed
 
 		# move table into folder so things stay organized
 		mv slim_{wildcards.ID}.table {output}

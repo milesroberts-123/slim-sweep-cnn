@@ -2,13 +2,18 @@
 initialize() { 
 	// parse out constants if using gui, otherwise these will be passed from command line
 	if (exists("slimgui")) {
-		defineConstant("mean", -0.03);
-		defineConstant("alpha", 0.2);
-		defineConstant("ID", 1);
+		defineConstant("ID", 1); \\ unique ID for simulation
+		defineConstant("meanS", -0.03); \\ average selection coefficient for DFE
+		defineConstant("alpha", 0.2); \\ shape parameter for DFE
+		defineConstant("sigma", 0.1); \\ selfing rate
+		defineConstant("N", 1000); \\ population size
+		defineConstant("R", 1e-8); \\ recombination rate
+		defineConstant("mu", 1e-6); \\ mutation rate
+		defineConstant("T", 25000); \\ simulation length in generations
 	}
 
 	initializeMutationType("m0", 0.5, "f", 0.0); // neutral
-	initializeMutationType("m4", 0.1, "g", mean, alpha); // deleterious
+	initializeMutationType("m4", 0.1, "g", meanS, alpha); // deleterious
 	
 	initializeGenomicElementType("g0", m0, 1.0); // synonymous sites 
 	initializeGenomicElementType("g4", m4, 1.0); // nonsynonymous sites
@@ -37,19 +42,21 @@ initialize() {
 	} 
 }
  
-// create a population
+// initialize properties of population
 1 late() { 
-	sim.addSubpop("p1", 1000); 
-	// p1.setSelfingRate(0.25); // can't figure out how to specify this as a constant
+	sim.addSubpop("p1", N); // create a population
+	p1.setSelfingRate(sigma); // can't figure out how to specify this as a constant
+	sim.rescheduleScriptBlock(s1, T, T); // set length of simulation
 } 
 
 // run simulation for many generations
-20000 late() { 
+s1 1000000000 late() { 
+	// output random sample of phased chromosomes
 	//p1.outputMSSample(20, filePath = "slim.table", filterMonomorphic = T);
 	
 	// random sample of individuals from simulation
 	g = p1.sampleIndividuals(128).genomes; 
  	
-	// output sampled genomes as VCF
+	// output sampled unphased genomes as VCF
 	g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
 }
