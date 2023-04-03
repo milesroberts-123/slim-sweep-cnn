@@ -20,9 +20,18 @@ print("Number of variants:")
 varCount = nrow(simvar)
 print(varCount)
 
-if(varCount > 256){
+if(varCount > 128){
  print("Subsampling table because there are too many variants...")
- simvar = simvar[sample(1:256, replace = F),]
+ simvar = simvar[sample(1:128, replace = F),]
+}
+
+# Add zero-padds if needed
+if(varCount < 128){
+ print("Zero-padding image because there are not enough variants...")
+ lastVar = simvar[varCount,2]
+ for(i in 1:(128 - varCount)){
+  simvar = rbind(simvar, c(1, lastVar + i, "MT=0;", rep(0, times = 128)))
+ }
 }
 
 # label syn and nonsyn sites
@@ -61,4 +70,4 @@ ggplot(mapping = aes(POS2, variable)) +
   scale_x_discrete(expand=c(0,0)) +
   scale_y_discrete(expand=c(0,0))
 
-ggsave(output, width = 256, height = 256, units = "px", dpi = 300)
+ggsave(output, width = 128, height = 128, units = "px", dpi = 300)
