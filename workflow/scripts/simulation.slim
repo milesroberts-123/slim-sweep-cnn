@@ -46,6 +46,9 @@ initialize() {
 			initializeGenomicElement(g0, start, start); 
 		} 
 	} 
+
+	// put starts vector in global scope so it can be accessed when adding beneficial mutation
+	defineGlobal(starts);
 }
  
 // initialize properties of population
