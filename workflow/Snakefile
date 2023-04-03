@@ -8,8 +8,8 @@ parameters = pd.read_table("data/parameters.tsv", sep="\t", dtype={"ID": str}).s
 # gather all images for training CNN
 rule all:
 	input:
-		#expand("data/images/slim_{ID}.jpg", ID=parameters.index.get_level_values("ID"))
-		"best_cnn.h5"
+		expand("data/images/slim_{ID}.jpg", ID=parameters.index.get_level_values("ID"))
+		#"best_cnn.h5"
 
 include: "rules/slim.smk"
 include: "rules/degenotate.smk"
