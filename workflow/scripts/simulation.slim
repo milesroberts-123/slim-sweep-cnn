@@ -50,7 +50,7 @@ initialize() {
  
 // initialize properties of population
 1 early() { 
-	sim.addSubpop("p1", N); // create a population
+	sim.addSubpop("p1", asInteger(N)); // create a population
 	community.rescheduleScriptBlock(s1, start=G, end=G); // output results at defined time
 	community.rescheduleScriptBlock(s2, start=tsigma, end=tsigma); // change selfing rate at defined time
 	community.rescheduleScriptBlock(s3, start=tsweep, end=tsweep); // add in beneficial mutation at defined time
