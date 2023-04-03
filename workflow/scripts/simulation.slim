@@ -69,7 +69,7 @@ s2 5000 early() {
 s3 10000 late() { 
  print("Introducing beneficial mutation...");
  target = sample(p1.genomes, 1); 
- target.addNewDrawnMutation(m5, sample(starts, 1)); 
+ target.addNewDrawnMutation(m5, starts[sample(0:(length(starts) - 1), 1)]); 
 } 
 
 // run simulation for many generations
