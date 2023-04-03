@@ -52,8 +52,8 @@ initialize() {
 1 early() { 
 	sim.addSubpop("p1", asInteger(N)); // create a population
 	community.rescheduleScriptBlock(s1, start=G, end=G); // output results at defined time
-	community.rescheduleScriptBlock(s2, start=tsigma, end=tsigma); // change selfing rate at defined time
-	community.rescheduleScriptBlock(s3, start=tsweep, end=tsweep); // add in beneficial mutation at defined time
+	community.rescheduleScriptBlock(s2, start=asInteger(tsigma), end=asInteger(tsigma)); // change selfing rate at defined time
+	community.rescheduleScriptBlock(s3, start=asInteger(tsweep), end=asInteger(tsweep)); // add in beneficial mutation at defined time
 	// sim.rescheduleScriptBlock() method deprecated in slim 4: https://groups.google.com/g/slim-discuss/c/827_5SAIJtM/m/k074ovLSBAAJ
 	// sim.rescheduleScriptBlock(s1, start = G, end = G); // set length of simulation
 	p1.setSelfingRate(sigmaA); // set selfing rate for ancestral population
