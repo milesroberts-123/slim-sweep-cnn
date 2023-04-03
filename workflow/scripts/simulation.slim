@@ -3,9 +3,14 @@ initialize() {
 	// parse out constants if using gui, otherwise these will be passed from command line
 	if (exists("slimgui")) {
 		defineConstant("ID", 1); // unique ID for simulation
-		defineConstant("meanS", -0.03); // average selection coefficient for DFE
+		defineConstant("meanS", 0.02); // average selection coefficient for DFE
 		defineConstant("alpha", 0.2); // shape parameter for DFE
-		defineConstant("sigma", 0.1); // selfing rate
+		defineConstant("h", 0.1); // dominance coefficient
+		defineConstant("sweepS", 0.02); // fitness effect of beneficial mutation
+		defineConstant("sigmaA", 0.9); // ancestral selfing rate
+		defineConstant("sigmaC", 0.1); // current selfing rate
+		defineConstant("tsigma", 1000); // when selfing rate transition occurs
+		defineConstant("tsweep", 5000); // when mutations become non-neutral
 		defineConstant("N", 1000); // population size
 		defineConstant("R", 1e-8); // recombination rate
 		defineConstant("mu", 1e-6); // mutation rate
@@ -13,7 +18,8 @@ initialize() {
 	}
 
 	initializeMutationType("m0", 0.5, "f", 0.0); // neutral
-	initializeMutationType("m4", 0.1, "g", meanS, alpha); // deleterious
+	initializeMutationType("m4", 0.1, "g", meanS, alpha); // deleterious, background selection
+	initializeMutationType("m5", h, "f", sweepS); // beneficial mutation
 	
 	initializeGenomicElementType("g0", m0, 1.0); // synonymous sites 
 	initializeGenomicElementType("g4", m4, 1.0); // nonsynonymous sites
@@ -45,10 +51,25 @@ initialize() {
 // initialize properties of population
 1 early() { 
 	sim.addSubpop("p1", N); // create a population
-	community.rescheduleScriptBlock(s1, start=G, end=G);
+	community.rescheduleScriptBlock(s1, start=G, end=G); // output results at defined time
+	community.rescheduleScriptBlock(s2, start=tsigma, end=tsigma); // change selfing rate at defined time
+	community.rescheduleScriptBlock(s3, start=tsweep, end=tsweep); // add in beneficial mutation at defined time
 	// sim.rescheduleScriptBlock() method deprecated in slim 4: https://groups.google.com/g/slim-discuss/c/827_5SAIJtM/m/k074ovLSBAAJ
-	//sim.rescheduleScriptBlock(s1, start = G, end = G); // set length of simulation
-	p1.setSelfingRate(sigma); // can't figure out how to specify this as a constant
+	// sim.rescheduleScriptBlock(s1, start = G, end = G); // set length of simulation
+	p1.setSelfingRate(sigmaA); // set selfing rate for ancestral population
+} 
+
+// Change selfing rate
+s2 5000 early() {
+	print("Activating transition...");
+	p1.setSelfingRate(sigmaC);
+}
+
+// Add new mutation
+s3 10000 late() { 
+ print("Introducing beneficial mutation...");
+ target = sample(p1.genomes, 1); 
+ target.addNewDrawnMutation(m5, sample(starts, 1)); 
 } 
 
 // run simulation for many generations

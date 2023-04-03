@@ -13,6 +13,34 @@ def get_alpha(wildcards):
         alpha = parameters.loc[parameters["ID"] == wildcards.ID, "alpha"]
         return float(alpha)
 
+def get_h(wildcards):
+        h = parameters.loc[parameters["ID"] == wildcards.ID, "h"]
+        return float(h)
+
+def get_sweepS(wildcards):
+        sweepS = parameters.loc[parameters["ID"] == wildcards.ID, "sweepS"]
+        return float(sweepS)
+
+def get_N(wildcards):
+        N = parameters.loc[parameters["ID"] == wildcards.ID, "N"]
+        return float(N)
+
+def get_sigmaA(wildcards):
+        sigmaA = parameters.loc[parameters["ID"] == wildcards.ID, "sigmaA"]
+        return float(sigmaA)
+
+def get_sigmaC(wildcards):
+        sigmaC = parameters.loc[parameters["ID"] == wildcards.ID, "sigmaC"]
+        return float(sigmaC)
+
+def get_tsigma(wildcards):
+        tsigma = parameters.loc[parameters["ID"] == wildcards.ID, "tsigma"]
+        return float(tsigma)
+
+def get_tsweep(wildcards):
+        tsweep = parameters.loc[parameters["ID"] == wildcards.ID, "tsweep"]
+        return float(tsweep)
+
 rule slim:
 	input:
 		"data/Osativa_04Sites.bed"
@@ -21,7 +49,14 @@ rule slim:
 	params:
 		gene=get_gene,
 		meanS=get_meanS,
-		alpha=get_alpha
+		alpha=get_alpha,
+		sweepS=get_sweepS,
+		h=get_h,
+		N=get_N,
+		sigmaA=get_sigmaA,
+		sigmaC=get_sigmaC,
+		tsigma=get_tsigma,
+		tsweep=get_tsweep
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000
@@ -43,7 +78,7 @@ rule slim:
 		cut -f 5 slim_{wildcards.ID}_04sites.bed > types_{wildcards.ID}.txt
 
 		# run simulation
-		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} scripts/simulation.slim
+		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d sigmaA={params.sigmaA} -d sigmaC={params.sigmaC} -d tsigma={params.tsigma} -d tsweep={params.tsweep} -d G=25000 scripts/simulation.slim
 		
 		# convert vcf to simple table
 		# remove hastag from CHROM
