@@ -15,9 +15,19 @@ print(output)
 # load simulation output
 simvar = read.table(input, header = T)
 
+# subset to only some snps, if needed
+print("Number of variants:")
+varCount = nrow(simvar)
+print(varCount)
+
+if(varCount > 256){
+ print("Subsampling table because there are too many variants...")
+ simvar = simvar[sample(1:256, replace = F),]
+}
+
 # label syn and nonsyn sites
 simvar$INFO[grepl("MT=0;", simvar$INFO)] = "s"
-simvar$INFO[grepl("MT=4;", simvar$INFO)] = "n"
+simvar$INFO[grepl("MT=4;|MT=5;", simvar$INFO)] = "n"
 
 # melt sorted matrix to dataframe, so you can use ggplot
 simvar = melt(simvar, id.vars = c("CHROM", "POS", "INFO"))
@@ -51,4 +61,4 @@ ggplot(mapping = aes(POS2, variable)) +
   scale_x_discrete(expand=c(0,0)) +
   scale_y_discrete(expand=c(0,0))
 
-ggsave(output, width = 128, height = 128, units = "px", dpi = 300)
+ggsave(output, width = 256, height = 256, units = "px", dpi = 300)

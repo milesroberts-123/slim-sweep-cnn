@@ -48,7 +48,7 @@ initialize() {
 	} 
 
 	// put starts vector in global scope so it can be accessed when adding beneficial mutation
-	defineGlobal("starts", starts);
+	defineGlobal("nonsynSites", starts[(types ==4)]);
 }
  
 // initialize properties of population
@@ -75,7 +75,7 @@ s3 10000 late() {
  target = sample(p1.genomes, 1);
 
  print("Sample one site..."); 
- mutsite = starts[sample(0:(length(starts) - 1), 1)];
+ mutsite = sample(nonsynSites, 1);
 
  print("Site of beneficial mutation:");
  print(mutsite);
