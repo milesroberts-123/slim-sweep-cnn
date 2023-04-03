@@ -68,8 +68,15 @@ s2 5000 early() {
 // Add new mutation
 s3 10000 late() { 
  print("Introducing beneficial mutation...");
- target = sample(p1.genomes, 1); 
- target.addNewDrawnMutation(m5, starts[sample(0:(length(starts) - 1), 1)]); 
+ print("Sample one genome...");
+ target = sample(p1.genomes, 1);
+
+ print("Sample one site..."); 
+ mutsite = starts[sample(0:(length(starts) - 1), 1)];
+
+ print("Site of beneficial mutation:");
+ print(mutsite);
+ target.addNewDrawnMutation(m5, mutsite); 
 } 
 
 // run simulation for many generations
