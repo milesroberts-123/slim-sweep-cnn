@@ -9,7 +9,7 @@ parameters = pd.read_table("data/parameters.tsv", sep="\t", dtype={"ID": str}).s
 rule all:
 	input:
 		#expand("data/tables/slim_{ID}.table", ID=parameters.index.get_level_values("ID"))
-		expand("data/images/slim_{ID}.jpg", ID=parameters.index.get_level_values("ID"))
+		expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID"))
 		#"best_cnn.h5"
 
 include: "rules/slim.smk"
