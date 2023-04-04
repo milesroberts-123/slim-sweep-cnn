@@ -30,9 +30,17 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] add rule for fitting neural network
 
-- [ ] calculate realized selection coefficient for each gene (due to sampling error, the actual selection coefficient in a gene might not be the same as the distribution it was drawn from)
+- [ ] add a burn-in period
+
+- [ ] remove multiallelic sites
+
+- [ ] perform hierarchical clustering of genotypes before image generation
 
 - [ ] re-write neural network as a function with hyperparameters
 
 - [ ] add a table of hyperparameters combinations to test for neural network
+
+- [ ] calculate realized selection coefficient for each gene (due to sampling error, the actual selection coefficient in a gene might not be the same as the distribution it was drawn from)
+
+
 
