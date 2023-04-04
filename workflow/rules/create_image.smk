@@ -2,7 +2,7 @@ rule create_image:
 	input:
 		"data/tables/slim_{id}.table"
 	output:
-		"data/images/slim_{id}.jpg"
+		"data/images/slim_{id}.png"
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000
