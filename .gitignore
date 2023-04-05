@@ -11,3 +11,5 @@
 **.pdf
 **/.snakemake
 **.png
+**.h5
+**/weights

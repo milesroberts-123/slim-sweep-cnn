@@ -13,7 +13,7 @@ batch_size = 32
 epochs = 100
 patience = 10
 slim_params = "data/parameters.tsv"
-weightFileName = "data/weightfile.txt"
+weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
 
 # split data into training, testing, and validation
@@ -26,18 +26,18 @@ val_params = slim_params[slim_params["split"] == "val"]
 test_params = slim_params[slim_params["split"] == "test"]
 
 print("Splitting response variable into training, validation, and testing...")
-train_y = train_params["mean"] 
-val_y = val_params["mean"]
-test_y = test_params["mean"]
+train_y = train_params["tsweep"] 
+val_y = val_params["tsweep"]
+test_y = test_params["tsweep"]
 
 train_ids = list(train_params["ID"])
 val_ids = list(val_params["ID"])
 test_ids = list(test_params["ID"])
 
-print("Loading images...")
-train_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".jpg"))/255 for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".jpg")])
-val_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".jpg"))/255 for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".jpg")])
-test_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".jpg"))/255 for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".jpg")])
+print("Loading images and converting to RGB...")
+train_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+val_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+test_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 
 print("Shapes of training, validation, and testing images:")
 print(train_images.shape)
@@ -73,7 +73,7 @@ model.compile(loss='mean_squared_error', optimizer='adam')
 
 # add callbacks: early stopping and saving at checkpoints
 earlystop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0, patience=patience, verbose=0, mode='auto')
-checkpoint = keras.callbacks.ModelCheckpoint(weightFileName, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
+checkpoint = keras.callbacks.ModelCheckpoint(weightFolderName, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
 callbacks = [earlystop, checkpoint]
 
 # fit model
@@ -90,8 +90,8 @@ final_pred = model.predict(test_images)
 
 # plot predictions against real values
 plt.scatter(test_y, final_pred)
-plt.xlabel("Mean selection coefficient")
-plt.ylabel("Predicted mean selection coefficient")
+plt.xlabel("Actual time")
+plt.ylabel("Predicted time")
 plt.savefig('real_vs_predictions.png')
 
 # save model
