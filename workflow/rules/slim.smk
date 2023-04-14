@@ -46,6 +46,8 @@ rule slim:
 		"data/Osativa_04Sites.bed"
 	output:
 		"data/tables/slim_{ID}.table"
+	log:
+		"logs/slim/{ID}.log"
 	params:
 		gene=get_gene,
 		meanS=get_meanS,
@@ -64,13 +66,13 @@ rule slim:
 		"../envs/slim.yml"
 	shell:
 		"""
-		echo Parameter values for this simulation:
-		echo {params.gene}
-		echo {params.meanS}
-		echo {params.alpha}
+		#echo Parameter values for this simulation:
+		#echo {params.gene}
+		#echo {params.meanS}
+		#echo {params.alpha}
 
 		# get individual 0 and 4 sites for each gene
-		echo Getting 0 and 4-fold degenerate sites for {params.gene}...
+		#echo Getting 0 and 4-fold degenerate sites for {params.gene}...
 		grep "{params.gene}" {input} > slim_{wildcards.ID}_04sites.bed
 
 		# get just single vector of positions and types because this is all SLiM can read
@@ -78,7 +80,7 @@ rule slim:
 		cut -f 5 slim_{wildcards.ID}_04sites.bed > types_{wildcards.ID}.txt
 
 		# run simulation
-		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d sigmaA={params.sigmaA} -d sigmaC={params.sigmaC} -d tsigma={params.tsigma} -d tsweep={params.tsweep} -d G=25000 scripts/simulation.slim
+		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d sigmaA={params.sigmaA} -d sigmaC={params.sigmaC} -d tsigma={params.tsigma} -d tsweep={params.tsweep} -d G=25000 scripts/simulation.slim &> {log}
 		
 		# convert vcf to simple table
 		# remove hastag from CHROM

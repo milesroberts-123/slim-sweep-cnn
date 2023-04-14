@@ -36,13 +36,13 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] remove multiallelic sites
 
-- [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site
+- [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site?
 
 - [ ] re-write neural network as a function with hyperparameters
 
 - [ ] add a table of hyperparameters combinations to test for neural network
 
-- [ ] calculate realized selection coefficient for each gene (due to sampling error, the actual selection coefficient in a gene might not be the same as the distribution it was drawn from)
+- [ ] ~calculate realized selection coefficient for each gene (due to sampling error, the actual selection coefficient in a gene might not be the same as the distribution it was drawn from)~
 
 
 
