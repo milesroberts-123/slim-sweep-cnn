@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 # load samples
-parameters = pd.read_table("data/parameters.tsv", sep="\t", dtype={"ID": str}).set_index(["ID"], drop=False)
+parameters = pd.read_table("../config/parameters.tsv", sep="\t", dtype={"ID": str}).set_index(["ID"], drop=False)
 
 # gather all images for training CNN
 rule all:

@@ -26,9 +26,9 @@ val_params = slim_params[slim_params["split"] == "val"]
 test_params = slim_params[slim_params["split"] == "test"]
 
 print("Splitting response variable into training, validation, and testing...")
-train_y = train_params["tsweep"] 
-val_y = val_params["tsweep"]
-test_y = test_params["tsweep"]
+train_y = train_params["sweepS"] 
+val_y = val_params["sweepS"]
+test_y = test_params["sweepS"]
 
 train_ids = list(train_params["ID"])
 val_ids = list(val_params["ID"])
@@ -59,11 +59,16 @@ print("Creating model...")
 input_A = keras.layers.Input(shape = [128,128,3], name = "images")
 conv1 = keras.layers.Conv2D(filters = 16, kernel_size = 5, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
 pool1 = keras.layers.MaxPooling2D(2)(conv1)
+pool1 = keras.layers.Dropout(0.25)(pool1)
 conv2 = keras.layers.Conv2D(filters = 32, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
 pool2 = keras.layers.MaxPooling2D(2)(conv2)
-flat = keras.layers.Flatten()(pool2)
-dense = keras.layers.Dense(64, activation = "relu")(flat)
-dropped = keras.layers.Dropout(0.4)(dense)
+pool2 = keras.layers.Dropout(0.25)(pool2)
+conv3 = keras.layers.Conv2D(filters = 64, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool2)
+pool3 = keras.layers.MaxPooling2D(2)(conv3)
+pool3 = keras.layers.Dropout(0.25)(pool3)
+flat = keras.layers.Flatten()(pool3)
+dense = keras.layers.Dense(256, activation = "relu")(flat)
+dropped = keras.layers.Dropout(0.25)(dense)
 output = keras.layers.Dense(1, name = "output")(dropped)
 model = keras.Model(inputs = [input_A], outputs = [output])
 
@@ -90,8 +95,8 @@ final_pred = model.predict(test_images)
 
 # plot predictions against real values
 plt.scatter(test_y, final_pred)
-plt.xlabel("Actual time")
-plt.ylabel("Predicted time")
+plt.xlabel("Real selection coefficient")
+plt.ylabel("Predicted selection coefficient")
 plt.savefig('real_vs_predictions.png')
 
 # save model

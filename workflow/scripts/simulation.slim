@@ -25,7 +25,7 @@ initialize() {
 	initializeGenomicElementType("g4", m4, 1.0); // nonsynonymous sites
 
 	initializeRecombinationRate(1e-8); // recombination 
-	initializeMutationRate(1e-6);  // mutation rate
+	initializeMutationRate(1e-8);  // mutation rate
 
 	// Load 4-fold and 0-fold degenerate sites
 	types = asInteger(readFile("types_" + asString(ID) + ".txt"));
@@ -54,9 +54,9 @@ initialize() {
 // initialize properties of population
 1 early() { 
 	sim.addSubpop("p1", asInteger(N)); // create a population
-	community.rescheduleScriptBlock(s1, start=G, end=G); // output results at defined time
-	community.rescheduleScriptBlock(s2, start=asInteger(tsigma), end=asInteger(tsigma)); // change selfing rate at defined time
-	community.rescheduleScriptBlock(s3, start=asInteger(tsweep), end=asInteger(tsweep)); // add in beneficial mutation at defined time
+	community.rescheduleScriptBlock(s1, start=10*asInteger(N) + G, end=10*asInteger(N) + G); // output results at defined time
+	community.rescheduleScriptBlock(s2, start=10*asInteger(N) + asInteger(tsigma), end=10*asInteger(N) + asInteger(tsigma)); // change selfing rate at defined time, first 10 N generations are burn-in
+	community.rescheduleScriptBlock(s3, start=10*asInteger(N) + asInteger(tsweep), end=10*asInteger(N) + asInteger(tsweep)); // add in beneficial mutation at defined time, first 10N generations are burn-in
 	// sim.rescheduleScriptBlock() method deprecated in slim 4: https://groups.google.com/g/slim-discuss/c/827_5SAIJtM/m/k074ovLSBAAJ
 	// sim.rescheduleScriptBlock(s1, start = G, end = G); // set length of simulation
 	p1.setSelfingRate(sigmaA); // set selfing rate for ancestral population

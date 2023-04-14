@@ -10,9 +10,13 @@ print("Parsing arguments...")
 args = commandArgs(trailingOnly=TRUE)
 input = args[1]
 output = args[2]
+distMethod = args[3]
+clustMethod = args[4]
 
 print(input)
 print(output)
+print(distMethod)
+print(clustMethod)
 
 # load simulation output
 print("Reading in table...")
@@ -44,6 +48,17 @@ print("Head:")
 head(simvar[,1:6])
 print("Tail:")
 tail(simvar[,1:6])
+
+# cluster rows of dataframe
+print("Grouping genetically similar individuals...")
+simvar_nopos = simvar[,c(-1:-3)] # remove position info
+simvar_clusters = hclust(dist(t(simvar_nopos), method = distMethod), method = clustMethod) # transpose matrix, then measure distance, then cluster
+
+print("Re-ordering columns to reflect groupings...")
+simvar = simvar[,c(1:3, 3 + simvar_clusters$order)] # keep first three columns unchanged, then add orderings
+
+print("What genotype matrix looks like:")
+head(simvar[,1:6])
 
 # label syn and nonsyn sites
 print("Labeling mutations by type...")

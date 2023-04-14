@@ -33,7 +33,7 @@ params = data.frame(
   sigmaC = runif(K, min = 0, max = 1), # current selfing rate
   tsigma = round(runif(K, min = 100, 25000)), # generation of selfing rate transition
   tsweep = round(runif(K, min = 100, max = 25000)) # generation where beneficial mutation introduced
-  #mu = runif(K, min = 1e-9, max = 1e-7) # mutation rate
+  #mu = runif(K, min = 1e-9, max = 1e-8) # mutation rate
 )
 
 # If there are multiple parameters, make sure they're not correlated by chance

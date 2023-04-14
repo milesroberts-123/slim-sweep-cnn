@@ -30,11 +30,13 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] add rule for fitting neural network
 
-- [ ] add a burn-in period
+- [x] perform hierarchical clustering of genotypes before image generation
 
-- [ ] remove multiallelic sites
+- [x] add a burn-in period
 
-- [ ] perform hierarchical clustering of genotypes before image generation
+- [x] remove multiallelic sites
+
+- [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site
 
 - [ ] re-write neural network as a function with hyperparameters
 

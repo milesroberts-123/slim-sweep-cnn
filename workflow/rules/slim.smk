@@ -82,8 +82,9 @@ rule slim:
 		
 		# convert vcf to simple table
 		# remove hastag from CHROM
+		# remove multiallelic sites, because most studies focus on just bialleleic SNPs
 		# convert genotypes to 0s and 1s
-		grep -v ^## slim_{wildcards.ID}.vcf | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > slim_{wildcards.ID}.table
+		grep -v ^## slim_{wildcards.ID}.vcf | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > slim_{wildcards.ID}.table
 		
 		# remove intermediate files
 		rm slim_{wildcards.ID}.vcf
