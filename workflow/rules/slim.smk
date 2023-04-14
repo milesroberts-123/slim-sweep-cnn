@@ -45,7 +45,11 @@ rule slim:
 	input:
 		"data/Osativa_04Sites.bed"
 	output:
-		"data/tables/slim_{ID}.table"
+		"data/tables/slim_{ID}.table",
+		temp("slim_{ID}.vcf"),
+		temp("starts_{ID}.txt"),
+		temp("types_{ID}.txt"),
+		temp("slim_{ID}_04sites.bed")
 	log:
 		"logs/slim/{ID}.log"
 	params:
@@ -80,20 +84,20 @@ rule slim:
 		cut -f 5 slim_{wildcards.ID}_04sites.bed > types_{wildcards.ID}.txt
 
 		# run simulation
-		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d sigmaA={params.sigmaA} -d sigmaC={params.sigmaC} -d tsigma={params.tsigma} -d tsweep={params.tsweep} -d G=25000 scripts/simulation.slim &> {log}
+		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d sigmaA={params.sigmaA} -d sigmaC={params.sigmaC} -d tsigma={params.tsigma} -d tsweep={params.tsweep} -d G=100000 scripts/simulation.slim &> {log}
 		
 		# convert vcf to simple table
 		# remove hastag from CHROM
 		# remove multiallelic sites, because most studies focus on just bialleleic SNPs
 		# convert genotypes to 0s and 1s
-		grep -v ^## slim_{wildcards.ID}.vcf | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > slim_{wildcards.ID}.table
+		grep -v ^## slim_{wildcards.ID}.vcf | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > {output}
 		
 		# remove intermediate files
-		rm slim_{wildcards.ID}.vcf
-		rm starts_{wildcards.ID}.txt
-		rm types_{wildcards.ID}.txt
-		rm slim_{wildcards.ID}_04sites.bed
+		# rm slim_{wildcards.ID}.vcf
+		# rm starts_{wildcards.ID}.txt
+		# rm types_{wildcards.ID}.txt
+		# rm slim_{wildcards.ID}_04sites.bed
 
 		# move table into folder so things stay organized
-		mv slim_{wildcards.ID}.table {output}
+		# mv slim_{wildcards.ID}.table {output}
 		"""
