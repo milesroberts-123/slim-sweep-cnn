@@ -7,39 +7,39 @@ def get_gene(wildcards):
 
 def get_meanS(wildcards):
         meanS = parameters.loc[parameters["ID"] == wildcards.ID, "meanS"]
-        return float(meanS)
+        return float(meanS.iloc[0])
 
 def get_alpha(wildcards):
         alpha = parameters.loc[parameters["ID"] == wildcards.ID, "alpha"]
-        return float(alpha)
+        return float(alpha.iloc[0])
 
 def get_h(wildcards):
         h = parameters.loc[parameters["ID"] == wildcards.ID, "h"]
-        return float(h)
+        return float(h.iloc[0])
 
 def get_sweepS(wildcards):
         sweepS = parameters.loc[parameters["ID"] == wildcards.ID, "sweepS"]
-        return float(sweepS)
+        return float(sweepS.iloc[0])
 
 def get_N(wildcards):
         N = parameters.loc[parameters["ID"] == wildcards.ID, "N"]
-        return float(N)
+        return float(N.iloc[0])
 
 def get_sigmaA(wildcards):
         sigmaA = parameters.loc[parameters["ID"] == wildcards.ID, "sigmaA"]
-        return float(sigmaA)
+        return float(sigmaA.iloc[0])
 
 def get_sigmaC(wildcards):
         sigmaC = parameters.loc[parameters["ID"] == wildcards.ID, "sigmaC"]
-        return float(sigmaC)
+        return float(sigmaC.iloc[0])
 
 def get_tsigma(wildcards):
         tsigma = parameters.loc[parameters["ID"] == wildcards.ID, "tsigma"]
-        return float(tsigma)
+        return float(tsigma.iloc[0])
 
 def get_tsweep(wildcards):
         tsweep = parameters.loc[parameters["ID"] == wildcards.ID, "tsweep"]
-        return float(tsweep)
+        return float(tsweep.iloc[0])
 
 rule slim:
 	input:
