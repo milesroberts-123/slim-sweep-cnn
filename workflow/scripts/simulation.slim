@@ -25,7 +25,7 @@ initialize() {
 	initializeGenomicElementType("g4", m4, 1.0); // nonsynonymous sites
 
 	initializeRecombinationRate(1e-8); // recombination 
-	initializeMutationRate(1e-8);  // mutation rate
+	initializeMutationRate(1e-7);  // mutation rate
 
 	// Load 4-fold and 0-fold degenerate sites
 	types = asInteger(readFile("types_" + asString(ID) + ".txt"));
