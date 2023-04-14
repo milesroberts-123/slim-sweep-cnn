@@ -28,7 +28,7 @@ params = data.frame(
   alpha = c(runif(K/2, min = 0, max = 1), runif(K/2, min = 1, max = 24)), # shape parameter of nonsynonymous DFE
   h = runif(K, min = 0, max = 1), # dominance coefficient
   sweepS = runif(K, min = 0, max = 0.05), # effect of beneficial mutation
-  N = round(runif(K, min = 500, 30000)), # population size
+  N = round(runif(K, min = 500, 5000)), # population size
   sigmaA = runif(K, min = 0, max = 1), # ancestral selfing rate
   sigmaC = runif(K, min = 0, max = 1), # current selfing rate
   tsigma = round(runif(K, min = 100, 25000)), # generation of selfing rate transition
@@ -63,6 +63,6 @@ params = params[order(params$ID),]
 
 # save result
 print("Saving table of parameter results...")
-write.table(params, "../workflow/data/parameters.tsv", quote = F, row.names = F, sep = "\t")
+write.table(params, "../config/parameters.tsv", quote = F, row.names = F, sep = "\t")
 
 print("Done! :)")
