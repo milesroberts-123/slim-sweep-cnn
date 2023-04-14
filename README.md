@@ -36,6 +36,8 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] remove multiallelic sites
 
+- [ ] include polymorphism position information as another input to the network, output position table at the same time as image creation
+
 - [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site?
 
 - [ ] re-write neural network as a function with hyperparameters
