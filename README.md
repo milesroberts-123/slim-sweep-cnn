@@ -36,6 +36,10 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] remove multiallelic sites
 
+- [ ] Add config file to define workflow parameters
+
+- [ ] Increase simulation length to 250,000 generations, decrease mutation rate to 1e-7?
+
 - [ ] include polymorphism position information as another input to the network, output position table at the same time as image creation
 
 - [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site?

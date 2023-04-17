@@ -12,7 +12,7 @@ path = "data/images/"
 batch_size = 32
 epochs = 100
 patience = 10
-slim_params = "data/parameters.tsv"
+slim_params = "../config/parameters.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
 
