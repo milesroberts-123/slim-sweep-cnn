@@ -59,17 +59,17 @@ print("Creating model...")
 input_A = keras.layers.Input(shape = [128,128,3], name = "images")
 conv1 = keras.layers.Conv2D(filters = 16, kernel_size = 5, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
 pool1 = keras.layers.MaxPooling2D(2)(conv1)
-pool1 = keras.layers.Dropout(0.25)(pool1)
+#pool1 = keras.layers.Dropout(0.25)(pool1)
 conv2 = keras.layers.Conv2D(filters = 32, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
 pool2 = keras.layers.MaxPooling2D(2)(conv2)
-pool2 = keras.layers.Dropout(0.25)(pool2)
-conv3 = keras.layers.Conv2D(filters = 64, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool2)
-pool3 = keras.layers.MaxPooling2D(2)(conv3)
-pool3 = keras.layers.Dropout(0.25)(pool3)
-flat = keras.layers.Flatten()(pool3)
-dense = keras.layers.Dense(256, activation = "relu")(flat)
-dropped = keras.layers.Dropout(0.25)(dense)
-output = keras.layers.Dense(1, name = "output")(dropped)
+#pool2 = keras.layers.Dropout(0.25)(pool2)
+#conv3 = keras.layers.Conv2D(filters = 64, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool2)
+#pool3 = keras.layers.MaxPooling2D(2)(conv3)
+#pool3 = keras.layers.Dropout(0.25)(pool3)
+flat = keras.layers.Flatten()(pool2)
+dense = keras.layers.Dense(32, activation = "relu")(flat)
+#dropped = keras.layers.Dropout(0.25)(dense)
+output = keras.layers.Dense(1, name = "output")(dense)
 model = keras.Model(inputs = [input_A], outputs = [output])
 
 # compile model
@@ -79,7 +79,8 @@ model.compile(loss='mean_squared_error', optimizer='adam')
 # add callbacks: early stopping and saving at checkpoints
 earlystop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0, patience=patience, verbose=0, mode='auto')
 checkpoint = keras.callbacks.ModelCheckpoint(weightFolderName, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
-callbacks = [earlystop, checkpoint]
+#callbacks = [earlystop, checkpoint]
+callbacks = checkpoint # disable earlystop for now to see if you can overfit the data
 
 # fit model
 print("Fitting model...")
