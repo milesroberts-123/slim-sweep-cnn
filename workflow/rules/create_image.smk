@@ -2,7 +2,8 @@ rule create_image:
 	input:
 		"data/tables/slim_{id}.table"
 	output:
-		"data/images/slim_{id}.png"
+		image = "data/images/slim_{id}.png"
+		pos = "data/positions/slim_{id}.pos"
 	log:
 		"logs/create_image/{id}.log"
 	params:
@@ -14,4 +15,4 @@ rule create_image:
 	conda:
 		"../envs/R.yml"
 	shell:
-		"Rscript scripts/create-images.R {input} {output} {params.distMethod} {params.clustMethod} &> {log}"
+		"Rscript scripts/create-images.R {input} {output.image} {output.pos} {params.distMethod} {params.clustMethod} &> {log}"

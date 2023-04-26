@@ -9,9 +9,10 @@ library(cowplot)
 print("Parsing arguments...")
 args = commandArgs(trailingOnly=TRUE)
 input = args[1]
-output = args[2]
-distMethod = args[3]
-clustMethod = args[4]
+output_image = args[2]
+output_pos = args[3]
+distMethod = args[4]
+clustMethod = args[5]
 
 print(input)
 print(output)
@@ -48,6 +49,14 @@ print("Head:")
 head(simvar[,1:6])
 print("Tail:")
 tail(simvar[,1:6])
+
+# output table of position information
+# positions need to be min-maxed normalized, because only the relative positions matter
+minmaxnorm = function(x){
+  (x - min(x))/(max(x) - min(x))
+}
+
+write.table(output_pos, data.frame(POSNORM = minmaxnorm(simvar[,"POS"])), row.names = F, quote = F, sep = "\t")
 
 # cluster rows of dataframe
 print("Grouping genetically similar individuals...")
@@ -115,7 +124,7 @@ ggplot(mapping = aes(POS2, variable)) +
 
 print("Saving plot...")
 # low resolution plots for model training
-ggsave(output, width = 128, height = 128, units = "px", dpi = 600)
+ggsave(output_image, width = 128, height = 128, units = "px", dpi = 600)
 # high resolution plots for presentations
 #ggsave(output, width = 1024, height = 1024, units = "px", dpi = 600)
 
