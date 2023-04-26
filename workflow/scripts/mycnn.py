@@ -6,6 +6,10 @@ import pandas as pd
 from PIL import Image
 import keras
 import matplotlib.pyplot as plt
+import tensorflow as tf
+
+# Check if GPUs are available
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 
 # define parameters
 path = "data/images/"
