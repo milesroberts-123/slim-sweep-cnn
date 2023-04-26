@@ -6,3 +6,4 @@ dependencies:
  - r-ggnewscale=0.4.8
  - r-cowplot=1.1.1
  - r-reshape2=1.4.4
+ - r-stringi=1.7.12

@@ -1,7 +1,7 @@
 rule fit_cnn:
 	input:
 		images=expand("data/images/slim_{ID}.jpg", ID=parameters.index.get_level_values("ID")),
-		hyperparams = "data/hyperparameters.txt"
+		hyperparams = "../config/hyperparameters.tsv"
 	output:
 		"best_cnn.h5"
 	conda:

@@ -43,7 +43,8 @@ def get_tsweep(wildcards):
 
 rule slim:
 	input:
-		"data/Osativa_04Sites.bed"
+		"data/Osativa_04Sites.bed",
+		"data/parameters.tsv"
 	output:
 		finalTable="data/tables/slim_{ID}.table",
 		tmpVCF = temp("slim_{ID}.vcf"),
@@ -70,11 +71,6 @@ rule slim:
 		"../envs/slim.yml"
 	shell:
 		"""
-		#echo Parameter values for this simulation:
-		#echo {params.gene}
-		#echo {params.meanS}
-		#echo {params.alpha}
-
 		# get individual 0 and 4 sites for each gene
 		#echo Getting 0 and 4-fold degenerate sites for {params.gene}...
 		grep "{params.gene}" {input} > {output.tmpSites}
@@ -84,20 +80,11 @@ rule slim:
 		cut -f 5 {output.tmpSites} > {output.tmpTypes}
 
 		# run simulation
-		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d sigmaA={params.sigmaA} -d sigmaC={params.sigmaC} -d tsigma={params.tsigma} -d tsweep={params.tsweep} -d G=100000 scripts/simulation.slim &> {log}
+		slim -d ID={wildcards.ID} -d meanS={params.meanS} -d alpha={params.alpha} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d sigmaA={params.sigmaA} -d sigmaC={params.sigmaC} -d tsigma={params.tsigma} -d tsweep={params.tsweep} -d G=10500 scripts/simulation.slim &> {log}
 		
 		# convert vcf to simple table
 		# remove hastag from CHROM
 		# remove multiallelic sites, because most studies focus on just bialleleic SNPs
 		# convert genotypes to 0s and 1s
 		grep -v ^## {output.tmpVCF} | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > {output.finalTable}
-		
-		# remove intermediate files
-		# rm slim_{wildcards.ID}.vcf
-		# rm starts_{wildcards.ID}.txt
-		# rm types_{wildcards.ID}.txt
-		# rm slim_{wildcards.ID}_04sites.bed
-
-		# move table into folder so things stay organized
-		# mv slim_{wildcards.ID}.table {output}
 		"""

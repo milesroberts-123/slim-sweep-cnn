@@ -36,7 +36,9 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] remove multiallelic sites
 
-- [ ] Add config file to define workflow parameters
+- [x] Add config file to define workflow parameters
+
+- [x] Add rule for generating table of parameters?
 
 - [ ] Increase simulation length to 250,000 generations, decrease mutation rate to 1e-7?
 
@@ -47,8 +49,5 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 - [ ] re-write neural network as a function with hyperparameters
 
 - [ ] add a table of hyperparameters combinations to test for neural network
-
-- [ ] ~calculate realized selection coefficient for each gene (due to sampling error, the actual selection coefficient in a gene might not be the same as the distribution it was drawn from)~
-
 
 

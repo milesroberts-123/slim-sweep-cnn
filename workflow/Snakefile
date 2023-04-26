@@ -2,6 +2,10 @@
 import pandas as pd
 import re
 
+# load config file
+configfile: "../config/config.yaml"
+print(config)
+
 # load samples
 parameters = pd.read_table("../config/parameters.tsv", sep="\t", dtype={"ID": str}).set_index(["ID"], drop=False)
 

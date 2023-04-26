@@ -114,6 +114,9 @@ ggplot(mapping = aes(POS2, variable)) +
   scale_y_discrete(expand=c(0,0))
 
 print("Saving plot...")
+# low resolution plots for model training
 ggsave(output, width = 128, height = 128, units = "px", dpi = 600)
+# high resolution plots for presentations
+#ggsave(output, width = 1024, height = 1024, units = "px", dpi = 600)
 
 print("Done! :)")
