@@ -1,10 +1,21 @@
-# hyperparameters for simulation parameters
-args = commandArgs(trailingOnly=TRUE)
+library(yaml)
 
-K = args[1] # number of sims 
-train_test_val_split = c(args[2], args[3], args[4]) # train/test/validation split
-gff = args[5] # path to genome annotation
-G = 100000 # Length of simulations post burn-in
+# parse out yaml path
+args = commandArgs(trailingOnly=TRUE)
+yamlpath = args[1]
+
+# load yaml file
+yamlfile = yaml.load_file(yamlpath)
+
+# parse out individual parameters in yaml file
+K = yamlfile[["K"]]
+train_test_val_split = c(yamlfile[["train"]], yamlfile[["test"]], yamlfile[["val"]])
+gff = yamlfile[["gff"]]
+
+#K = args[1] # number of sims 
+#train_test_val_split = c(args[2], args[3], args[4]) # train/test/validation split
+#gff = args[5] # path to genome annotation
+#G = 100000 # Length of simulations post burn-in
 
 # load list of genes
 print("Reading genome annotation...")
@@ -75,6 +86,6 @@ params = params[order(params$ID),]
 
 # save result
 print("Saving table of parameter results...")
-write.table(params, "data/parameters.tsv", quote = F, row.names = F, sep = "\t")
+write.table(params, "../config/parameters.tsv", quote = F, row.names = F, sep = "\t")
 
 print("Done! :)")
