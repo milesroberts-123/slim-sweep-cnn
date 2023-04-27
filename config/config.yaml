@@ -13,7 +13,7 @@ test: 0.1
 val: 0.1
 
 # Path to gene models used for simulations
-gff: "../config/Osativa_323_v7.0.gene.gff3"
+gff: "../config/genome/Osativa_323_v7.0.gene.gff3"
 
 # Dimmension of images will be nidv*nloc*3
 # Number of individual genomes to sample
