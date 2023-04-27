@@ -1,0 +1,79 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+rm(list = ls())
+library(data.table)
+library(reshape2)
+
+# simulation parameters
+params = read.table("../config/parameters.tsv", sep = "\t", header = T)
+
+# get random sample of simulation outputs
+vcfs = sample(list.files("../workflow/data/tables", full.names = T), 400)
+
+# get sim ids
+vcfids = as.numeric(gsub(".table", "", gsub("../workflow/data/tables/slim_", "", vcfs)))
+
+# get variable that outputs should predict 
+y = params[vcfids, "sweepS"]
+summary(y)
+
+# load sim outputs
+vcfs = lapply(vcfs, fread, data.table = F, header = T)
+
+# zero pad or subsample data as necessary so all tables have same dimmensions
+zeropad = function(x){
+  varCount = nrow(x)
+
+  # subsample data if there are too many variants
+  if(varCount > 128){
+    x = x[sort(sample(1:varCount, 128, replace = F)),]
+  }
+
+  # Add zero-padds if there are too few variants
+  if(varCount < 128){
+    lastVar = x[varCount,"POS"]
+    for(i in 1:(128 - varCount)){
+      x = rbind(x, c(1, lastVar + i, "MT=0;", rep(0, times = 128)))
+    }
+  }
+  
+  return(x)
+}
+
+vcfs = lapply(vcfs, zeropad)
+
+# melt vcfs
+meltvcfs = function(x){
+  x = melt(x, id.vars = c("CHROM", "POS", "INFO"))
+  return(x[,5])
+}
+
+vcfs = lapply(vcfs, meltvcfs)
+
+# combine all vcfs into one matrix
+vcfs = do.call("cbind", vcfs)
+dim(vcfs)
+
+# convert all columns to numeric
+vcfs = apply(vcfs, MARGIN = 2, as.numeric)
+dim(vcfs)
+
+# do PCA
+vcfpca = prcomp(t(vcfs), center = T)
+
+plot(vcfpca)
+plot(vcfpca$x)
+
+# correlate PCs with the dependent variable
+plot(vcfpca$x[,1], log(y))
+cor.test(vcfpca$x[,1], log(y), method = "spearman")
+
+plot(vcfpca$x[,2], log(y))
+cor.test(vcfpca$x[,2], log(y), method = "spearman")
+```
+

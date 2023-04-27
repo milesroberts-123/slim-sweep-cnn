@@ -43,8 +43,7 @@ def get_tsweep(wildcards):
 
 rule slim:
 	input:
-		"data/Osativa_04Sites.bed",
-		"data/parameters.tsv"
+		"data/Osativa_04Sites.bed"
 	output:
 		finalTable="data/tables/slim_{ID}.table",
 		tmpVCF = temp("slim_{ID}.vcf"),
