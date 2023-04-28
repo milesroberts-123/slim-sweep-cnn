@@ -14,6 +14,22 @@ git clone https://github.com/milesroberts-123/selection-demography-cnn.git
 cd src
 ```
 
+## 1. Choose workflow parameters
+
+All parameters can be found in `config/config.yaml`. Each parameter is described below.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| K | number of simulations to run | 5000 |
+| train | Proportion of simulations to use for training | 0.8 |
+| test | Proportion of simulations to use for testing | 0.1 |
+| val | Proportion of simulations to use for validation | 0.1 |
+| gff | Path to gff file, which will be used to construct gene models | "../config/genome/Osativa_323_v7.0.gene.gff3" |
+| nidv | Number of individual genomes to sample from each simulation | 128 |
+| nloc | Number of loci to sample from each simulation | 128 |
+| distMethod | Method for measuring genetic distance between loci | "manhattan" |
+| clustMethod | Method used to cluster genomes based on genetic distance | "complete " |
+
 ## 1. Create table of simulation parameters
 
 `Rscript s00_createParamTable.R`
