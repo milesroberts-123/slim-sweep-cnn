@@ -30,11 +30,11 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 | distMethod | Method for measuring genetic distance between loci | "manhattan" |
 | clustMethod | Method used to cluster genomes based on genetic distance | "complete " |
 
-## 1. Create table of simulation parameters
+## 2. Create table of simulation parameters
 
 `Rscript s00_createParamTable.R`
 
-## 2. Run simulations and train neural network on outputs
+## 3. Run simulations and train neural network on outputs
 
 `sbatch s01_snakemake.bash`
 
