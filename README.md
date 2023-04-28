@@ -6,6 +6,8 @@ This code corresponds to the following publication: XXX
 
 (How to replicate my results)[#how-to-replicate-my-results]
 
+(How to use a different SLiM model)[#how-to-use-a-different-slim-model]
+
 (To do)[#to-do]
 
 # How to replicate my results
