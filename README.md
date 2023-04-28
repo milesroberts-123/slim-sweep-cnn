@@ -1,6 +1,12 @@
 This workflow trains a convolutional neural network using population genetics data simulated with SLiM. 
 
-My specific purpose is to train a model that can predict demographic parameters and parameters for the distribution of fitness effects at a locus.
+This code corresponds to the following publication: XXX
+
+# Contents
+
+(How to replicate my results)[#how-to-replicate-my-results]
+
+(To do)[#to-do]
 
 # How to replicate my results
 
@@ -42,7 +48,7 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM script. Your new script must be named `simulation.slim`.
 
-# To-do
+# To do
 
 - [x] add rule for fitting neural network
 
