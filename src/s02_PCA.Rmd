@@ -1,19 +1,25 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
+# load packages
 ```{r}
 rm(list = ls())
 library(data.table)
 library(reshape2)
+```
 
+# load data
+```{r}
 # simulation parameters
 params = read.table("../config/parameters.tsv", sep = "\t", header = T)
 
 # get random sample of simulation outputs
-vcfs = sample(list.files("../workflow/data/tables", full.names = T), 400)
+vcfs = sample(list.files("../workflow/data/tables", full.names = T), 500)
 
 # get sim ids
 vcfids = as.numeric(gsub(".table", "", gsub("../workflow/data/tables/slim_", "", vcfs)))
@@ -24,20 +30,26 @@ summary(y)
 
 # load sim outputs
 vcfs = lapply(vcfs, fread, data.table = F, header = T)
+```
+
+# shape data into one matrix
+```{r}
+# get max number of variants so, we know what to pad to
+rowPadMax = max(unlist(lapply(vcfs, nrow)))
 
 # zero pad or subsample data as necessary so all tables have same dimmensions
-zeropad = function(x){
+zeropad = function(x, rowPadMax){
   varCount = nrow(x)
 
   # subsample data if there are too many variants
-  if(varCount > 128){
-    x = x[sort(sample(1:varCount, 128, replace = F)),]
+  if(varCount > rowPadMax){
+    x = x[sort(sample(1:varCount, rowPadMax, replace = F)),]
   }
 
   # Add zero-padds if there are too few variants
-  if(varCount < 128){
+  if(varCount < rowPadMax){
     lastVar = x[varCount,"POS"]
-    for(i in 1:(128 - varCount)){
+    for(i in 1:(rowPadMax - varCount)){
       x = rbind(x, c(1, lastVar + i, "MT=0;", rep(0, times = 128)))
     }
   }
@@ -45,7 +57,7 @@ zeropad = function(x){
   return(x)
 }
 
-vcfs = lapply(vcfs, zeropad)
+vcfs = lapply(vcfs, zeropad, rowPadMax = rowPadMax)
 
 # melt vcfs
 meltvcfs = function(x){
@@ -62,9 +74,17 @@ dim(vcfs)
 # convert all columns to numeric
 vcfs = apply(vcfs, MARGIN = 2, as.numeric)
 dim(vcfs)
+```
+
+# PCA and correlations
+```{r}
+# simulations should be rows
+tvcfs = t(vcfs)
+
+# tvcfsNoZero = tvcfs[,apply(tvcfs, 2, function(x){length(unique(x)) > 1})]
 
 # do PCA
-vcfpca = prcomp(t(vcfs), center = T)
+vcfpca = prcomp(tvcfs, center = T)
 
 plot(vcfpca)
 plot(vcfpca$x)

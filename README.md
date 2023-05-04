@@ -64,7 +64,13 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] Add rule for generating table of parameters?
 
-- [ ] Increase simulation length to 250,000 generations, decrease mutation rate to 1e-7?
+- [x] Calculate heterozygosity periodically to see if population reaches an equilibrium
+
+- [x] Add simulation length as parameter
+
+- [x] Add mutation rate as parameter
+
+- [x] Add recombination rate as parameter
 
 - [ ] include polymorphism position information as another input to the network, output position table at the same time as image creation
 

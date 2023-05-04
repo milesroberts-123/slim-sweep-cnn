@@ -25,7 +25,7 @@ initialize() {
 	initializeGenomicElementType("g4", m4, 1.0); // nonsynonymous sites
 
 	initializeRecombinationRate(1e-8); // recombination 
-	initializeMutationRate(1e-6);  // mutation rate
+	initializeMutationRate(mu);  // mutation rate
 
 	// Load 4-fold and 0-fold degenerate sites
 	types = asInteger(readFile("types_" + asString(ID) + ".txt"));
@@ -66,6 +66,15 @@ initialize() {
 s2 5000 early() {
 	print("Activating transition...");
 	p1.setSelfingRate(sigmaC);
+}
+
+// Calculate heterozygosity 
+early() {
+	if(sim.cycle % 1000 == 1){
+		pi = calcHeterozygosity(p1.genomes);
+		cat(sim.cycle + ": ");
+		print(pi);
+	}
 }
 
 // Add new mutation

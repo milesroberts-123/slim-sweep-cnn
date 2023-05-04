@@ -45,7 +45,7 @@ params = data.frame(
   alpha = 0.5, # shape parameter of nonsynonymous DFE
   #h = runif(K, min = 0, max = 1), # dominance coefficient
   h = 0.1, # dominance coefficient
-  sweepS = runif(K, min = 0, max = 0.02), # effect of beneficial mutation
+  sweepS = c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.025)), # effect of beneficial mutation
   #N = round(runif(K, min = 500, 10000)), # population size
   N = 1000, # population size
   #sigmaA = runif(K, min = 0, max = 1), # ancestral selfing rate
@@ -55,8 +55,9 @@ params = data.frame(
   #tsigma = round(runif(K, min = 0, max = G)), # generation of selfing rate transition
   tsigma = 5000, # generation of selfing rate transition
   #tsweep = round(runif(K, min = 0, max = G)) # generation where beneficial mutation introduced
-  tsweep = 10000 # generation where beneficial mutation introduced
-  #mu = runif(K, min = 1e-9, max = 1e-8) # mutation rate
+  tsweep = 10000, # generation where beneficial mutation introduced
+  mu = 1e-8, # mutation rate
+  G = 11000 # total length of the simulation, post-burn-in
 )
 
 # If there are multiple parameters, make sure they're not correlated by chance
