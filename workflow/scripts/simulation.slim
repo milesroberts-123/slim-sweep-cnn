@@ -54,7 +54,7 @@ initialize() {
 // initialize properties of population
 1 early() { 
 	sim.addSubpop("p1", asInteger(N)); // create a population
-	community.rescheduleScriptBlock(s1, start=10*asInteger(N) + G, end=10*asInteger(N) + G); // output results at defined time
+	community.rescheduleScriptBlock(s1, start=10*asInteger(N) + asInteger(G), end=10*asInteger(N) + asInteger(G)); // output results at defined time
 	community.rescheduleScriptBlock(s2, start=10*asInteger(N) + asInteger(tsigma), end=10*asInteger(N) + asInteger(tsigma)); // change selfing rate at defined time, first 10 N generations are burn-in
 	community.rescheduleScriptBlock(s3, start=10*asInteger(N) + asInteger(tsweep), end=10*asInteger(N) + asInteger(tsweep)); // add in beneficial mutation at defined time, first 10N generations are burn-in
 	// sim.rescheduleScriptBlock() method deprecated in slim 4: https://groups.google.com/g/slim-discuss/c/827_5SAIJtM/m/k074ovLSBAAJ
@@ -70,7 +70,7 @@ s2 5000 early() {
 
 // Calculate heterozygosity 
 early() {
-	if(sim.cycle % 1000 == 1){
+	if(sim.cycle % 1000 == 0){
 		pi = calcHeterozygosity(p1.genomes);
 		cat(sim.cycle + ": ");
 		print(pi);
