@@ -15,7 +15,8 @@ distMethod = args[4]
 clustMethod = args[5]
 
 print(input)
-print(output)
+print(output_image)
+print(output_pos)
 print(distMethod)
 print(clustMethod)
 
@@ -52,11 +53,14 @@ tail(simvar[,1:6])
 
 # output table of position information
 # positions need to be min-maxed normalized, because only the relative positions matter
+print("Output table of min-maxed normalized variant positions...")
+
 minmaxnorm = function(x){
+  x = as.numeric(x)
   (x - min(x))/(max(x) - min(x))
 }
 
-write.table(output_pos, data.frame(POSNORM = minmaxnorm(simvar[,"POS"])), row.names = F, quote = F, sep = "\t")
+write.table(data.frame(POSNORM = minmaxnorm(simvar[,"POS"])), output_pos, row.names = F, quote = F, sep = "\t")
 
 # cluster rows of dataframe
 print("Grouping genetically similar individuals...")
