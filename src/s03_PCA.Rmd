@@ -11,6 +11,8 @@ output:
 rm(list = ls())
 library(data.table)
 library(reshape2)
+library(ggplot2)
+library(scico)
 ```
 
 # load data
@@ -19,7 +21,7 @@ library(reshape2)
 params = read.table("../config/parameters.tsv", sep = "\t", header = T)
 
 # get random sample of simulation outputs
-vcfs = sample(list.files("../workflow/data/tables", full.names = T), 500)
+vcfs = list.files("../workflow/data/tables", full.names = T)
 
 # get sim ids
 vcfids = as.numeric(gsub(".table", "", gsub("../workflow/data/tables/slim_", "", vcfs)))
@@ -89,9 +91,24 @@ vcfpca = prcomp(tvcfs, center = T)
 plot(vcfpca)
 plot(vcfpca$x)
 
+# If outcome is binary, look for association using logistic regression
+regframe = as.data.frame(cbind(y, vcfpca$x))
+regframe$y = as.factor(regframe$y)
+
+mod = glm(y ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6, data = regframe, family = "binomial")
+summary(mod)
+
+# visually show how PCs correlate with dependent variable
+ggplot(regframe, aes(PC1, PC2, color = y)) +
+  geom_point() +
+  theme_classic() +
+  scale_color_scico_d(palette = "hawaii", labels = c("Neutral", "Selective sweep"), name = "Simulation")
+
+ggsave("pca.png", scale = 0.5, width = 10, height = 7)
+
 # correlate PCs with the dependent variable
-plot(vcfpca$x[,1], log(y))
-cor.test(vcfpca$x[,1], log(y), method = "spearman")
+plot(vcfpca$x[,1], y)
+cor.test(vcfpca$x[,1], y, method = "spearman")
 
 plot(vcfpca$x[,2], log(y))
 cor.test(vcfpca$x[,2], log(y), method = "spearman")

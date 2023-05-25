@@ -81,6 +81,8 @@ print("Randomly assinging parameter sets to split class...")
 params = params[sample(1:K, size = K, replace = F),]
 params$split = params_split
 
+table(params$split, params$sweepS)
+
 # re-order parameter table so it looks nice
 print("Re-ordering parameter table...")
 params = params[order(params$ID),]
