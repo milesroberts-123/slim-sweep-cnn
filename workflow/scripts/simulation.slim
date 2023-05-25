@@ -25,7 +25,7 @@ initialize() {
 	initializeGenomicElementType("g4", m4, 1.0); // nonsynonymous sites
 
 	initializeRecombinationRate(1e-8); // recombination 
-	initializeMutationRate(1e-6);  // mutation rate
+	initializeMutationRate(mu);  // mutation rate
 
 	// Load 4-fold and 0-fold degenerate sites
 	types = asInteger(readFile("types_" + asString(ID) + ".txt"));
@@ -54,7 +54,7 @@ initialize() {
 // initialize properties of population
 1 early() { 
 	sim.addSubpop("p1", asInteger(N)); // create a population
-	community.rescheduleScriptBlock(s1, start=10*asInteger(N) + G, end=10*asInteger(N) + G); // output results at defined time
+	community.rescheduleScriptBlock(s1, start=10*asInteger(N) + asInteger(G), end=10*asInteger(N) + asInteger(G)); // output results at defined time
 	community.rescheduleScriptBlock(s2, start=10*asInteger(N) + asInteger(tsigma), end=10*asInteger(N) + asInteger(tsigma)); // change selfing rate at defined time, first 10 N generations are burn-in
 	community.rescheduleScriptBlock(s3, start=10*asInteger(N) + asInteger(tsweep), end=10*asInteger(N) + asInteger(tsweep)); // add in beneficial mutation at defined time, first 10N generations are burn-in
 	// sim.rescheduleScriptBlock() method deprecated in slim 4: https://groups.google.com/g/slim-discuss/c/827_5SAIJtM/m/k074ovLSBAAJ
@@ -68,6 +68,18 @@ s2 5000 early() {
 	p1.setSelfingRate(sigmaC);
 }
 
+// Calculate heterozygosity 
+early() {
+	// Every 1000 generations, output the heterozygosity and number of mutations in the population
+	if(sim.cycle % 1000 == 0){
+		pi = calcHeterozygosity(p1.genomes);
+		numMuts = size(sim.mutations);
+		catn(sim.cycle + ": " + pi + " " + numMuts);
+		//print(pi);
+		//print(numMuts);
+	}
+}
+
 // Add new mutation
 s3 10000 late() { 
  print("Introducing beneficial mutation...");
@@ -79,11 +91,39 @@ s3 10000 late() {
 
  print("Site of beneficial mutation:");
  print(mutsite);
- target.addNewDrawnMutation(m5, mutsite); 
+ mut = target.addNewDrawnMutation(m5, mutsite); 
+
+ defineConstant("SWEEP", mut); // Keep reference to mutation for later
+
+ print("Initial frequency of beneficial mutation:");
+ print(sim.mutationFrequencies(p1, sim.mutationsOfType(m5)));
+
 } 
 
 // run simulation for many generations
 s1 2000 late() { 
+	// print final frequency of selected mutation
+	print("Final frequency of selected mutation:");
+	mutfrq = sim.mutationFrequencies(p1, sim.mutationsOfType(m5)); 
+	print(mutfrq);
+
+	// Check if sweep is fixed or lost
+	// Sweep never seems to come up as fixed, even when I use dominant highly beneficial mutations 
+	// mutation is correctly identified as segregating though
+	if(!SWEEP.isSegregating){ 
+		cat(ifelse(SWEEP.isFixed, "FIXED\n", "LOST\n")); 
+	} else {
+		cat("SEGREGATING\n");
+	}
+
+	// For some reason, this block does not work as expected for mutations of type m5, but does work for other types
+	// If final frequency is zero, output whether mutation was fixed or lost
+	// frequency can be zero if mutation was fixed because SLiM converts fixed mutations into substituion objects
+	//if(sim.countOfMutationsOfType(m5) == 0){
+	//	fixed = (sum(sim.substitutions.mutationType == m5) == 1); 
+	//	cat(ifelse(fixed, "FIXED\n", "LOST\n")); 
+	//}
+
 	// output random sample of phased chromosomes
 	//p1.outputMSSample(20, filePath = "slim.table", filterMonomorphic = T);
 	

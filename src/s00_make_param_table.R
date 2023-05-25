@@ -38,16 +38,16 @@ print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
   #gene = sample(genes, size = K, replace = T), # name of gene to be used as locus model in simulation
-  gene = "LOC_Os01g01010.1.MSUv7.0", # name of gene to be used as locus model in simulation
+  gene = "LOC_Os11g08569.1.MSUv7.0", # name of gene to be used as locus model in simulation
   #meanS = runif(K, min = -0.05, max = 0), # mean fitness effect of nonsynonymous DFE
-  meanS = -0.01, # mean fitness effect of nonsynonymous DFE
+  meanS = -0.001, # mean fitness effect of nonsynonymous DFE
   #alpha = c(runif(K/2, min = 0, max = 1), runif(K/2, min = 1, max = 24)), # shape parameter of nonsynonymous DFE
-  alpha = 0.5, # shape parameter of nonsynonymous DFE
+  alpha = 5, # shape parameter of nonsynonymous DFE
   #h = runif(K, min = 0, max = 1), # dominance coefficient
-  h = 0.1, # dominance coefficient
-  sweepS = runif(K, min = 0, max = 0.02), # effect of beneficial mutation
+  h = 1.0, # dominance coefficient
+  sweepS = c(rep(0, times = K/2), rep(0.5, times = K/2)), # effect of beneficial mutation
   #N = round(runif(K, min = 500, 10000)), # population size
-  N = 1000, # population size
+  N = 10000, # population size
   #sigmaA = runif(K, min = 0, max = 1), # ancestral selfing rate
   sigmaA = 0, # ancestral selfing rate
   #sigmaC = runif(K, min = 0, max = 1), # current selfing rate
@@ -55,8 +55,9 @@ params = data.frame(
   #tsigma = round(runif(K, min = 0, max = G)), # generation of selfing rate transition
   tsigma = 5000, # generation of selfing rate transition
   #tsweep = round(runif(K, min = 0, max = G)) # generation where beneficial mutation introduced
-  tsweep = 10000 # generation where beneficial mutation introduced
-  #mu = runif(K, min = 1e-9, max = 1e-8) # mutation rate
+  tsweep = 10000, # generation where beneficial mutation introduced
+  mu = 1e-7, # mutation rate
+  G = 10100 # total length of the simulation, post-burn-in
 )
 
 # If there are multiple parameters, make sure they're not correlated by chance
@@ -79,6 +80,8 @@ table(params_split)
 print("Randomly assinging parameter sets to split class...")
 params = params[sample(1:K, size = K, replace = F),]
 params$split = params_split
+
+table(params$split, params$sweepS)
 
 # re-order parameter table so it looks nice
 print("Re-ordering parameter table...")

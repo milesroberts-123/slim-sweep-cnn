@@ -14,4 +14,5 @@
 **.h5
 **/weights
 **.html
-
+**.pos
+**.save

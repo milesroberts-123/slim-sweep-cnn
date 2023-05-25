@@ -16,9 +16,9 @@ echo Loading snakemake...
 conda activate snakemake
 
 # change directory of cache to scratch
-echo Changing cache directory...
-export XDG_CACHE_HOME="/mnt/scratch/robe1195/cache"
-echo $XDG_CACHE_HOME
+#echo Changing cache directory...
+#export XDG_CACHE_HOME="/mnt/scratch/robe1195/cache"
+#echo $XDG_CACHE_HOME
 
 # go to workflow directory with Snakefile
 echo Changing directory...
@@ -35,4 +35,4 @@ snakemake --unlock --cores 1
 # Max job submit count is 1000, subtract 1 to account for scheduler
 echo Running snakemake...
 #snakemake --cluster "sbatch --time 7-00:00:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 900 --cores 900 --use-conda --rerun-incomplete --rerun-triggers mtime --retries 2
-snakemake --cluster "sbatch --time 7-00:00:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 10 --cores 10 --use-conda --rerun-incomplete --rerun-triggers mtime
+snakemake --cluster "sbatch --time 3:59:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 100 --cores 100 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy

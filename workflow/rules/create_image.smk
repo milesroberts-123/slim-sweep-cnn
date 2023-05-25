@@ -2,7 +2,7 @@ rule create_image:
 	input:
 		"data/tables/slim_{id}.table"
 	output:
-		image = "data/images/slim_{id}.png"
+		image = "data/images/slim_{id}.png",
 		pos = "data/positions/slim_{id}.pos"
 	log:
 		"logs/create_image/{id}.log"

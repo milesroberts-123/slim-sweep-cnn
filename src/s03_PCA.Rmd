@@ -1,0 +1,116 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+# load packages
+```{r}
+rm(list = ls())
+library(data.table)
+library(reshape2)
+library(ggplot2)
+library(scico)
+```
+
+# load data
+```{r}
+# simulation parameters
+params = read.table("../config/parameters.tsv", sep = "\t", header = T)
+
+# get random sample of simulation outputs
+vcfs = list.files("../workflow/data/tables", full.names = T)
+
+# get sim ids
+vcfids = as.numeric(gsub(".table", "", gsub("../workflow/data/tables/slim_", "", vcfs)))
+
+# get variable that outputs should predict 
+y = params[vcfids, "sweepS"]
+summary(y)
+
+# load sim outputs
+vcfs = lapply(vcfs, fread, data.table = F, header = T)
+```
+
+# shape data into one matrix
+```{r}
+# get max number of variants so, we know what to pad to
+rowPadMax = max(unlist(lapply(vcfs, nrow)))
+
+# zero pad or subsample data as necessary so all tables have same dimmensions
+zeropad = function(x, rowPadMax){
+  varCount = nrow(x)
+
+  # subsample data if there are too many variants
+  if(varCount > rowPadMax){
+    x = x[sort(sample(1:varCount, rowPadMax, replace = F)),]
+  }
+
+  # Add zero-padds if there are too few variants
+  if(varCount < rowPadMax){
+    lastVar = x[varCount,"POS"]
+    for(i in 1:(rowPadMax - varCount)){
+      x = rbind(x, c(1, lastVar + i, "MT=0;", rep(0, times = 128)))
+    }
+  }
+  
+  return(x)
+}
+
+vcfs = lapply(vcfs, zeropad, rowPadMax = rowPadMax)
+
+# melt vcfs
+meltvcfs = function(x){
+  x = melt(x, id.vars = c("CHROM", "POS", "INFO"))
+  return(x[,5])
+}
+
+vcfs = lapply(vcfs, meltvcfs)
+
+# combine all vcfs into one matrix
+vcfs = do.call("cbind", vcfs)
+dim(vcfs)
+
+# convert all columns to numeric
+vcfs = apply(vcfs, MARGIN = 2, as.numeric)
+dim(vcfs)
+```
+
+# PCA and correlations
+```{r}
+# simulations should be rows
+tvcfs = t(vcfs)
+
+# tvcfsNoZero = tvcfs[,apply(tvcfs, 2, function(x){length(unique(x)) > 1})]
+
+# do PCA
+vcfpca = prcomp(tvcfs, center = T)
+
+plot(vcfpca)
+plot(vcfpca$x)
+
+# If outcome is binary, look for association using logistic regression
+regframe = as.data.frame(cbind(y, vcfpca$x))
+regframe$y = as.factor(regframe$y)
+
+mod = glm(y ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6, data = regframe, family = "binomial")
+summary(mod)
+
+# visually show how PCs correlate with dependent variable
+ggplot(regframe, aes(PC1, PC2, color = y)) +
+  geom_point() +
+  theme_classic() +
+  scale_color_scico_d(palette = "hawaii", labels = c("Neutral", "Selective sweep"), name = "Simulation")
+
+ggsave("pca.png", scale = 0.5, width = 10, height = 7)
+
+# correlate PCs with the dependent variable
+plot(vcfpca$x[,1], y)
+cor.test(vcfpca$x[,1], y, method = "spearman")
+
+plot(vcfpca$x[,2], log(y))
+cor.test(vcfpca$x[,2], log(y), method = "spearman")
+```
+
