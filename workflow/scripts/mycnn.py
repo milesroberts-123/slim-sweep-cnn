@@ -75,18 +75,19 @@ test_y[np.where(test_y == 0.5)] = 1
 #test_y = (test_y == 0.5)
 
 # load tables to get position information from slim
-#train_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in train_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
-#val_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in val_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
-#test_pos = np.asarray([np.asarray(pd.read_table("data/tables/slim_" + str(x) + ".table")) for x in test_ids if os.path.exists("data/tables/slim_" + str(x) + ".table")])
+print("Loading position information...")
+train_pos = np.asarray([np.asarray(pd.read_table("data/positions/slim_" + str(x) + ".pos")) for x in train_ids if os.path.exists("data/positions/slim_" + str(x) + ".pos")])
+val_pos = np.asarray([np.asarray(pd.read_table("data/positions/slim_" + str(x) + ".pos")) for x in val_ids if os.path.exists("data/positions/slim_" + str(x) + ".pos")])
+test_pos = np.asarray([np.asarray(pd.read_table("data/positions/slim_" + str(x) + ".pos")) for x in test_ids if os.path.exists("data/positions/slim_" + str(x) + ".pos")])
 
-#print("Shapes of training, validation, and testing positions:")
-#print(train_pos.shape)
-#print(val_pos.shape)
-#print(test_pos.shape)
+print(train_pos.shape)
+print(val_pos.shape)
+print(test_pos.shape)
 
 # Create model with functional API
 print("Creating model...")
 input_A = keras.layers.Input(shape = [128,128,3], name = "images")
+input_B = keras.layers.Input(shape = [128], name = "positions")
 conv1 = keras.layers.Conv2D(filters = 32, kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
 pool1 = keras.layers.MaxPooling2D(2)(conv1)
 pool1 = keras.layers.Dropout(0.5)(pool1)
@@ -94,10 +95,15 @@ conv2 = keras.layers.Conv2D(filters = 64, kernel_size = 3, strides = 1, padding 
 pool2 = keras.layers.MaxPooling2D(2)(conv2)
 pool2 = keras.layers.Dropout(0.5)(pool2)
 flat = keras.layers.Flatten()(pool2)
-dense = keras.layers.Dense(64, activation = "relu")(flat)
-dropped = keras.layers.Dropout(0.25)(dense)
-output = keras.layers.Dense(1, name = "output", activation = "sigmoid")(dropped)
-model = keras.Model(inputs = [input_A], outputs = [output])
+dense_A = keras.layers.Dense(32, activation = "relu")(flat)
+dense_A = keras.layers.Dropout(0.25)(dense_A)
+dense_B = keras.layers.Dense(32, activation = "relu")(input_B)
+dense_B = keras.layers.Dropout(0.25)(dense_B)
+concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
+#full = keras.layers.Dense(32, activation = "relu")(concat)
+#full = keras.layers.Dropout(0.25)(full)
+output = keras.layers.Dense(1, name = "output", activation = "sigmoid")(concat)
+model = keras.Model(inputs = [input_A, input_B], outputs = [output])
 
 # compile model
 print("Compiling model...")
@@ -113,23 +119,23 @@ callbacks = [earlystop, checkpoint]
 
 # fit model
 print("Fitting model...")
-history = model.fit(train_images, train_y, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(val_images, val_y), callbacks=callbacks)
+history = model.fit((train_images, train_pos), train_y, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=((val_images, val_pos), val_y), callbacks=callbacks)
 
 # evaluate total error in model
 print("Evaluating model...")
-model.evaluate(test_images, test_y)
+model.evaluate((test_images, test_pos), test_y)
 
 # test model
-print("Testing model...")
-val_pred = model.predict(val_images)
-test_pred = model.predict(test_images)
+#print("Testing model...")
+#val_pred = model.predict(val_images)
+#test_pred = model.predict(test_images)
 
-print(val_y)
-print(val_pred)
+#print(val_y)
+#print(val_pred)
 
 #print(test_y)
 #print(test_pred)
-print(keras.metrics.confusion_matrix(test_y, test_pred))
+#print(keras.metrics.confusion_matrix(test_y, test_pred))
 
 # plot predictions against real values
 #plt.scatter(test_y, final_pred)
