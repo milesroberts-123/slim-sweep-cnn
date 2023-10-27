@@ -31,7 +31,42 @@ print(varCount)
 
 if(varCount > 128){
  print("Subsampling table because there are too many variants...")
- simvar = simvar[sort(sample(1:varCount, 128, replace = F)),]
+ 
+ # Find distance from center, where beneficial mutation was
+ print("Distances from center of simulated region:")
+ dist_from_center = abs(simvar$POS - 500001)
+ print(dist_from_center)
+ 
+ print("Set of variants closest to beneficial mutation:")
+ closest_variants = (sort(dist_from_center, index.return = TRUE)$ix)[1:128]
+ 
+ print(closest_variants)
+ print(simvar$POS[closest_variants])
+ # get variant closest to site of beneficial mutation as the center
+ #print("Mutation nearest to simulated region:")
+ #row_nearest_center = which(dist_from_center == min(dist_from_center))
+ #print(c(row_nearest_center,simvar$POS[row_nearest_center]))
+ 
+ # extract upstream and downstream variants
+ #print("Indices for upstream and downstream variants:")
+ #start = row_nearest_center - 64
+ #stop = row_nearest_center + 63
+ 
+ #if(start < 1){
+ #  start = 1
+ #}
+ 
+ #if(stop > varCount){
+ #  stop = varCount
+ #}
+ 
+ #print(c(start,stop))
+ 
+ # subset table
+ print("Dimmensions of subset table:")
+ simvar = simvar[closest_variants,]
+ dim(simvar)
+ #simvar = simvar[sort(sample(1:varCount, 128, replace = F)),]
 }
 
 # Add zero-padds if needed
@@ -74,9 +109,9 @@ print("What genotype matrix looks like:")
 head(simvar[,1:6])
 
 # label syn and nonsyn sites
-print("Labeling mutations by type...")
-simvar$INFO[grepl("MT=0;", simvar$INFO)] = "s"
-simvar$INFO[grepl("MT=4;|MT=5;", simvar$INFO)] = "n"
+#print("Labeling mutations by type...")
+#simvar$INFO[grepl("MT=0;", simvar$INFO)] = "s"
+#simvar$INFO[grepl("MT=4;|MT=5;", simvar$INFO)] = "n"
 
 # collapse monomorphic sites
 print("Collapsing monomorphic sites...")
@@ -102,9 +137,9 @@ tail(simvar)
 #}
 
 # split variants by type, so that you can color them differently
-print("Spliting data by variant type...")
-svar = simvar[(simvar$INFO == "s"),]
-nvar = simvar[(simvar$INFO == "n"),]
+#print("Spliting data by variant type...")
+#svar = simvar[(simvar$INFO == "s"),]
+#nvar = simvar[(simvar$INFO == "n"),]
 
 # Convert variant sites into an image for CNN
 # using multiple color/fill scales in a single plot:
@@ -114,17 +149,25 @@ nvar = simvar[(simvar$INFO == "n"),]
 print("Plotting data...")
 
 ggplot(mapping = aes(POS2, variable)) +
-  geom_tile(data = svar, aes(x = POS2, y = variable, fill = as.numeric(value), width = 1)) +
-  #scale_fill_gradient(low = "black", high = "white") +
+  geom_tile(data = simvar, aes(x = POS2, y = variable, fill = as.numeric(value), width = 1)) +
   scale_fill_gradient2(low = "black", mid = "grey", high = "white", midpoint = 0.5) +
-  # Important: define a colour/fill scale before calling a new_scale_* function
-  new_scale_fill() +
-  geom_tile(data = nvar, aes(x = POS2, y = variable, fill = as.numeric(value), width = 1)) +
-  scale_fill_gradient2(low = "blue", mid = "cyan", high = "green", midpoint = 0.5) +
   theme_nothing() +
   labs(x = NULL, y = NULL) +
   scale_x_discrete(expand=c(0,0)) +
   scale_y_discrete(expand=c(0,0))
+  
+#ggplot(mapping = aes(POS2, variable)) +
+#  geom_tile(data = svar, aes(x = POS2, y = variable, fill = as.numeric(value), width = 1)) +
+  #scale_fill_gradient(low = "black", high = "white") +
+#  scale_fill_gradient2(low = "black", mid = "grey", high = "white", midpoint = 0.5) +
+  # Important: define a colour/fill scale before calling a new_scale_* function
+#  new_scale_fill() +
+#  geom_tile(data = nvar, aes(x = POS2, y = variable, fill = as.numeric(value), width = 1)) +
+#  scale_fill_gradient2(low = "blue", mid = "cyan", high = "green", midpoint = 0.5) +
+#  theme_nothing() +
+#  labs(x = NULL, y = NULL) +
+#  scale_x_discrete(expand=c(0,0)) +
+#  scale_y_discrete(expand=c(0,0))
 
 print("Saving plot...")
 # low resolution plots for model training

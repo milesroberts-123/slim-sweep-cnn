@@ -30,10 +30,10 @@ train_params = slim_params[slim_params["split"] == "train"]
 val_params = slim_params[slim_params["split"] == "val"]
 test_params = slim_params[slim_params["split"] == "test"]
 
-#print("Splitting response variable into training, validation, and testing...")
-#train_y = train_params["sweepS"] 
-#val_y = val_params["sweepS"]
-#test_y = test_params["sweepS"]
+print("Splitting response variable into training, validation, and testing...")
+train_y = train_params["sweepS"] 
+val_y = val_params["sweepS"]
+test_y = test_params["sweepS"]
 
 train_ids = list(train_params["ID"])
 val_ids = list(val_params["ID"])
@@ -50,13 +50,13 @@ print(val_images.shape)
 print(test_images.shape)
 
 # subset to only simulations which you have images for
-print("Subsetting response variable to only finished simulations...")
+#print("Subsetting response variable to only finished simulations...")
 #train_y = np.asarray([train_y[(x-1)] for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 #val_y = np.asarray([val_y[(x-1)] for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 #test_y = np.asarray([test_y[(x-1)] for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-train_y = np.asarray([slim_params.iloc[(x-1), 5] for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-val_y = np.asarray([slim_params.iloc[(x-1), 5] for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-test_y = np.asarray([slim_params.iloc[(x-1), 5] for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+#train_y = np.asarray([slim_params.iloc[(x-1), 5] for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+#val_y = np.asarray([slim_params.iloc[(x-1), 5] for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+#test_y = np.asarray([slim_params.iloc[(x-1), 5] for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 
 print(train_y.shape)
 print(val_y.shape)
@@ -66,10 +66,10 @@ print(test_y.shape)
 #print(val_y)
 #print(test_y)
 
-print("Converting response to binary outcome...")
-train_y[np.where(train_y == 0.5)] = 1
-val_y[np.where(val_y == 0.5)] = 1
-test_y[np.where(test_y == 0.5)] = 1
+#print("Converting response to binary outcome...")
+#train_y[np.where(train_y == 0.5)] = 1
+#val_y[np.where(val_y == 0.5)] = 1
+#test_y[np.where(test_y == 0.5)] = 1
 #train_y = (train_y == 0.5)
 #val_y = (val_y == 0.5)
 #test_y = (test_y == 0.5)
@@ -102,13 +102,13 @@ dense_B = keras.layers.Dropout(0.25)(dense_B)
 concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
 #full = keras.layers.Dense(32, activation = "relu")(concat)
 #full = keras.layers.Dropout(0.25)(full)
-output = keras.layers.Dense(1, name = "output", activation = "sigmoid")(concat)
+output = keras.layers.Dense(1, name = "output")(concat)
 model = keras.Model(inputs = [input_A, input_B], outputs = [output])
 
 # compile model
 print("Compiling model...")
 #model.compile(loss='mean_squared_error', optimizer='adam')
-model.compile(optimizer='adam', loss="binary_crossentropy", metrics = ["accuracy", tf.keras.metrics.TruePositives(), tf.keras.metrics.TrueNegatives(), tf.keras.metrics.FalsePositives(), tf.keras.metrics.FalseNegatives()])
+model.compile(optimizer='adam', loss="mse", metrics = [tf.keras.metrics.MeanSquaredError()])
 #opt = SGD(lr=0.01) # create optimizer
 #model.compile(loss = "binary_crossentropy", optimizer = opt, metrics = ["accuracy"])
 
@@ -123,7 +123,8 @@ history = model.fit((train_images, train_pos), train_y, batch_size=batch_size, e
 
 # evaluate total error in model
 print("Evaluating model...")
-model.evaluate((test_images, test_pos), test_y)
+test_pred = model.predict((test_images, test_pos))
+print(test_pred)
 
 # test model
 #print("Testing model...")
@@ -157,5 +158,9 @@ model.evaluate((test_images, test_pos), test_y)
 # save model
 print("Saving final model...")
 model.save(finalModelName)
+
+# save comparison of predictions vs actual
+print("Saving comparison of predicted vs actual...")
+np.savetxt('predicted_vs_actual.txt', np.c_[test_y,test_pred.flatten()])
 
 print("Done! :)")

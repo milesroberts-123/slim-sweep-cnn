@@ -13,6 +13,7 @@ library(data.table)
 library(reshape2)
 library(ggplot2)
 library(scico)
+library(png)
 ```
 
 # load data
@@ -21,17 +22,60 @@ library(scico)
 params = read.table("../config/parameters.tsv", sep = "\t", header = T)
 
 # get random sample of simulation outputs
-vcfs = list.files("../workflow/data/tables", full.names = T)
+mypics = list.files("../workflow/data/images", full.names = T)
 
 # get sim ids
-vcfids = as.numeric(gsub(".table", "", gsub("../workflow/data/tables/slim_", "", vcfs)))
+picids = as.numeric(gsub(".png", "", gsub("../workflow/data/images/slim_", "", mypics)))
 
 # get variable that outputs should predict 
-y = params[vcfids, "sweepS"]
+y = params[picids, "sweepS"]
 summary(y)
 
+# define function for reading pngs,
+read_png = function(x){
+  print(x)
+  temp_pic = readPNG(x)[,,1]
+  melt(temp_pic)$value
+}
+
 # load sim outputs
-vcfs = lapply(vcfs, fread, data.table = F, header = T)
+mypics = lapply(mypics, read_png)
+
+# bind all sim outputs together
+mypics = do.call("cbind", mypics)
+
+# convert gray pixels to 0.5
+mypics[((mypics > 0) & (mypics < 1))] = 0.5
+
+# simulations should be rows
+# do PCA
+pca_results = as.data.frame(prcomp(t(mypics), center = T)$x)
+
+# visually show how PCs correlate with dependent variable
+ggplot(pca_results, aes(PC1, PC2, color = y)) +
+  geom_point() +
+  theme_classic() +
+  scale_color_scico(palette = "lajolla", name = "Selection coefficient")
+
+# test if PC's correlate with selection coefficient
+plot(pca_results$PC1, y)
+cor.test(pca_results$PC1, y, method = "pearson")
+
+plot(pca_results$PC2, y)
+cor.test(pca_results$PC2, y, method = "pearson")
+
+plot(pca_results$PC3, y)
+cor.test(pca_results$PC3, y, method = "pearson")
+```
+
+# compare predictions to actual values
+```{r}
+pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
+
+plot(pred_vs_act$V1, pred_vs_act$V2)
+abline(a = 0, b = 1)
+cor(pred_vs_act$V1, pred_vs_act$V2)
+
 ```
 
 # shape data into one matrix

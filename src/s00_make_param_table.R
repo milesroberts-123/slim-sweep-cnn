@@ -10,7 +10,7 @@ yamlfile = yaml.load_file(yamlpath)
 # parse out individual parameters in yaml file
 K = yamlfile[["K"]]
 train_test_val_split = c(yamlfile[["train"]], yamlfile[["test"]], yamlfile[["val"]])
-gff = yamlfile[["gff"]]
+#gff = yamlfile[["gff"]]
 
 #K = args[1] # number of sims 
 #train_test_val_split = c(args[2], args[3], args[4]) # train/test/validation split
@@ -18,18 +18,18 @@ gff = yamlfile[["gff"]]
 #G = 100000 # Length of simulations post burn-in
 
 # load list of genes
-print("Reading genome annotation...")
-genome = read.table(gff, skip = 3, sep = "\t", header = F)
+#print("Reading genome annotation...")
+#genome = read.table(gff, skip = 3, sep = "\t", header = F)
 
 # head(genome)
 
 # extract gene names
-print("Extracting gene IDs...")
-genome = genome[(genome[,3] == "mRNA"),]
+#print("Extracting gene IDs...")
+#genome = genome[(genome[,3] == "mRNA"),]
 
-genes = genome[,9]
-genes = gsub(";.*", "", genes)
-genes = gsub("ID=", "", genes)
+#genes = genome[,9]
+#genes = gsub(";.*", "", genes)
+#genes = gsub("ID=", "", genes)
 
 # head(genes)
 
@@ -37,32 +37,17 @@ genes = gsub("ID=", "", genes)
 print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
-  #gene = sample(genes, size = K, replace = T), # name of gene to be used as locus model in simulation
-  gene = "LOC_Os11g08569.1.MSUv7.0", # name of gene to be used as locus model in simulation
-  #meanS = runif(K, min = -0.05, max = 0), # mean fitness effect of nonsynonymous DFE
-  meanS = -0.001, # mean fitness effect of nonsynonymous DFE
-  #alpha = c(runif(K/2, min = 0, max = 1), runif(K/2, min = 1, max = 24)), # shape parameter of nonsynonymous DFE
-  alpha = 5, # shape parameter of nonsynonymous DFE
-  #h = runif(K, min = 0, max = 1), # dominance coefficient
-  h = 1.0, # dominance coefficient
-  sweepS = c(rep(0, times = K/2), rep(0.5, times = K/2)), # effect of beneficial mutation
-  #N = round(runif(K, min = 500, 10000)), # population size
-  N = 10000, # population size
-  #sigmaA = runif(K, min = 0, max = 1), # ancestral selfing rate
-  sigmaA = 0, # ancestral selfing rate
-  #sigmaC = runif(K, min = 0, max = 1), # current selfing rate
-  sigmaC = 0.25, # current selfing rate
-  #tsigma = round(runif(K, min = 0, max = G)), # generation of selfing rate transition
-  tsigma = 5000, # generation of selfing rate transition
-  #tsweep = round(runif(K, min = 0, max = G)) # generation where beneficial mutation introduced
-  tsweep = 10000, # generation where beneficial mutation introduced
-  mu = 1e-7, # mutation rate
-  G = 10100 # total length of the simulation, post-burn-in
+  h = 0.5, # dominance coefficient
+  sweepS = runif(K, min = 0.001, max = 1), # effect of beneficial mutation
+  sigma = 0, # rate of selfing
+  N = 1000, # population size
+  mu = 1e-8, # mutation rate
+  R = 1e-8 # Recombination rate
 )
 
 # If there are multiple parameters, make sure they're not correlated by chance
 print("Correlations between parameters across simulations:")
-cor(params[,c(-1,-2)])
+cor(params[,-1])
 
 # split into training and testing sets
 params_split = c(
@@ -81,7 +66,7 @@ print("Randomly assinging parameter sets to split class...")
 params = params[sample(1:K, size = K, replace = F),]
 params$split = params_split
 
-table(params$split, params$sweepS)
+table(params$split)
 
 # re-order parameter table so it looks nice
 print("Re-ordering parameter table...")
