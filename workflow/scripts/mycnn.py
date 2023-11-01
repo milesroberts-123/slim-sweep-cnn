@@ -30,10 +30,10 @@ train_params = slim_params[slim_params["split"] == "train"]
 val_params = slim_params[slim_params["split"] == "val"]
 test_params = slim_params[slim_params["split"] == "test"]
 
-print("Splitting response variable into training, validation, and testing...")
-train_y = train_params["sweepS"] 
-val_y = val_params["sweepS"]
-test_y = test_params["sweepS"]
+#print("Splitting response variable into training, validation, and testing...")
+#train_y = train_params["sweepS"] 
+#val_y = val_params["sweepS"]
+#test_y = test_params["sweepS"]
 
 train_ids = list(train_params["ID"])
 val_ids = list(val_params["ID"])
@@ -48,6 +48,16 @@ print("Shapes of training, validation, and testing images:")
 print(train_images.shape)
 print(val_images.shape)
 print(test_images.shape)
+
+# load fixation times
+print("Loading fixation times...")
+train_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids])
+val_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids])
+test_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids])
+
+print(train_y)
+print(val_y)
+print(test_y)
 
 # subset to only simulations which you have images for
 #print("Subsetting response variable to only finished simulations...")

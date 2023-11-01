@@ -38,12 +38,15 @@ print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
   h = 0.5, # dominance coefficient
-  sweepS = runif(K, min = 0.001, max = 1), # effect of beneficial mutation
+  sweepS = runif(K, min = 0, max = 1), # effect of beneficial mutation
   sigma = 0, # rate of selfing
   N = 1000, # population size
   mu = 1e-8, # mutation rate
   R = 1e-8 # Recombination rate
 )
+
+# show distributions of parameters
+summary(params)
 
 # If there are multiple parameters, make sure they're not correlated by chance
 print("Correlations between parameters across simulations:")

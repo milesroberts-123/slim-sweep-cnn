@@ -3,7 +3,7 @@ initialize() {
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	initializeMutationType("m2", h, "f", sweepS); // introduced mutation
 	initializeGenomicElementType("g1", m1, 1.0);
-	initializeGenomicElement(g1, 0, 999999);
+	initializeGenomicElement(g1, 0, 1000000);
 	initializeRecombinationRate(R);
 }
 
@@ -60,13 +60,17 @@ s2 2000 late() {
 			cat("Output sample as VCF...\n");
 			g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
 
+			// output when sweep fixed
+			cat("Outputing fixation time...\n");
+			writeFile("fix_time_" + asString(ID) + ".txt", paste(sim.cycle - 10*asInteger(N), sep=""));
+
 			cat("Simulation finished! :)\n");
 			sim.simulationFinished();
 		}
 
 		else {
 			cat(simID + ": LOST – RESTARTING\n");
-			// go back to tick 1000
+			// go back to tick before sweep introduced
 			sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 
 			// start a newly seeded run

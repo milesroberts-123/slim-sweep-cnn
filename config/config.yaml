@@ -1,7 +1,7 @@
 # Workflow parameters
 
 # number of simulations to run
-K: 2000
+K: 4000
 
 # Proportion of data to use for training
 train: 0.8

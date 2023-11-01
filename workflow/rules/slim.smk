@@ -28,6 +28,7 @@ rule slim:
 	output:
 		finalTable="data/tables/slim_{ID}.table",
 		tmpVCF = temp("slim_{ID}.vcf"),
+		fixTime = "data/fix_times/fix_time_{ID}.txt"
 	log:
 		"logs/slim/{ID}.log"
 	params:
@@ -46,7 +47,11 @@ rule slim:
 		"""
 		# run simulation
 		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} scripts/simulation.slim &> {log}
-		
+
+		# move fix time to it's own directory
+		mkdir -p data/fix_times
+		mv fix_time_{wildcards.ID}.txt data/fix_times/
+
 		# convert vcf to simple table
 		# remove hastag from CHROM
 		# remove multiallelic sites, because most studies focus on just bialleleic SNPs
