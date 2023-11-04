@@ -37,12 +37,12 @@ train_test_val_split = c(yamlfile[["train"]], yamlfile[["test"]], yamlfile[["val
 print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
-  h = 0.5, # dominance coefficient
+  h = runif(K, min = 0, max = 1), # dominance coefficient
   sweepS = runif(K, min = 0, max = 1), # effect of beneficial mutation
-  sigma = 0, # rate of selfing
+  sigma = runif(K, min = 0, max = 1), # rate of selfing
   N = 1000, # population size
   mu = 1e-8, # mutation rate
-  R = 1e-8 # Recombination rate
+  R = runif(K, min = 1e-9, max = 1e-7) # Recombination rate
 )
 
 # show distributions of parameters

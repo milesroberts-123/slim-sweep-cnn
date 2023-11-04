@@ -16,7 +16,7 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 path = "data/images/"
 batch_size = 32
 epochs = 100
-patience = 5
+patience = 10
 slim_params = "../config/parameters.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
@@ -55,9 +55,9 @@ train_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").rea
 val_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids])
 test_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids])
 
-print(train_y)
-print(val_y)
-print(test_y)
+#print(train_y)
+#print(val_y)
+#print(test_y)
 
 # subset to only simulations which you have images for
 #print("Subsetting response variable to only finished simulations...")
