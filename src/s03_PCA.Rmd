@@ -82,7 +82,7 @@ abline(a = 0, b = 1)
 cor(pred_vs_act$V1, pred_vs_act$V2)
 
 # nicer looking plots
-pred_vs_act = pred_vs_act[c(-972, -640, -497, -370, -896, -878),]
+#pred_vs_act = pred_vs_act[c(-972, -640, -497, -370, -896, -878),]
 
 mod = lm(V2 ~ V1, pred_vs_act)
 plot(mod)
@@ -103,6 +103,17 @@ ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
   xlim(c(0,1000)) + 
   labs(x = "Actual fixation time (generations)", y = "Predicted fixation time (generations)")
 
+```
+
+#
+```{r}
+expected_seg_sites = function(N,mu,sigma,L){
+
+4*mu*(N/(1 + sigma/(2-sigma)))*L
+
+}
+
+expected_seg_sites(1000,1e-8,0,1e6)
 ```
 
 #
