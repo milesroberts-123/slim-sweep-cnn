@@ -1,3 +1,4 @@
+
 library(yaml)
 
 # parse out yaml path
@@ -42,7 +43,8 @@ params = data.frame(
   sigma = runif(K, min = 0, max = 1), # rate of selfing
   N = round(runif(K, min = 1000, max = 1500)), # population size
   mu = runif(K, min = 1e-8, max = 5e-8), # mutation rate
-  R = runif(K, min = 1e-9, max = 1e-7) # Recombination rate
+  R = runif(K, min = 1e-9, max = 1e-7), # recombination rate
+  tau = round(runif(K, min = 0, max = 500)) # time between fixation and observation
 )
 
 # show distributions of parameters

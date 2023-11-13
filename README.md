@@ -72,7 +72,17 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] Add recombination rate as parameter
 
-- [ ] include polymorphism position information as another input to the network, output position table at the same time as image creation
+- [x] include polymorphism position information as another input to the network, output position table at the same time as image creation
+
+- [x] differentiate time of fixation from time of observation
+
+- [ ] refine burn-in, calculate expected equilibrium diversity and stop once population gets within 1 % of the equilibrium
+
+- [ ] add hill-robertson interference
+
+- [ ] add new types of sweeps
+
+- [ ] add new types of demography
 
 - [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site?
 

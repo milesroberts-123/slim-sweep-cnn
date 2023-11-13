@@ -23,6 +23,9 @@ initialize() {
 	// reschedule checking of fixation until after beneficial mutation is introduced
         community.rescheduleScriptBlock(s2, start=10*asInteger(N), end=10*asInteger(N) + 100000);
 
+	// set variable to track when beneficial mutation first fixes
+	// need defineGlobal to have variable be visible in other scopes
+	defineGlobal("fixTracker", 0);
 }
 
 // Every 1000 generations, output the heterozygosity and number of mutations in the population
@@ -50,22 +53,33 @@ s2 2000 late() {
 		fixed = (sum(sim.substitutions.mutationType == m2) == 1);
 
 		if (fixed){
-			cat(simID + ": FIXED at " + sim.cycle + "\n");
-			
-			// random sample of individuals from simulation
-			cat("Randomly sampling population...\n");
-			g = p1.sampleIndividuals(128).genomes; 
+			// first generation that mutation fixed
+			if (fixTracker == 0){
+				cat(simID + ": FIXED at " + sim.cycle + "\n");
+			}
+
+			// stop some generations after fixation
+			if (fixTracker == tau){
+				cat(simID + ": STOPPED at " + sim.cycle + "\n");
+
+				// random sample of individuals from simulation
+				cat("Randomly sampling population...\n");
+				g = p1.sampleIndividuals(128).genomes; 
  	
-			// output sampled unphased genomes as VCF
-			cat("Output sample as VCF...\n");
-			g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
+				// output sampled unphased genomes as VCF
+				cat("Output sample as VCF...\n");
+				g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
 
-			// output when sweep fixed
-			cat("Outputing fixation time...\n");
-			writeFile("fix_time_" + asString(ID) + ".txt", paste(sim.cycle - 10*asInteger(N), sep=""));
+				// output when sweep fixed
+				cat("Outputing fixation time...\n");
+				writeFile("fix_time_" + asString(ID) + ".txt", paste(sim.cycle - 10*asInteger(N), sep=""));
 
-			cat("Simulation finished! :)\n");
-			sim.simulationFinished();
+				cat("Simulation finished! :)\n");
+				sim.simulationFinished();
+			}
+
+			// increment tracker of generations post-fixation
+			fixTracker = fixTracker + 1;
 		}
 
 		else {

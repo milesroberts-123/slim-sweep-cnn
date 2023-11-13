@@ -19,8 +19,12 @@ def get_mu(wildcards):
         return float(mu.iloc[0])
 
 def get_R(wildcards):
-        mu = parameters.loc[parameters["ID"] == wildcards.ID, "R"]
-        return float(mu.iloc[0])
+        R = parameters.loc[parameters["ID"] == wildcards.ID, "R"]
+        return float(R.iloc[0])
+
+def get_tau(wildcards):
+        tau = parameters.loc[parameters["ID"] == wildcards.ID, "tau"]
+        return float(tau.iloc[0])
 
 rule slim:
 	input:
@@ -37,7 +41,8 @@ rule slim:
 		h=get_h,
 		N=get_N,
 		mu=get_mu,
-		R=get_R
+		R=get_R,
+		tau=get_tau
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000
@@ -46,7 +51,7 @@ rule slim:
 	shell:
 		"""
 		# run simulation
-		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} scripts/simulation.slim &> {log}
+		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} scripts/simulation.slim &> {log}
 
 		# move fix time to it's own directory
 		mkdir -p data/fix_times
