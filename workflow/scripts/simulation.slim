@@ -23,16 +23,19 @@ initialize() {
 	// reschedule checking of establishment for soft sweep mutation
         community.rescheduleScriptBlock(s2, start=10*asInteger(N), end=10*asInteger(N) + 100000);
 
-	// reschedule checking of fixation until after beneficial mutation is introduced
+	// reschedule checking of threshold for partial sweep mutation
         community.rescheduleScriptBlock(s3, start=10*asInteger(N), end=10*asInteger(N) + 100000);
+
+	// reschedule checking of fixation until after beneficial mutation is introduced
+        community.rescheduleScriptBlock(s4, start=10*asInteger(N), end=10*asInteger(N) + 100000);
 
 	// set variable to track when beneficial mutation first fixes
 	// need defineGlobal to have variable be visible in other scopes
 	defineGlobal("fixTracker", 0);
 }
 
-// Every 1000 generations, output the heterozygosity and number of mutations in the population
 early() {
+	// Every 1000 generations, output the heterozygosity and number of mutations in the population
         if(sim.cycle % 1000 == 0){
                 pi = calcHeterozygosity(p1.genomes);
                 numMuts = size(sim.mutations);
@@ -41,7 +44,7 @@ early() {
 }
 
 // save state of simulation after burn-in, then add beneficial mutation
-s1 1000 late() {
+s1 1000000 late() {
 	// save the state of the simulation
 	cat("Saving state of simulation...\n");
 	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
@@ -54,21 +57,22 @@ s1 1000 late() {
 
 // check if beneficial mutation (currently neutral) is established yet
 // once established, convert to beneficial mutation
-s2 2000 late() { 
+s2 2000000 late() { 
 	mut = sim.mutationsOfType(m2); 
  
 	if (size(mut) == 1) { 
 		if (sim.mutationFrequencies(NULL, mut) >= f0) { 
 			cat(simID + ": ESTABLISHED – CONVERTING TO BENEFICIAL\n"); 
 			mut.setSelectionCoeff(sweepS); 
-			community.deregisterScriptBlock(self); 
+			//community.deregisterScriptBlock(self);
+			community.rescheduleScriptBlock(self,1000000,1000000); 
 		} 
 	} 
 	
 	else { 
 		cat(simID + ": LOST BEFORE ESTABLISHMENT – RESTARTING\n"); 
  
-		// go back to tick 1000
+		// go back to tick at end of burn-in
 		sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 		
 		// start a newly seeded run
@@ -81,8 +85,22 @@ s2 2000 late() {
 }
 
 
+// check if mutation (currently beneficial) has reached threshold frequency
+// once threshold is reached, convert beneficial mutation to neutral
+s3 3000000 late() {
+        mut = sim.mutationsOfType(m2);
+        if (size(mut) == 1) {
+                if (sim.mutationFrequencies(NULL, mut) >= f1) {
+                        cat(simID + ": THRESHOLD REACHED – CONVERTING TO NEUTRAL\n");
+                        mut.setSelectionCoeff(0.0);
+                        //community.deregisterScriptBlock(self);
+			community.rescheduleScriptBlock(self,1000000,1000000); 
+                }
+        }
+}
+ 
 // check for fixation of beneficial mutation
-s3 3000 late() {
+s4 4000000 late() {
 	if (sim.countOfMutationsOfType(m2) == 0){
 		fixed = (sum(sim.substitutions.mutationType == m2) == 1);
 
@@ -128,9 +146,13 @@ s3 3000 late() {
 			target = sample(p1.genomes, 1);
 			target.addNewDrawnMutation(m2, 500000);
 
+			// re-register frequency checks for next cycle
+			community.rescheduleScriptBlock(s2, start=sim.cycle + 1, end=10*asInteger(N) + 1000000);
+			community.rescheduleScriptBlock(s3, start=sim.cycle + 1, end=10*asInteger(N) + 1000000);
+
 			// reset mutation to be beneficial
-			mut = sim.mutationsOfType(m2);
-                        mut.setSelectionCoeff(sweepS);
+			// mut = sim.mutationsOfType(m2);
+                        // mut.setSelectionCoeff(sweepS);
 		}
 	}
 }

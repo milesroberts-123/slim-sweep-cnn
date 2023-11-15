@@ -41,11 +41,14 @@ params = data.frame(
   h = runif(K, min = 0, max = 1), # dominance coefficient
   sweepS = runif(K, min = 0, max = 0.5), # effect of beneficial mutation
   sigma = runif(K, min = 0, max = 1), # rate of selfing
-  N = round(runif(K, min = 1000, max = 1500)), # population size
+  N = round(runif(K, min = 1000, max = 1250)), # population size
   mu = runif(K, min = 1e-8, max = 5e-8), # mutation rate
   R = runif(K, min = 1e-9, max = 1e-7), # recombination rate
   tau = round(runif(K, min = 0, max = 500)), # time between fixation and observation
-  f0 = c(rep(0, times = K/2), runif(K/2, min = 0.01, max = 0.5)) # establishment frequency
+  f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0.05, max = 0.3)), size = K, replace = F), # establishment frequency
+  f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.6, max = 0.95)), size = K, replace = F), # threshold frequency for partial sweep
+  n = round(runif(K, min = 1, max = 3)), # number of genomes to introduce beneficial mutations to after burn-in
+  lambda = runif(K, min = 0, max = 10) # average waiting time between beneficial mutations
 )
 
 # show distributions of parameters

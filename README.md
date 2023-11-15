@@ -76,15 +76,17 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] differentiate time of fixation from time of observation
 
+- [x] add soft sweeps
+
+- [x] add partial sweeps
+
+- [ ] add recurrent mutation
+
 - [ ] refine burn-in, calculate expected equilibrium diversity and stop once population gets within 1 % of the equilibrium
 
 - [ ] add hill-robertson interference
 
-- [ ] add new types of sweeps
-
 - [ ] add new types of demography
-
-- [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site?
 
 - [ ] re-write neural network as a function with hyperparameters
 

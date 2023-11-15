@@ -76,33 +76,27 @@ pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
 hist(pred_vs_act$V1)
 hist(pred_vs_act$V2)
 
+# subset data to remove outliers
+# pred_vs_act = pred_vs_act[(pred_vs_act$V1 < 5000),]
+
 # quick and dirty plot
 plot(pred_vs_act$V1, pred_vs_act$V2, xlab = "actual", ylab = "predicted")
 abline(a = 0, b = 1)
 cor(pred_vs_act$V1, pred_vs_act$V2)
 
-# nicer looking plots
-#pred_vs_act = pred_vs_act[c(-972, -640, -497, -370, -896, -878),]
-
-mod = lm(V2 ~ V1, pred_vs_act)
-plot(mod)
-mycoeff = coefficients(mod)
+# nicer plots
+#mod = lm(V2 ~ V1, pred_vs_act)
+#plot(mod)
+#mycoeff = coefficients(mod)
 
 ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, lty = "dotted") +
-  geom_abline(intercept = mycoeff[1], slope = mycoeff[2]) +
+  #geom_abline(intercept = mycoeff[1], slope = mycoeff[2]) +
   theme_classic() +
   labs(x = "Actual fixation time (generations)", y = "Predicted fixation time (generations)")
 
-ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
-  geom_point() +
-  geom_abline(slope = 1, intercept = 0, lty = "dotted") +
-  geom_abline(intercept = mycoeff[1], slope = mycoeff[2]) +
-  theme_classic() +
-  xlim(c(0,1000)) + 
-  labs(x = "Actual fixation time (generations)", y = "Predicted fixation time (generations)")
-
+ggsave("../results/actual_vs_predicted_fix_time_2023-11-15.png")
 ```
 
 #
