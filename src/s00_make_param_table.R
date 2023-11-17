@@ -47,7 +47,7 @@ params = data.frame(
   tau = round(runif(K, min = 0, max = 500)), # time between fixation and observation
   f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.25)), size = K, replace = F), # establishment frequency
   f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.75, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
-  n = sample(1:3, replace = T, size = K), # number of genomes to introduce beneficial mutations to after burn-in
+  n = sample(1, replace = T, size = K), # number of genomes to introduce beneficial mutations to after burn-in
   lambda = runif(K, min = 5, max = 20) # average waiting time between beneficial mutations
 )
 

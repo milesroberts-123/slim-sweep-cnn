@@ -34,6 +34,14 @@ def get_f1(wildcards):
         f1 = parameters.loc[parameters["ID"] == wildcards.ID, "f1"]
         return float(f1.iloc[0])
 
+def get_n(wildcards):
+        n = parameters.loc[parameters["ID"] == wildcards.ID, "n"]
+        return float(n.iloc[0])
+
+def get_lambda(wildcards):
+        lamb = parameters.loc[parameters["ID"] == wildcards.ID, "lambda"]
+        return float(lamb.iloc[0])
+
 rule slim:
 	input:
 		"../config/parameters.tsv"
@@ -52,7 +60,9 @@ rule slim:
 		R=get_R,
 		tau=get_tau,
 		f0=get_f0,
-		f1=get_f1
+		f1=get_f1,
+		n=get_n,
+		lamb=get_lambda
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000
@@ -61,7 +71,7 @@ rule slim:
 	shell:
 		"""
 		# run simulation
-		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d f0={params.f0} -d f1={params.f1} scripts/simulation.slim &> {log}
+		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} scripts/simulation.slim &> {log}
 
 		# move fix time to it's own directory
 		mkdir -p data/fix_times

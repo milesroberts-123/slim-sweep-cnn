@@ -80,7 +80,7 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] add partial sweeps
 
-- [ ] add recurrent mutation
+- [x] add recurrent mutation
 
 - [ ] refine burn-in, calculate expected equilibrium diversity and stop once population gets within 1 % of the equilibrium
 

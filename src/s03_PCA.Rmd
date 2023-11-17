@@ -77,12 +77,12 @@ hist(pred_vs_act$V1)
 hist(pred_vs_act$V2)
 
 # subset data to remove outliers
-# pred_vs_act = pred_vs_act[(pred_vs_act$V1 < 5000),]
+pred_vs_act = pred_vs_act[(pred_vs_act$V1 < 1809),]
 
 # quick and dirty plot
 plot(pred_vs_act$V1, pred_vs_act$V2, xlab = "actual", ylab = "predicted")
 abline(a = 0, b = 1)
-cor(pred_vs_act$V1, pred_vs_act$V2)
+cor(pred_vs_act$V1, pred_vs_act$V2, method = "spearman")
 
 # nicer plots
 #mod = lm(V2 ~ V1, pred_vs_act)
@@ -96,7 +96,7 @@ ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
   theme_classic() +
   labs(x = "Actual fixation time (generations)", y = "Predicted fixation time (generations)")
 
-ggsave("../results/actual_vs_predicted_fix_time_2023-11-15.png")
+#ggsave("../results/actual_vs_predicted_fix_time_2023-11-16.png")
 ```
 
 #
