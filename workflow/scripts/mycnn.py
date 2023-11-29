@@ -51,9 +51,9 @@ print(test_images.shape)
 
 # load fixation times
 print("Loading fixation times...")
-train_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids])
-val_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids])
-test_y = np.asarray([int(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids])
+train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids])
+val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids])
+test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids])
 
 #print(train_y)
 #print(val_y)

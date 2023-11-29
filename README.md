@@ -82,11 +82,15 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] add recurrent mutation
 
-- [ ] refine burn-in, calculate expected equilibrium diversity and stop once population gets within 1 % of the equilibrium
+- [x] refine burn-in, calculate expected equilibrium diversity and stop once population gets within 1 % of the equilibrium
+
+- [x] add new types of demography
+
+- [ ] draw parameters from log uniform distribution
+
+- [ ] tweak growth rate, add shrinking populations
 
 - [ ] add hill-robertson interference
-
-- [ ] add new types of demography
 
 - [ ] re-write neural network as a function with hyperparameters
 

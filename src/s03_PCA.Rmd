@@ -73,26 +73,36 @@ cor.test(pca_results$PC3, y, method = "pearson")
 pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
 
 # distribution of fixation times
-hist(pred_vs_act$V1)
-hist(pred_vs_act$V2)
+ggplot(pred_vs_act, aes(x=V1)) +
+  geom_density() +
+  geom_vline(aes(xintercept = median(V1)), linetype = "dashed", color = "blue") +
+  theme_classic() +
+  labs(x = "actual fixation times")
+
+ggplot(pred_vs_act, aes(x=V2)) +
+  geom_density() +
+    geom_vline(aes(xintercept = median(V2)), linetype = "dashed", color = "blue") +
+  theme_classic() +
+  labs(x = "predicted fixation times")
 
 # subset data to remove outliers
-pred_vs_act = pred_vs_act[(pred_vs_act$V1 < 1809),]
+# pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= max(pred_vs_act$V2)),]
 
 # quick and dirty plot
 plot(pred_vs_act$V1, pred_vs_act$V2, xlab = "actual", ylab = "predicted")
 abline(a = 0, b = 1)
-cor(pred_vs_act$V1, pred_vs_act$V2, method = "spearman")
+cor(pred_vs_act$V1, pred_vs_act$V2)
+cor(pred_vs_act$V1, pred_vs_act$V2)^2
 
 # nicer plots
-#mod = lm(V2 ~ V1, pred_vs_act)
-#plot(mod)
-#mycoeff = coefficients(mod)
+mod = lm(V2 ~ V1, pred_vs_act)
+plot(mod)
+mycoeff = coefficients(mod)
 
 ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, lty = "dotted") +
-  #geom_abline(intercept = mycoeff[1], slope = mycoeff[2]) +
+  geom_abline(intercept = mycoeff[1], slope = mycoeff[2]) +
   theme_classic() +
   labs(x = "Actual fixation time (generations)", y = "Predicted fixation time (generations)")
 
