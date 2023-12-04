@@ -1,3 +1,5 @@
+
+
 This workflow trains a convolutional neural network using population genetics data simulated with SLiM. 
 
 This code corresponds to the following publication: XXX
@@ -86,11 +88,17 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] add new types of demography
 
-- [ ] draw parameters from log uniform distribution
+- [x] draw parameters from log uniform distribution
 
-- [ ] tweak growth rate, add shrinking populations
+- [x] tweak growth rate, add shrinking populations
+
+- [x] subset data to have a more uniform distribution of fixation times, then train your model
+
+- [ ] add linkage to deleterious mutations (model beneficial mutation in the center of a functional region under purifying selection)
 
 - [ ] add hill-robertson interference
+
+- [ ] include population structure (track time for mutation to fix when it needs to migrate to another population first)
 
 - [ ] re-write neural network as a function with hyperparameters
 

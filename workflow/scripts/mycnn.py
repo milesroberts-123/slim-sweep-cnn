@@ -18,6 +18,7 @@ batch_size = 32
 epochs = 100
 patience = 10
 slim_params = "../config/parameters.tsv"
+#slim_params = "split_subsampled_sims.txt"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
 
