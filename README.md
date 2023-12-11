@@ -94,11 +94,19 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] subset data to have a more uniform distribution of fixation times, then train your model
 
-- [ ] add linkage to deleterious mutations (model beneficial mutation in the center of a functional region under purifying selection)
+- [x] add linkage to deleterious mutations (model beneficial mutation in the center of a functional region under purifying selection)
 
-- [ ] add hill-robertson interference
+- [x] add hill-robertson interference
+
+- [x] track the number of sweeps lost (i.e. number of simulation restarts) before you get a simulation that ends in a fixed sweep
+
+- [ ] add gene conversion
 
 - [ ] include population structure (track time for mutation to fix when it needs to migrate to another population first)
+
+- [ ] use gpu instead of cpu for training model
+
+- [ ] modify slim rule to append output of failure count and fixation times into single files
 
 - [ ] re-write neural network as a function with hyperparameters
 

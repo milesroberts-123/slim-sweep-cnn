@@ -4,13 +4,14 @@ import sys, os
 import numpy as np
 import pandas as pd
 from PIL import Image
-import keras
-import matplotlib.pyplot as plt
 import tensorflow as tf
+from tensorflow import keras
+#import matplotlib.pyplot as plt
 #from keras.optimizers import SGD
 
 # Check if GPUs are available
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+tf.debugging.set_log_device_placement(True)
 
 # define parameters
 path = "data/images/"
@@ -52,9 +53,9 @@ print(test_images.shape)
 
 # load fixation times
 print("Loading fixation times...")
-train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids])
-val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids])
-test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids])
+train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
 
 #print(train_y)
 #print(val_y)

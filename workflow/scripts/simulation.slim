@@ -1,8 +1,10 @@
 initialize() {
 	initializeMutationRate(mu);
-	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m1", 0.5, "f", 0.0); // neutral mutation
 	initializeMutationType("m2", h, "f", 0.0); // introduced mutation
-	initializeGenomicElementType("g1", m1, 1.0);
+	initializeMutationType("m3", hB, "e", bBar); // background beneficial mutations (hitchhickers, hill-robertson interference)
+	initializeMutationType("m4", hU, "g", uBar, alpha); // background deleterious mutations
+	initializeGenomicElementType("g1", c(m1,m3,m4), c(M,B,U));
 	initializeGenomicElement(g1, 0, 1000000);
 	initializeRecombinationRate(R);
 }
@@ -22,6 +24,14 @@ initialize() {
 	catn("SWEEP AGE: " + tau);
 	catn("NUMBER OF SWEEP MUTATIONS: " + n);
 	catn("AVERAGE WAIT TIME BETWEEN MUTATIONS: " + lambda);
+	catn("AVERAGE EFFECT OF BACKGROUND BENEFICIAL MUTATION: " + bBar);
+	catn("DOMINANCE COEFFICIENT OF BACKGROUND BENEFICIAL MUTATION: " + hB);
+	catn("AVERAGE EFFECT OF BACKGROUND DELETERIOUS MUTATION: " + uBar);
+	catn("DOMINANCE COEFFICIENT OF BACKGROUND DELETERIOUS MUTATION: " + hU);
+	catn("SHAPE PARAMETER OF BACKGROUND DELETERIOUS MUTATION DFE: " + alpha);
+	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE NEUTRAL: " + M);
+	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE DELETERIOUS: " + U);
+	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE BENEFICIAL: " + B);
 
 	// save this run's identifier, used to save and restore
 	defineConstant("simID", getSeed());
@@ -36,67 +46,48 @@ initialize() {
 	// need defineGlobal to have variable be visible in other scopes
 	defineGlobal("fixTracker", 0);
 
-	// calculate expected diversity
-	// will be used to determine when burn-in should end
-        fixationIndex = sigma/(2 - sigma);
-        Ne = N/(1 + fixationIndex);
-        defineGlobal("expectedDiversity", 4*Ne*mu);
-	catn(simID + ": " + sim.cycle + " - EXPECTED DIVERSITY: " + expectedDiversity);
+	// track number of simulation failures (i.e. lost sweep mutations) before success occurs (sweep fixes)
+	defineGlobal("fails", 0);
+
+        // generate schedule for beneficial mutations
+        gens = cumSum(rpois(asInteger(n), lambda)); // make a vector of start gens
+
+	gens = gens + (asInteger(N)*10 - min(gens)) + 1; // align to start after burning, plus one to avoid weird ordering
+
+	catn(simID + ": "+ sim.cycle + " - GENERATIONS TO ADD SWEEPS: " + paste(gens));
+	defineConstant("Z", max(gens)); // remember the last gen
+	catn(simID + ": "+ sim.cycle + " - GENERATION TO CHECK FOR ESTABLISHMENT: " + Z);
+
+	for (gen in gens) {
+		community.registerLateEvent(NULL, s1.source, gen, gen);
+	}
+
+        // reschedule saving of simulation after burn-in
+        community.rescheduleScriptBlock(s0, start=asInteger(N)*10, end=asInteger(N)*10);
+
+        // reschedule checking of establishment for soft sweep mutation
+        community.rescheduleScriptBlock(s2, start=asInteger(N)*10 + 1, end=asInteger(N)*10 + 1000000);
+
+        // reschedule checking of threshold for partial sweep mutation
+        community.rescheduleScriptBlock(s3, start=asInteger(N)*10 + 1, end=asInteger(N)*10 + 1000000);
+
+        // reschedule checking of fixation until after beneficial mutation is introduced
+        community.rescheduleScriptBlock(s4, start=asInteger(N)*10 + 1, end=asInteger(N)*10 + 1000000);
+
+        // reschedule changing of population size
+        community.rescheduleScriptBlock(s5, start=asInteger(N)*10 + 1, end=asInteger(N)*10 + 1000000);
 }
 
 early() {
 	// Every 1000 generations, output the heterozygosity and number of mutations in the population
         if(sim.cycle % 1000 == 0){
                 pi = calcHeterozygosity(p1.genomes);
-                numMuts = size(sim.mutations);
-                catn(simID + ": " + sim.cycle + " " + pi + " " + numMuts);
+                numM1 = size(sim.mutationsOfType(m1));
+                numM2 = size(sim.mutationsOfType(m2));
+                numM3 = size(sim.mutationsOfType(m3));
+                numM4 = size(sim.mutationsOfType(m4));
+                catn(simID + ": " + sim.cycle + " HETEROZYGOSITY: " + pi + " NEUTRAL: " + numM1 + " SWEEP: " + numM2 + " BACKGROUND GOOD: " + numM3 + " BACKGROUND BAD: " + numM4);
         }
-
-	// calculated current diversity and compare to expected equilibrium
-	// if current diversity is close to equilibrium, end burn-in
-	currentDiversity = calcHeterozygosity(p1.genomes);
-
-	percentError = abs((currentDiversity - expectedDiversity)/expectedDiversity * 100);
-
-	if (percentError <= 1) {
-                catn(simID + ": " + sim.cycle + " - EQUILIBRIUM DIVERSITY REACHED - ENDING BURN-IN");
-                catn(simID + ": " + sim.cycle + " - CURRENT DIVERSITY: " + currentDiversity + " - EXPECTED DIVERSITY: " + expectedDiversity);
-
-		// save generation where equilibrium was reached
-		defineGlobal("genEquilibrium", sim.cycle);
-
-	        // generate schedule for beneficial mutations
-        	gens = cumSum(rpois(asInteger(n), lambda)); // make a vector of start gens
-
-	        gens = gens + (sim.cycle - min(gens)) + 1; // align to start after burning, plus one to avoid weird ordering
-
-	        cat(simID + ": "+ sim.cycle + " - GENERATIONS TO ADD SWEEPS: " + paste(gens) + "\n");
-		defineConstant("Z", max(gens)); // remember the last gen
-
-		for (gen in gens) {
-                	community.registerLateEvent(NULL, s1.source, gen, gen);
-        	}
-
-        	//community.rescheduleScriptBlock(s1, 2000000, 2000000);
-
-        	// reschedule saving of simulation after burn-in
-        	community.rescheduleScriptBlock(s0, start=sim.cycle, end=sim.cycle);
-
-        	// reschedule checking of establishment for soft sweep mutation
-        	community.rescheduleScriptBlock(s2, start=sim.cycle, end=sim.cycle + 1000000);
-
-        	// reschedule checking of threshold for partial sweep mutation
-        	community.rescheduleScriptBlock(s3, start=sim.cycle, end=sim.cycle + 1000000);
-
-        	// reschedule checking of fixation until after beneficial mutation is introduced
-        	community.rescheduleScriptBlock(s4, start=sim.cycle, end=sim.cycle + 1000000);
-
-                // reschedule chaning of population size
-                community.rescheduleScriptBlock(s5, start=sim.cycle + 1, end=sim.cycle + 1000000);
-
-		// end this current script block so events are not re-registered
-		community.deregisterScriptBlock(self);
-	}
 }
 
 // save state of simulation after burn-in
@@ -111,6 +102,9 @@ s5 1000000 early() {
 	newSize = asInteger(r*(1 - p1.individualCount/K)*p1.individualCount + p1.individualCount); 
 	p1.setSubpopulationSize(newSize);
         catn(simID + ": " + sim.cycle + " - POPULATION SIZE: " + newSize);
+	if(newSize == p1.individualCount){
+		community.rescheduleScriptBlock(self, 1000000, 1000000);
+	}
 }
 
 // introduce the sweep mutation in middle of simulated region
@@ -180,7 +174,11 @@ s4 4000000 late() {
 
 				// output when sweep fixed
 				cat("Outputing fixation time...\n");
-				writeFile("fix_time_" + asString(ID) + ".txt", paste(sim.cycle - (genEquilibrium + tau), sep=""));
+				writeFile("fix_time_" + asString(ID) + ".txt", paste(sim.cycle - (asInteger(N)*10 + tau), sep=""));
+
+				// output number of failures, if any
+				cat("Outputing number of failures...\n");
+				writeFile("fails_" + asString(ID) + ".txt", paste(fails));
 
 				cat("Simulation finished! :)\n");
 				sim.simulationFinished();
@@ -192,7 +190,9 @@ s4 4000000 late() {
 
 		else {
 			if (sim.cycle > Z) {
-				cat(simID + ": " + sim.cycle + " - SWEEP LOST - RESTARTING\n");
+				fails = fails + 1; // increment fail counter
+				catn(simID + ": " + sim.cycle + " - SWEEP LOST - RESTARTING - FAILS: " + fails);
+
 				// go back to tick before sweep introduced
 				sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 
@@ -200,8 +200,9 @@ s4 4000000 late() {
 				setSeed(rdunif(1, 0, asInteger(2^62) - 1));
 
 				// re-register frequency checks for next cycle
-				community.rescheduleScriptBlock(s2, start=sim.cycle + 1, end=sim.cycle + 1000000);
-				community.rescheduleScriptBlock(s3, start=sim.cycle + 1, end=sim.cycle + 1000000);
+				community.rescheduleScriptBlock(s2, start=asInteger(N)*10 + 1, end=asInteger(N)*10 + 1000000);
+				community.rescheduleScriptBlock(s3, start=asInteger(N)*10 + 1, end=asInteger(N)*10 + 1000000);
+				community.rescheduleScriptBlock(s5, start=asInteger(N)*10 + 1, end=asInteger(N)*10 + 1000000);
 			}
 		}
 	}

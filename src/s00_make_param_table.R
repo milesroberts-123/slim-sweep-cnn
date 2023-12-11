@@ -1,4 +1,5 @@
 
+
 library(yaml)
 
 # parse out yaml path
@@ -39,15 +40,15 @@ print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
   h = runif(K, min = 0, max = 1), # dominance coefficient
-  sweepS = 10^runif(K, min = -3, max = 0), # effect of beneficial mutation
+  sweepS = 10^runif(K, min = -2, max = 0), # effect of beneficial mutation
   sigma = runif(K, min = 0, max = 1), # rate of selfing
   N = sample(1000:1500, size = K, replace  = T), # population size
   mu = 10^runif(K, min = -8, max = -7.25), # mutation rate
   R = 10^runif(K, min = -10, max = -6), # recombination rate
   tau = round(runif(K, min = 0, max = 500)), # time between fixation and observation
-  f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.2)), size = K, replace = F), # establishment frequency
-  f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.8, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
-  n = sample(c(rep(1, times = K/4), rep(2, times = K/4), rep(3, times = K/4), rep(4, times = K/4)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
+  f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.1)), size = K, replace = F), # establishment frequency
+  f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.9, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
+  n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
   lambda = runif(K, min = 5, max = 20), # average waiting time between beneficial mutations
   r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F) # growth rate
   #r = 0
@@ -61,6 +62,30 @@ params$K[(params$ID %in% decID)] = params$N[(params$ID %in% decID)]*runif(length
 params$K[!(params$ID %in% decID)]  = params$N[!(params$ID %in% decID)]/runif(K - length(decID), min = 0.5, max = 0.9)
 
 #params$K = 1000
+
+# proportions of deleterious, beneficial, neutral mutations
+# neutral mutation > deleterious mutation > beneficial mutation
+params$B = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.01)), size = K, replace = F) # beneficial mutations
+params$U = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.04)), size = K, replace = F) # deleterious mutations
+params$M = 1 - params$B - params$U # neutral mutations
+
+#bisect_interval = function(x){
+#  runif(1, min = x, max = 1)
+#}
+#bisect = unlist(lapply(params$B, bisect_interval))
+#params$M = pmax(bisect - params$B, 1 - bisect) # neutral mutations
+#params$U = pmin(bisect - params$B, 1 - bisect) # deleterious mutations
+
+params$hU = runif(K) # dominance for deleterious mutations
+params$hB = runif(K) # dominance for beneficial mutations
+
+params$bBar = runif(K, min = 0, max = 1e-3) # average effect of beneficial mutation
+params$uBar = runif(K, min = -0.02, max = 0) # average effect of deleterious mutation
+params$alpha = runif(K) # shape parameter for deleterious DFE
+
+# check that all proportions add to one
+print("Checking that all proportions add to one...")
+all.equal(rep(1, times = nrow(params)),c(params$M + params$U + params$B))
 
 # show distributions of parameters
 summary(params)

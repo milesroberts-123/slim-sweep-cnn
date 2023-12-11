@@ -89,8 +89,8 @@ ggplot(pred_vs_act, aes(x=V2)) +
   labs(x = "predicted fixation times")
 
 # quick and dirty plot
-plot(pred_vs_act$V1, pred_vs_act$V2, xlab = "actual", ylab = "predicted")
-abline(a = 0, b = 1)
+#plot(pred_vs_act$V1, pred_vs_act$V2, xlab = "actual", ylab = "predicted")
+#abline(a = 0, b = 1)
 cor(pred_vs_act$V1, pred_vs_act$V2)
 cor(pred_vs_act$V1, pred_vs_act$V2)^2
 
@@ -114,28 +114,87 @@ ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
 fix_times_files = list.files(path = "../workflow/data/fix_times", full.names = T)
 fix_times = lapply(fix_times_files, fread)
 
+fail_files = list.files(path = "../workflow/data/fails", full.names = T)
+fail_times = lapply(fail_files, fread)
+
 extract_number = function(x){
   x$V1[1]
 }
 
 fix_times = unlist(lapply(fix_times, extract_number))
 
+fail_times = unlist(lapply(fail_times, extract_number))
+
 fix_times = data.frame(
   tf = fix_times,
   ID = gsub(".txt", "", gsub("../workflow/data/fix_times/fix_time_", "",fix_times_files))
 )
 
-fix_times = merge(params, fix_times, by = "ID")
+fail_times = data.frame(
+  fails = fail_times,
+  ID = gsub(".txt", "", gsub("../workflow/data/fails/fails_", "", fail_files))
+)
 
-# squre selfing rate
+fix_times = merge(params, fix_times, by = "ID")
+fix_times = merge(fix_times, fail_times, by = "ID")
+
+# square selfing rate
 fix_times$sigma2 = fix_times$sigma^2
 
-# fit model
-tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + f0 + f1 + N + lambda + n + r + K, data = fix_times)
+# calculate probability of failure
+# For each simulation, what geometric distribution would give the observed number of failures as it's expected value
+fix_times$fix_prob = 1/(fix_times$fails + 1)
+
+# exploratory analysis, look at distribution of fix times
+ggplot(fix_times, aes(x=tf)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "fixation times")
+
+ggplot(fix_times, aes(x=fails)) +
+  geom_histogram(binwidth = 1) +
+  theme_classic() +
+  labs(x = "failures")
+
+ggplot(fix_times, aes(x=log10(fails))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(failures)")
+
+ggplot(fix_times, aes(x=fix_prob)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "Probability of fixation")
+
+ggplot(fix_times, aes(x=tf, y = fails)) +
+  geom_point() +
+  theme_classic() +
+  labs(x = "Fixation time", y = "Failures")
+
+cor.test(fix_times$tf, fix_times$fails, method = "spearman")
+
+# try linear models, see if there are any problems
+tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + f0 + f1 + N + n + r, data = fix_times)
+summary(tf_mod)
+plot(tf_mod)
+
+fail_mod = lm(log10(fails + 1) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + f0 + f1 + N + n + r, data = fix_times)
+summary(fail_mod)
+plot(fail_mod)
+
+# fit model for fixation time
+tf_mod = glm(tf ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + f0 + f1 + N + lambda + n + r + sigma + sigma2 + sigma*h, data = fix_times, family = Gamma(link = "log"))
 
 summary(tf_mod)
 
 plot(tf_mod)
+
+# fit model for failures
+fail_mod = glm(fails ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + f0 + f1 + N + lambda + n + r + sigma + sigma2 + sigma*h, data = fix_times, family = "quasipoisson")
+
+summary(fail_mod)
+
+plot(fail_mod)
 
 # find model with fewest terms but still lots of power
 step(tf_mod, direction = "both")
