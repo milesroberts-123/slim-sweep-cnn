@@ -97,6 +97,7 @@ cor(pred_vs_act$V1, pred_vs_act$V2)^2
 # nicer plots
 mod = lm(V2 ~ V1, pred_vs_act)
 plot(mod)
+summary(mod)
 mycoeff = coefficients(mod)
 
 ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
@@ -168,32 +169,41 @@ ggplot(fix_times, aes(x=fix_prob)) +
 
 ggplot(fix_times, aes(x=tf, y = fails)) +
   geom_point() +
+  geom_smooth() +
   theme_classic() +
-  labs(x = "Fixation time", y = "Failures")
+  labs(x = "Fixation time (generations)", y = "Failures")
 
 cor.test(fix_times$tf, fix_times$fails, method = "spearman")
 
+# change growth rate (r) to categorical variable
+fix_times$rcat = NA
+fix_times$rcat[(fix_times$r == 0)] = "constant"
+fix_times$rcat[(fix_times$r > 0) & (fix_times$r < 0.5) & (fix_times$N < fix_times$K)] = "growing"
+fix_times$rcat[(fix_times$r > 0) & (fix_times$r < 0.5) & (fix_times$N > fix_times$K)] = "shrinking"
+fix_times$rcat[(fix_times$r > 2) & (fix_times$r < sqrt(6))] = "2-cycle"
+fix_times$rcat[(fix_times$r > sqrt(6))] = "chaos"
+
+table(fix_times$rcat)
+
+fix_times$rcat = relevel(as.factor(fix_times$rcat), ref = "constant")
+
 # try linear models, see if there are any problems
-tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + f0 + f1 + N + n + r, data = fix_times)
+tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + sigma*log10(R) + f0 + f1 + N + n + lambda + n*lambda + rcat, data = fix_times)
 summary(tf_mod)
 plot(tf_mod)
 
-fail_mod = lm(log10(fails + 1) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + f0 + f1 + N + n + r, data = fix_times)
+fail_mod = lm(log10(fails + 1) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + f0 + f1 + N + n + rcat, data = fix_times)
 summary(fail_mod)
 plot(fail_mod)
 
-# fit model for fixation time
-tf_mod = glm(tf ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + f0 + f1 + N + lambda + n + r + sigma + sigma2 + sigma*h, data = fix_times, family = Gamma(link = "log"))
-
-summary(tf_mod)
-
-plot(tf_mod)
+# try glm instead of lm for fixation time
+#tf_mod = glm(tf ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + f0 + f1 + N + lambda + n + r + sigma + sigma2 + sigma*h, data = fix_times, family = Gamma(link = "log"))
+#summary(tf_mod)
+#plot(tf_mod)
 
 # fit model for failures
-fail_mod = glm(fails ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + f0 + f1 + N + lambda + n + r + sigma + sigma2 + sigma*h, data = fix_times, family = "quasipoisson")
-
+fail_mod = glm(fails ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + sigma*log10(R) + f0 + f1 + N + lambda + n + n*lambda + rcat, data = fix_times, family = "quasipoisson")
 summary(fail_mod)
-
 plot(fail_mod)
 
 # find model with fewest terms but still lots of power

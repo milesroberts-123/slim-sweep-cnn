@@ -10,8 +10,8 @@ from tensorflow import keras
 #from keras.optimizers import SGD
 
 # Check if GPUs are available
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-tf.debugging.set_log_device_placement(True)
+#print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+#tf.debugging.set_log_device_placement(True)
 
 # define parameters
 path = "data/images/"

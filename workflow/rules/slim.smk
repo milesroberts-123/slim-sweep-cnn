@@ -82,6 +82,18 @@ def get_alpha(wildcards):
         alpha = parameters.loc[parameters["ID"] == wildcards.ID, "alpha"]
         return float(alpha.iloc[0])
 
+def get_ncf(wildcards):
+        ncf = parameters.loc[parameters["ID"] == wildcards.ID, "ncf"]
+        return float(ncf.iloc[0])
+
+def get_cl(wildcards):
+        cl = parameters.loc[parameters["ID"] == wildcards.ID, "cl"]
+        return float(cl.iloc[0])
+
+def get_fsimple(wildcards):
+        fsimple = parameters.loc[parameters["ID"] == wildcards.ID, "fsimple"]
+        return float(fsimple.iloc[0])
+
 rule slim:
 	input:
 		"../config/parameters.tsv"
@@ -112,7 +124,10 @@ rule slim:
 		hB=get_hB,
 		bBar=get_bBar,
 		uBar=get_uBar,
-		alpha=get_alpha
+		alpha=get_alpha,
+		ncf=get_ncf,
+		cl=get_cl,
+		fsimple=get_fsimple
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000
@@ -121,7 +136,7 @@ rule slim:
 	shell:
 		"""
 		# run simulation
-		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d r={params.r} -d K={params.K} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} scripts/simulation.slim &> {log}
+		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d r={params.r} -d K={params.K} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} scripts/simulation.slim &> {log}
 
 		# move fix time to it's own directory
 		mkdir -p data/fix_times

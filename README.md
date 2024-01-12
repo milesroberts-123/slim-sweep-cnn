@@ -100,9 +100,17 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] track the number of sweeps lost (i.e. number of simulation restarts) before you get a simulation that ends in a fixed sweep
 
-- [ ] add gene conversion
+- [x] add gene conversion
 
-- [ ] include population structure (track time for mutation to fix when it needs to migrate to another population first)
+- [ ] include both neutral (s = 0) and selection (s > 0) scenarios
+
+- [ ] add clonal reproduction?
+
+- [ ] investigate recombination rate * selfing rate interaction
+
+- [ ] include polyploidy?
+
+- [ ] include population structure? (track time for mutation to fix when it needs to migrate to another population first)
 
 - [ ] use gpu instead of cpu for training model
 

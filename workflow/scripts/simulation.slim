@@ -7,6 +7,7 @@ initialize() {
 	initializeGenomicElementType("g1", c(m1,m3,m4), c(M,B,U));
 	initializeGenomicElement(g1, 0, 1000000);
 	initializeRecombinationRate(R);
+	initializeGeneConversion(ncf, cl, fsimple);
 }
 
 1 early() {
@@ -32,6 +33,9 @@ initialize() {
 	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE NEUTRAL: " + M);
 	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE DELETERIOUS: " + U);
 	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE BENEFICIAL: " + B);
+	catn("PROPORTION OF RECOMBINATION EVENTS THAT AREN'T CROSS-OVERS: " + ncf);
+	catn("MEAN LENGTH OF COPY IN GENE CONVERSION EVENT: " + cl);
+	catn("PROPORTION OF COPY TRACTS THAT ARE SIMPLE: " + fsimple);
 
 	// save this run's identifier, used to save and restore
 	defineConstant("simID", getSeed());

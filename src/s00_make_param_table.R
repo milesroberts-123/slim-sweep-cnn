@@ -40,18 +40,20 @@ print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
   h = runif(K, min = 0, max = 1), # dominance coefficient
-  sweepS = 10^runif(K, min = -2, max = 0), # effect of beneficial mutation
+  sweepS = sample(c(rep(0, times = K/2), 10^runif(K/2, min = -2, max = 0)), size = K, replace = F), # effect of beneficial mutation
   sigma = runif(K, min = 0, max = 1), # rate of selfing
   N = sample(1000:1500, size = K, replace  = T), # population size
   mu = 10^runif(K, min = -8, max = -7.25), # mutation rate
-  R = 10^runif(K, min = -10, max = -6), # recombination rate
+  R = 10^runif(K, min = -10, max = -7), # recombination rate
   tau = round(runif(K, min = 0, max = 500)), # time between fixation and observation
   f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.1)), size = K, replace = F), # establishment frequency
   f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.9, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
   n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
   lambda = runif(K, min = 5, max = 20), # average waiting time between beneficial mutations
-  r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F) # growth rate
-  #r = 0
+  r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
+  ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F), # fraction of recombination events that are not cross overs
+  cl = sample(100:1000, size = K, replace = T), # mean length of copies in cross over events
+  fsimple = runif(K, min = 0, max = 1) # fraction of tracts that are "simple" as opposed to complex
 )
 
 # carrying capacity
