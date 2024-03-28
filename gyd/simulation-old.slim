@@ -1,0 +1,135 @@
+// set up a simple simulation
+initialize() { 
+	// parse out constants if using gui, otherwise these will be passed from command line
+	if (exists("slimgui")) {
+		defineConstant("ID", 1); // unique ID for simulation
+		defineConstant("meanS", 0.02); // average selection coefficient for DFE
+		defineConstant("alpha", 0.2); // shape parameter for DFE
+		defineConstant("h", 0.1); // dominance coefficient
+		defineConstant("sweepS", 0.02); // fitness effect of beneficial mutation
+		defineConstant("sigmaA", 0.9); // ancestral selfing rate
+		defineConstant("sigmaC", 0.1); // current selfing rate
+		defineConstant("tsigma", 1000); // when selfing rate transition occurs
+		defineConstant("tsweep", 5000); // when mutations become non-neutral
+		defineConstant("N", 1000); // population size
+		defineConstant("R", 1e-8); // recombination rate
+		defineConstant("mu", 1e-6); // mutation rate
+		defineConstant("G", 25000); // simulation length in generations
+	}
+
+	initializeMutationType("m0", 0.5, "f", 0.0); // neutral
+	initializeMutationType("m4", 0.1, "g", meanS, alpha); // deleterious, background selection
+	initializeMutationType("m5", h, "f", sweepS); // beneficial mutation
+	
+	initializeGenomicElementType("g0", m0, 1.0); // synonymous sites 
+	initializeGenomicElementType("g4", m4, 1.0); // nonsynonymous sites
+
+	initializeRecombinationRate(1e-8); // recombination 
+	initializeMutationRate(mu);  // mutation rate
+
+	// Load 4-fold and 0-fold degenerate sites
+	types = asInteger(readFile("types_" + asString(ID) + ".txt"));
+	starts = asInteger(readFile("starts_" + asString(ID) + ".txt"));
+
+	// remove empty space at 5' end
+	starts = starts - starts[0];
+
+	// Create distribution of synonymous and nonsynonymous sites
+	for (i in 0:(length(starts) - 1)) {
+		type = types[i];
+		start = starts[i];
+		if (type == 4){
+			initializeGenomicElement(g4, start, start); 
+		}
+
+		if (type == 0){
+			initializeGenomicElement(g0, start, start); 
+		} 
+	} 
+
+	// put starts vector in global scope so it can be accessed when adding beneficial mutation
+	defineGlobal("nonsynSites", starts[(types ==4)]);
+}
+ 
+// initialize properties of population
+1 early() { 
+	sim.addSubpop("p1", asInteger(N)); // create a population
+	community.rescheduleScriptBlock(s1, start=10*asInteger(N) + asInteger(G), end=10*asInteger(N) + asInteger(G)); // output results at defined time
+	community.rescheduleScriptBlock(s2, start=10*asInteger(N) + asInteger(tsigma), end=10*asInteger(N) + asInteger(tsigma)); // change selfing rate at defined time, first 10 N generations are burn-in
+	community.rescheduleScriptBlock(s3, start=10*asInteger(N) + asInteger(tsweep), end=10*asInteger(N) + asInteger(tsweep)); // add in beneficial mutation at defined time, first 10N generations are burn-in
+	// sim.rescheduleScriptBlock() method deprecated in slim 4: https://groups.google.com/g/slim-discuss/c/827_5SAIJtM/m/k074ovLSBAAJ
+	// sim.rescheduleScriptBlock(s1, start = G, end = G); // set length of simulation
+	p1.setSelfingRate(sigmaA); // set selfing rate for ancestral population
+} 
+
+// Change selfing rate
+s2 5000 early() {
+	print("Activating transition...");
+	p1.setSelfingRate(sigmaC);
+}
+
+// Calculate heterozygosity 
+early() {
+	// Every 1000 generations, output the heterozygosity and number of mutations in the population
+	if(sim.cycle % 1000 == 0){
+		pi = calcHeterozygosity(p1.genomes);
+		numMuts = size(sim.mutations);
+		catn(sim.cycle + ": " + pi + " " + numMuts);
+		//print(pi);
+		//print(numMuts);
+	}
+}
+
+// Add new mutation
+s3 10000 late() { 
+ print("Introducing beneficial mutation...");
+ print("Sample one genome...");
+ target = sample(p1.genomes, 1);
+
+ print("Sample one site..."); 
+ mutsite = sample(nonsynSites, 1);
+
+ print("Site of beneficial mutation:");
+ print(mutsite);
+ mut = target.addNewDrawnMutation(m5, mutsite); 
+
+ defineConstant("SWEEP", mut); // Keep reference to mutation for later
+
+ print("Initial frequency of beneficial mutation:");
+ print(sim.mutationFrequencies(p1, sim.mutationsOfType(m5)));
+
+} 
+
+// run simulation for many generations
+s1 2000 late() { 
+	// print final frequency of selected mutation
+	print("Final frequency of selected mutation:");
+	mutfrq = sim.mutationFrequencies(p1, sim.mutationsOfType(m5)); 
+	print(mutfrq);
+
+	// Check if sweep is fixed or lost
+	// Sweep never seems to come up as fixed, even when I use dominant highly beneficial mutations 
+	// mutation is correctly identified as segregating though
+	if(!SWEEP.isSegregating){ 
+		cat(ifelse(SWEEP.isFixed, "FIXED\n", "LOST\n")); 
+	} else {
+		cat("SEGREGATING\n");
+	}
+
+	// For some reason, this block does not work as expected for mutations of type m5, but does work for other types
+	// If final frequency is zero, output whether mutation was fixed or lost
+	// frequency can be zero if mutation was fixed because SLiM converts fixed mutations into substituion objects
+	//if(sim.countOfMutationsOfType(m5) == 0){
+	//	fixed = (sum(sim.substitutions.mutationType == m5) == 1); 
+	//	cat(ifelse(fixed, "FIXED\n", "LOST\n")); 
+	//}
+
+	// output random sample of phased chromosomes
+	//p1.outputMSSample(20, filePath = "slim.table", filterMonomorphic = T);
+	
+	// random sample of individuals from simulation
+	g = p1.sampleIndividuals(128).genomes; 
+ 	
+	// output sampled unphased genomes as VCF
+	g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
+}

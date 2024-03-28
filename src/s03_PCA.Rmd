@@ -13,6 +13,7 @@ library(data.table)
 library(reshape2)
 library(ggplot2)
 library(scico)
+library(png)
 ```
 
 # load data
@@ -21,17 +22,239 @@ library(scico)
 params = read.table("../config/parameters.tsv", sep = "\t", header = T)
 
 # get random sample of simulation outputs
-vcfs = list.files("../workflow/data/tables", full.names = T)
+mypics = list.files("../workflow/data/images", full.names = T)
 
 # get sim ids
-vcfids = as.numeric(gsub(".table", "", gsub("../workflow/data/tables/slim_", "", vcfs)))
+picids = as.numeric(gsub(".png", "", gsub("../workflow/data/images/slim_", "", mypics)))
 
 # get variable that outputs should predict 
-y = params[vcfids, "sweepS"]
+y = params[picids, "sweepS"]
 summary(y)
 
+# define function for reading pngs,
+read_png = function(x){
+  print(x)
+  temp_pic = readPNG(x)[,,1]
+  melt(temp_pic)$value
+}
+
 # load sim outputs
-vcfs = lapply(vcfs, fread, data.table = F, header = T)
+mypics = lapply(mypics, read_png)
+
+# bind all sim outputs together
+mypics = do.call("cbind", mypics)
+
+# convert gray pixels to 0.5
+mypics[((mypics > 0) & (mypics < 1))] = 0.5
+
+# simulations should be rows
+# do PCA
+pca_results = as.data.frame(prcomp(t(mypics), center = T)$x)
+
+# visually show how PCs correlate with dependent variable
+ggplot(pca_results, aes(PC1, PC2, color = y)) +
+  geom_point() +
+  theme_classic() +
+  scale_color_scico(palette = "lajolla", name = "Selection coefficient")
+
+# test if PC's correlate with selection coefficient
+plot(pca_results$PC1, y)
+cor.test(pca_results$PC1, y, method = "pearson")
+
+plot(pca_results$PC2, y)
+cor.test(pca_results$PC2, y, method = "pearson")
+
+plot(pca_results$PC3, y)
+cor.test(pca_results$PC3, y, method = "pearson")
+```
+
+# compare predictions to actual values
+```{r}
+pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
+
+# subset data to remove outliers
+pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= max(pred_vs_act$V2)),]
+
+# distribution of fixation times
+ggplot(pred_vs_act, aes(x=V1)) +
+  geom_density() +
+  geom_vline(aes(xintercept = mean(V1)), linetype = "dashed", color = "blue") +
+  theme_classic() +
+  labs(x = "actual fixation times")
+
+ggplot(pred_vs_act, aes(x=V2)) +
+  geom_density() +
+  geom_vline(aes(xintercept = mean(V1)), linetype = "dashed", color = "blue") +
+  theme_classic() +
+  labs(x = "predicted fixation times")
+
+# quick and dirty plot
+#plot(pred_vs_act$V1, pred_vs_act$V2, xlab = "actual", ylab = "predicted")
+#abline(a = 0, b = 1)
+cor(pred_vs_act$V1, pred_vs_act$V2)
+cor(pred_vs_act$V1, pred_vs_act$V2)^2
+
+# nicer plots
+mod = lm(V2 ~ V1, pred_vs_act)
+plot(mod)
+summary(mod)
+mycoeff = coefficients(mod)
+
+ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, lty = "dotted") +
+  geom_abline(intercept = mycoeff[1], slope = mycoeff[2]) +
+  theme_classic() +
+  labs(x = "Actual fixation time (generations)", y = "Predicted fixation time (generations)")
+
+#ggsave("../results/actual_vs_predicted_fix_time_2023-11-16.png")
+```
+
+# How does time to fixation in simulations vary with the simulation parameters?
+```{r}
+fix_times_files = list.files(path = "../workflow/data/fix_times", full.names = T)
+fix_times = lapply(fix_times_files, fread)
+
+fail_files = list.files(path = "../workflow/data/fails", full.names = T)
+fail_times = lapply(fail_files, fread)
+
+extract_number = function(x){
+  x$V1[1]
+}
+
+fix_times = unlist(lapply(fix_times, extract_number))
+
+fail_times = unlist(lapply(fail_times, extract_number))
+
+fix_times = data.frame(
+  tf = fix_times,
+  ID = gsub(".txt", "", gsub("../workflow/data/fix_times/fix_time_", "",fix_times_files))
+)
+
+fail_times = data.frame(
+  fails = fail_times,
+  ID = gsub(".txt", "", gsub("../workflow/data/fails/fails_", "", fail_files))
+)
+
+fix_times = merge(params, fix_times, by = "ID")
+fix_times = merge(fix_times, fail_times, by = "ID")
+
+# square selfing rate
+fix_times$sigma2 = fix_times$sigma^2
+
+# calculate probability of failure
+# For each simulation, what geometric distribution would give the observed number of failures as it's expected value
+fix_times$fix_prob = 1/(fix_times$fails + 1)
+
+# exploratory analysis, look at distribution of fix times
+ggplot(fix_times, aes(x=tf)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "fixation times")
+
+ggplot(fix_times, aes(x=fails)) +
+  geom_histogram(binwidth = 1) +
+  theme_classic() +
+  labs(x = "failures")
+
+ggplot(fix_times, aes(x=log10(fails))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(failures)")
+
+ggplot(fix_times, aes(x=fix_prob)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "Probability of fixation")
+
+ggplot(fix_times, aes(x=tf, y = fails)) +
+  geom_point() +
+  geom_smooth() +
+  theme_classic() +
+  labs(x = "Fixation time (generations)", y = "Failures")
+
+cor.test(fix_times$tf, fix_times$fails, method = "spearman")
+
+# change growth rate (r) to categorical variable
+fix_times$rcat = NA
+fix_times$rcat[(fix_times$r == 0)] = "constant"
+fix_times$rcat[(fix_times$r > 0) & (fix_times$r < 0.5) & (fix_times$N < fix_times$K)] = "growing"
+fix_times$rcat[(fix_times$r > 0) & (fix_times$r < 0.5) & (fix_times$N > fix_times$K)] = "shrinking"
+fix_times$rcat[(fix_times$r > 2) & (fix_times$r < sqrt(6))] = "2-cycle"
+fix_times$rcat[(fix_times$r > sqrt(6))] = "chaos"
+
+table(fix_times$rcat)
+
+fix_times$rcat = relevel(as.factor(fix_times$rcat), ref = "constant")
+
+# try linear models, see if there are any problems
+tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + sigma*log10(R) + f0 + f1 + N + n + lambda + n*lambda + rcat, data = fix_times)
+summary(tf_mod)
+plot(tf_mod)
+
+fail_mod = lm(log10(fails + 1) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + f0 + f1 + N + n + rcat, data = fix_times)
+summary(fail_mod)
+plot(fail_mod)
+
+# try glm instead of lm for fixation time
+#tf_mod = glm(tf ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + f0 + f1 + N + lambda + n + r + sigma + sigma2 + sigma*h, data = fix_times, family = Gamma(link = "log"))
+#summary(tf_mod)
+#plot(tf_mod)
+
+# fit model for failures
+fail_mod = glm(fails ~ log10(sweepS)+ h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + sigma*log10(R) + f0 + f1 + N + lambda + n + n*lambda + rcat, data = fix_times, family = "quasipoisson")
+summary(fail_mod)
+plot(fail_mod)
+
+# find model with fewest terms but still lots of power
+step(tf_mod, direction = "both")
+
+# distribution of fixation times
+ggplot(fix_times, aes(x=tf)) +
+  geom_density() +
+    geom_vline(aes(xintercept = median(tf)), linetype = "dashed", color = "blue") +
+  theme_classic() +
+  labs(x = "actual fixation times")
+
+# parametric plot of fixation time versus other parameters
+ggplot(fix_times, aes(sigma, log10(tf), color = h)) +
+  geom_point() +
+  theme_classic()
+```
+
+#
+```{r}
+expected_seg_sites = function(N,mu,sigma,L){
+
+4*mu*(N/(1 + sigma/(2-sigma)))*L
+
+}
+
+expected_seg_sites(1000,1e-8,0,1e6)
+```
+
+#
+```{r}
+s = runif(6000)
+h = runif(6000)
+
+fixtimes = data.frame(
+  id = 1:6000,
+  hs = h*s
+)
+
+fixtimes$bins = cut(fixtimes$hs, breaks = 10)
+
+target = min(table(fixtimes$bins))
+
+for(bin in unique(fixtimes$bins)){
+    fixsub = fixtimes[(fixtimes$bins == bin),]
+    fixsub[(fixsub$id %in% sample(fixsub$id, size = target, replace = F)),]
+}
+
+table(bins)
+
+
 ```
 
 # shape data into one matrix

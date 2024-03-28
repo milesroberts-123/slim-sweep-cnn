@@ -1,14 +1,14 @@
+
+
 This workflow trains a convolutional neural network using population genetics data simulated with SLiM. 
 
 This code corresponds to the following publication: XXX
 
 # Contents
 
-(How to replicate my results)[#how-to-replicate-my-results]
+[How to replicate my results](#how-to-replicate-my-results)
 
-(How to use a different SLiM model)[#how-to-use-a-different-slim-model]
-
-(To do)[#to-do]
+[To do](#to-do)
 
 # How to replicate my results
 
@@ -46,10 +46,6 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 `sbatch s01_snakemake.bash`
 
-# How to use a different SLiM model
-
-Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM script. Your new script must be named `simulation.slim`.
-
 # To do
 
 - [x] add rule for fitting neural network
@@ -72,9 +68,49 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [x] Add recombination rate as parameter
 
-- [ ] include polymorphism position information as another input to the network, output position table at the same time as image creation
+- [x] include polymorphism position information as another input to the network, output position table at the same time as image creation
 
-- [ ] use only genes with at least 1 four-fold degenerate and one zero-fold degenerate site? Or just allow beneficial mutations at any site?
+- [x] differentiate time of fixation from time of observation
+
+- [x] add soft sweeps
+
+- [x] add partial sweeps
+
+- [x] add recurrent mutation
+
+- [x] refine burn-in, calculate expected equilibrium diversity and stop once population gets within 1 % of the equilibrium
+
+- [x] add new types of demography
+
+- [x] draw parameters from log uniform distribution
+
+- [x] tweak growth rate, add shrinking populations
+
+- [x] subset data to have a more uniform distribution of fixation times, then train your model
+
+- [x] add linkage to deleterious mutations (model beneficial mutation in the center of a functional region under purifying selection)
+
+- [x] add hill-robertson interference
+
+- [x] track the number of sweeps lost (i.e. number of simulation restarts) before you get a simulation that ends in a fixed sweep
+
+- [x] add gene conversion
+
+- [ ] include both neutral (s = 0) and selection (s > 0) scenarios
+
+- [ ] include mildly deleterious mutations (-1/N < s < 0)
+
+- [ ] add clonal reproduction?
+
+- [ ] investigate recombination rate * selfing rate interaction
+
+- [ ] include polyploidy?
+
+- [ ] include population structure? (track time for mutation to fix when it needs to migrate to another population first)
+
+- [ ] use gpu instead of cpu for training model
+
+- [ ] modify slim rule to append output of failure count and fixation times into single files
 
 - [ ] re-write neural network as a function with hyperparameters
 

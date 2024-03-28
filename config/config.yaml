@@ -1,7 +1,7 @@
 # Workflow parameters
 
 # number of simulations to run
-K: 1000
+K: 100000
 
 # Proportion of data to use for training
 train: 0.8
@@ -11,9 +11,6 @@ test: 0.1
 
 # Proporition of data to use for validation
 val: 0.1
-
-# Path to gene models used for simulations
-gff: "../config/genome/Osativa_323_v7.0.gene.gff3"
 
 # Dimmension of images will be nidv*nloc*3
 # Number of individual genomes to sample

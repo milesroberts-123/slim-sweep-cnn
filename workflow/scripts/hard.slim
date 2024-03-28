@@ -1,0 +1,98 @@
+initialize() {
+	initializeMutationRate(mu);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeMutationType("m2", h, "f", sweepS); // introduced mutation
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1000000);
+	initializeRecombinationRate(R);
+}
+
+1 early() {
+	// save this run's identifier, used to save and restore
+	defineConstant("simID", getSeed());
+
+	// create subpopulation
+	sim.addSubpop("p1", asInteger(N));
+
+	// set selfing rate
+	p1.setSelfingRate(sigma);
+
+	// reschedule beneficial mutation to be introduced after burn-in
+        community.rescheduleScriptBlock(s1, start=10*asInteger(N), end=10*asInteger(N));
+
+	// reschedule checking of fixation until after beneficial mutation is introduced
+        community.rescheduleScriptBlock(s2, start=10*asInteger(N), end=10*asInteger(N) + 100000);
+
+	// set variable to track when beneficial mutation first fixes
+	// need defineGlobal to have variable be visible in other scopes
+	defineGlobal("fixTracker", 0);
+}
+
+// Every 1000 generations, output the heterozygosity and number of mutations in the population
+early() {
+        if(sim.cycle % 1000 == 0){
+                pi = calcHeterozygosity(p1.genomes);
+                numMuts = size(sim.mutations);
+                catn(sim.cycle + ": " + pi + " " + numMuts);
+        }
+}
+
+s1 1000 late() {
+	// save the state of the simulation
+	cat("Saving state of simulation...\n");
+	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
+
+	// introduce the sweep mutation in middle of simulated region
+	cat("Introducing beneficial mutation...\n");
+	target = sample(p1.genomes, 1);
+	target.addNewDrawnMutation(m2, 500000);
+}
+
+s2 2000 late() {
+	if (sim.countOfMutationsOfType(m2) == 0){
+		fixed = (sum(sim.substitutions.mutationType == m2) == 1);
+
+		if (fixed){
+			// first generation that mutation fixed
+			if (fixTracker == 0){
+				cat(simID + ": FIXED at " + sim.cycle + "\n");
+			}
+
+			// stop some generations after fixation
+			if (fixTracker == tau){
+				cat(simID + ": STOPPED at " + sim.cycle + "\n");
+
+				// random sample of individuals from simulation
+				cat("Randomly sampling population...\n");
+				g = p1.sampleIndividuals(128).genomes; 
+ 	
+				// output sampled unphased genomes as VCF
+				cat("Output sample as VCF...\n");
+				g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
+
+				// output when sweep fixed
+				cat("Outputing fixation time...\n");
+				writeFile("fix_time_" + asString(ID) + ".txt", paste(sim.cycle - 10*asInteger(N), sep=""));
+
+				cat("Simulation finished! :)\n");
+				sim.simulationFinished();
+			}
+
+			// increment tracker of generations post-fixation
+			fixTracker = fixTracker + 1;
+		}
+
+		else {
+			cat(simID + ": LOST – RESTARTING\n");
+			// go back to tick before sweep introduced
+			sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
+
+			// start a newly seeded run
+			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
+
+			// re-introduce the sweep mutation
+			target = sample(p1.genomes, 1);
+			target.addNewDrawnMutation(m2, 500000);
+		}
+	}
+}
