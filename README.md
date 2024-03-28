@@ -104,6 +104,8 @@ Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM
 
 - [ ] include both neutral (s = 0) and selection (s > 0) scenarios
 
+- [ ] include mildly deleterious mutations (-1/N < s < 0)
+
 - [ ] add clonal reproduction?
 
 - [ ] investigate recombination rate * selfing rate interaction
