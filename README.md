@@ -6,11 +6,9 @@ This code corresponds to the following publication: XXX
 
 # Contents
 
-(How to replicate my results)[#how-to-replicate-my-results]
+[How to replicate my results](#how-to-replicate-my-results)
 
-(How to use a different SLiM model)[#how-to-use-a-different-slim-model]
-
-(To do)[#to-do]
+[To do](#to-do)
 
 # How to replicate my results
 
@@ -47,10 +45,6 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 ## 3. Run simulations and train neural network on outputs
 
 `sbatch s01_snakemake.bash`
-
-# How to use a different SLiM model
-
-Just replace the script in `workflow/scripts/simulation.slim` with your own SLiM script. Your new script must be named `simulation.slim`.
 
 # To do
 

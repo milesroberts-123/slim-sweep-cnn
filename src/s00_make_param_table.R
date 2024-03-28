@@ -40,7 +40,7 @@ print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
   h = runif(K, min = 0, max = 1), # dominance coefficient
-  sweepS = sample(c(rep(0, times = K/2), 10^runif(K/2, min = -2, max = 0)), size = K, replace = F), # effect of beneficial mutation
+  sweepS = 10^runif(K, min = -3, max = 0), # effect of beneficial mutation
   sigma = runif(K, min = 0, max = 1), # rate of selfing
   N = sample(1000:1500, size = K, replace  = T), # population size
   mu = 10^runif(K, min = -8, max = -7.25), # mutation rate
