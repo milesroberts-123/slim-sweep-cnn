@@ -96,13 +96,15 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] add gene conversion
 
+- [ ] add simulation id to prediction vs actual values output
+ 
 - [ ] include both neutral (s = 0) and selection (s > 0) scenarios
 
 - [ ] include mildly deleterious mutations (-1/N < s < 0)
 
 - [ ] add clonal reproduction?
 
-- [ ] investigate recombination rate * selfing rate interaction
+- [x] investigate recombination rate * selfing rate interaction
 
 - [ ] include polyploidy?
 

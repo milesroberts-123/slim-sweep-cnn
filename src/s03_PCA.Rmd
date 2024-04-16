@@ -14,12 +14,15 @@ library(reshape2)
 library(ggplot2)
 library(scico)
 library(png)
+
+today = Sys.Date()
 ```
 
 # load data
 ```{r}
 # simulation parameters
-params = read.table("../config/parameters.tsv", sep = "\t", header = T)
+#params = read.table("../config/parameters.tsv", sep = "\t", header = T)
+params = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/config/parameters.tsv", sep = "\t", header = T)
 
 # get random sample of simulation outputs
 mypics = list.files("../workflow/data/images", full.names = T)
@@ -68,54 +71,54 @@ plot(pca_results$PC3, y)
 cor.test(pca_results$PC3, y, method = "pearson")
 ```
 
-# compare predictions to actual values
+# compare predictions to actual values on testing dataset
 ```{r}
-pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
+#pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
+pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/predicted_vs_actual.txt")
 
 # subset data to remove outliers
-pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= max(pred_vs_act$V2)),]
-
+#pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= 5000),]
+pred_vs_act_melt = melt(pred_vs_act)
+pred_vs_act_melt$variable = as.character(pred_vs_act_melt$variable)
+pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V1")] = "Actual"
+pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V2")] = "Predicted"
 # distribution of fixation times
-ggplot(pred_vs_act, aes(x=V1)) +
+ggplot(pred_vs_act_melt, aes(x = value, color = variable)) +
   geom_density() +
-  geom_vline(aes(xintercept = mean(V1)), linetype = "dashed", color = "blue") +
   theme_classic() +
-  labs(x = "actual fixation times")
+  labs(x = "log10(Fixation time, generations)", color = "Type")
 
 ggplot(pred_vs_act, aes(x=V2)) +
   geom_density() +
-  geom_vline(aes(xintercept = mean(V1)), linetype = "dashed", color = "blue") +
+  geom_vline(aes(xintercept = median(V2)), linetype = "dashed", color = "blue") +
   theme_classic() +
-  labs(x = "predicted fixation times")
-
-# quick and dirty plot
-#plot(pred_vs_act$V1, pred_vs_act$V2, xlab = "actual", ylab = "predicted")
-#abline(a = 0, b = 1)
-cor(pred_vs_act$V1, pred_vs_act$V2)
-cor(pred_vs_act$V1, pred_vs_act$V2)^2
+  labs(x = "predicted fixation times", le)
 
 # nicer plots
-mod = lm(V2 ~ V1, pred_vs_act)
-plot(mod)
-summary(mod)
-mycoeff = coefficients(mod)
+my_cor_coeff = cor.test(pred_vs_act$V1, pred_vs_act$V2, method = "spearman")
 
 ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
   geom_point() +
-  geom_abline(slope = 1, intercept = 0, lty = "dotted") +
-  geom_abline(intercept = mycoeff[1], slope = mycoeff[2]) +
+  geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
-  labs(x = "Actual fixation time (generations)", y = "Predicted fixation time (generations)")
+  labs(x = "log10(Actual fixation time, generations)", 
+       y = "log10(Predicted fixation time, generations)",
+       title = paste("\u03c1 = ", signif(my_cor_coeff$estimate, digits = 3), ", p = ", my_cor_coeff$p.value, sep = ""))
 
-#ggsave("../results/actual_vs_predicted_fix_time_2023-11-16.png")
+ggsave(paste("../results/actual_vs_predicted_fix_time_", today, ".png", sep = ""), height = 7, width = 7)
+
 ```
 
 # How does time to fixation in simulations vary with the simulation parameters?
 ```{r}
-fix_times_files = list.files(path = "../workflow/data/fix_times", full.names = T)
+#fix_times_files = list.files(path = "../workflow/data/fix_times", full.names = T)
+fix_times_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/fix_times", full.names = T)
 fix_times = lapply(fix_times_files, fread)
 
-fail_files = list.files(path = "../workflow/data/fails", full.names = T)
+#fail_files = list.files(path = "../workflow/data/fails", full.names = T)
+fail_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/fails", full.names = T)
 fail_times = lapply(fail_files, fread)
 
 extract_number = function(x){
@@ -128,12 +131,12 @@ fail_times = unlist(lapply(fail_times, extract_number))
 
 fix_times = data.frame(
   tf = fix_times,
-  ID = gsub(".txt", "", gsub("../workflow/data/fix_times/fix_time_", "",fix_times_files))
+  ID = gsub(".txt", "", gsub(".*fix_time_", "",fix_times_files))
 )
 
 fail_times = data.frame(
   fails = fail_times,
-  ID = gsub(".txt", "", gsub("../workflow/data/fails/fails_", "", fail_files))
+  ID = gsub(".txt", "", gsub(".*fails_", "", fail_files))
 )
 
 fix_times = merge(params, fix_times, by = "ID")
@@ -153,21 +156,26 @@ ggplot(fix_times, aes(x=tf)) +
   labs(x = "fixation times")
 
 ggplot(fix_times, aes(x=fails)) +
-  geom_histogram(binwidth = 1) +
+  geom_density() +
   theme_classic() +
   labs(x = "failures")
 
-ggplot(fix_times, aes(x=log10(fails))) +
+ggplot(fix_times, aes(x=log10(tf))) +
   geom_density() +
   theme_classic() +
-  labs(x = "log10(failures)")
+  labs(x = "log10(fixation times)")
+
+ggplot(fix_times, aes(x=log10(fails + 1))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(failures + 1)")
 
 ggplot(fix_times, aes(x=fix_prob)) +
   geom_density() +
   theme_classic() +
   labs(x = "Probability of fixation")
 
-ggplot(fix_times, aes(x=tf, y = fails)) +
+ggplot(fix_times, aes(x=log10(tf), y = log10(fails + 1))) +
   geom_point() +
   geom_smooth() +
   theme_classic() +
@@ -209,17 +217,16 @@ plot(fail_mod)
 # find model with fewest terms but still lots of power
 step(tf_mod, direction = "both")
 
-# distribution of fixation times
-ggplot(fix_times, aes(x=tf)) +
-  geom_density() +
-    geom_vline(aes(xintercept = median(tf)), linetype = "dashed", color = "blue") +
-  theme_classic() +
-  labs(x = "actual fixation times")
-
 # parametric plot of fixation time versus other parameters
-ggplot(fix_times, aes(sigma, log10(tf), color = h)) +
+ggplot(fix_times, aes(sigma, h, color = log(tf))) +
   geom_point() +
   theme_classic()
+
+# re-fit model for only recessive mutations
+tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + sigma + sigma2 + sigma*h + sigma*log10(R) + N + n, data = fix_times[(fix_times$h < 0.5 & fix_times$f0 == 0 & fix_times$f1 == 1 & fix_times$rcat == "constant" & fix_times$M < 1),])
+summary(tf_mod)
+
+cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)])
 ```
 
 #
