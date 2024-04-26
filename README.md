@@ -96,7 +96,7 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] add gene conversion
 
-- [ ] add simulation id to prediction vs actual values output
+- [x] add simulation id to prediction vs actual values output
  
 - [ ] include both neutral (s = 0) and selection (s > 0) scenarios
 

@@ -78,37 +78,53 @@ pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-d
 
 # subset data to remove outliers
 #pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= 5000),]
-pred_vs_act_melt = melt(pred_vs_act)
-pred_vs_act_melt$variable = as.character(pred_vs_act_melt$variable)
-pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V1")] = "Actual"
-pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V2")] = "Predicted"
+
 # distribution of fixation times
+
+pred_vs_act_melt = melt(pred_vs_act, id = "V1")
+pred_vs_act_melt$variable = as.character(pred_vs_act_melt$variable)
+pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V2")] = "Actual"
+pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V3")] = "Predicted"
+
 ggplot(pred_vs_act_melt, aes(x = value, color = variable)) +
   geom_density() +
   theme_classic() +
   labs(x = "log10(Fixation time, generations)", color = "Type")
 
-ggplot(pred_vs_act, aes(x=V2)) +
-  geom_density() +
-  geom_vline(aes(xintercept = median(V2)), linetype = "dashed", color = "blue") +
-  theme_classic() +
-  labs(x = "predicted fixation times", le)
-
 # nicer plots
-my_cor_coeff = cor.test(pred_vs_act$V1, pred_vs_act$V2, method = "spearman")
+my_cor_coeff = cor.test(pred_vs_act$V2, pred_vs_act$V3, method = "pearson")
 
-ggplot(aes(x = V1, y = V2), data = pred_vs_act) +
+cor_est = signif(my_cor_coeff$estimate, digits = 3)
+cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
+cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
+cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
+
+ggplot(aes(x = V2, y = V3), data = pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
+  geom_vline(xintercept = mean(pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = mean(pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") + 
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
   labs(x = "log10(Actual fixation time, generations)", 
        y = "log10(Predicted fixation time, generations)",
-       title = paste("\u03c1 = ", signif(my_cor_coeff$estimate, digits = 3), ", p = ", my_cor_coeff$p.value, sep = ""))
+       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
 
 ggsave(paste("../results/actual_vs_predicted_fix_time_", today, ".png", sep = ""), height = 7, width = 7)
 
+# Measure error between actual and predicted
+pred_vs_act$error = (pred_vs_act$V2 - pred_vs_act$V3)^2
+names(pred_vs_act)[1] = "ID"
+errors = merge(params, pred_vs_act[,c(1,4)], by = "ID")
+
+# How does error correlate with simulation parameters
+error_mod = lm(log10(error) ~ N + log10(sweepS) + sigma + h + log10(mu) + log10(R) + tau + f0 + f1 + B + U, data = errors)
+summary(error_mod)
+plot(error_mod)
+
+error_mod = lm(log10(error) ~ log10(sweepS), data = errors)
+summary(error_mod)
 ```
 
 # How does time to fixation in simulations vary with the simulation parameters?
@@ -227,6 +243,73 @@ tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + sigma + sigma
 summary(tf_mod)
 
 cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)])
+```
+
+# Stratified sampling along time to fixation
+```{r}
+
+# split
+widths_to_try = seq(from = 0.05, to = 1, by = 0.05)
+count_thresh = 1000
+
+for(width in widths_to_try){
+  breaks = seq(from = min(log10(fix_times$tf)), to = max(log10(fix_times$tf)), by = width)
+  fix_times$bin = cut(log10(fix_times$tf), breaks = breaks)
+  kept_bins = table(fix_times$bin)[table(fix_times$bin) > count_thresh]
+  total_in_downsample = min(kept_bins)*length(kept_bins)
+  print(paste("width: ", width, "; total: ", total_in_downsample))
+}
+
+breaks = seq(from = min(log10(fix_times$tf)), to = max(log10(fix_times$tf)), by = 0.05)
+fix_times$bin = cut(log10(fix_times$tf), breaks = breaks)
+
+kept_bins = table(fix_times$bin)[table(fix_times$bin) > 800]
+
+bin_height = min(kept_bins)
+
+strat_sample = NULL
+for(kept_bin in names(kept_bins)){
+  fix_times_bin = fix_times[(fix_times$bin == kept_bin),]
+  down_sampled_bin = fix_times_bin[sample(1:nrow(fix_times_bin), replace = F, size = bin_height),]
+  strat_sample = rbind(strat_sample, down_sampled_bin)
+}
+
+# remove weird NAs, not sure where they come from
+strat_sample = strat_sample[complete.cases(strat_sample),]
+ 
+# check that tf is now uniformly distributed across data
+summary(strat_sample$tf)
+
+ggplot(strat_sample, aes(x = log10(tf))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(Fixation time, generations)")
+
+ggplot(strat_sample, aes(x = tf)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "Fixation time, generations")
+
+# randomly subsample data into training, testing, and validation
+train_n = round(nrow(strat_sample)*0.8)
+test_n = round(nrow(strat_sample)*0.1)
+val_n = round(nrow(strat_sample)*0.1)
+
+train_n + test_n + val_n == nrow(strat_sample) # should be TRUE
+
+split_column = c(rep("train", times = train_n), rep("test", times = test_n), rep("val", times = val_n))
+
+strat_sample$split = sample(split_column, replace = F, size = nrow(strat_sample))
+
+table(strat_sample$split)
+
+# What mean squared error would you expect if model predicted the mean for every image?
+# This naive model would result in a loss equal to the variance of the response
+var(log10(strat_sample$tf))
+
+# save stratified sample
+write.table(strat_sample, "stratified_sample.tsv", sep = "\t", quote = F, row.names = F)
+
 ```
 
 #
