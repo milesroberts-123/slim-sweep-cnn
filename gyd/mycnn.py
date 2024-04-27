@@ -44,9 +44,9 @@ val_ids = list(val_params["ID"])
 test_ids = list(test_params["ID"])
 
 print("Loading images and converting to RGB...")
-#train_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-#val_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-#test_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+train_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+val_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+test_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 
 #print("Shapes of training, validation, and testing images:")
 #print(train_images.shape)
@@ -54,10 +54,10 @@ print("Loading images and converting to RGB...")
 #print(test_images.shape)
 
 # load fixation times
-#print("Loading fixation times...")
-#train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
-#val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
-#test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+print("Loading fixation times...")
+train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
 
 # transform fixation times
 #train_y = np.log10(train_y)
@@ -146,8 +146,7 @@ val_params['ID'] = val_params["ID"].replace(to_replace = r"$", value = ".png", r
 
 train_params['tf'] = train_params['tf'].apply(np.log10)
 val_params['tf'] = val_params['tf'].apply(np.log10)
-
-#print(train_params["ID"])
+test_params['tf'] = test_params['tf'].apply(np.log10)
 
 def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
     # create image generator
@@ -215,9 +214,20 @@ print("Fitting model...")
 history = model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=val_generator, callbacks=callbacks, steps_per_epoch = int(np.ceil(train_pos.shape[0] / batch_size)), validation_steps = int(np.ceil(val_pos.shape[0] / batch_size)))
 
 # evaluate total error in model
-print("Evaluating model...")
-test_pred = model.predict((test_images, test_pos))
-print(test_pred)
+print("Evaluating model on testing data...")
+test_pred = np.stack([model((test_images, test_pos), training = True) for sample in range(100)])
+test_pred_mean = test_pred.mean(axis=0)
+test_pred_std = test_pred.std(axis=0)
+
+print("Evaluating model on training data...")
+train_pred = np.stack([model((train_images, train_pos), training = True) for sample in range(100)])
+train_pred_mean = train_pred.mean(axis=0)
+train_pred_std = train_pred.std(axis=0)
+
+print("Evaluating model on validation data...")
+val_pred = np.stack([model((val_images, val_pos), training = True) for sample in range(100)])
+val_pred_mean = val_pred.mean(axis=0)
+val_pred_std = val_pred.std(axis=0)
 
 # test model
 #print("Testing model...")
@@ -253,7 +263,12 @@ print("Saving final model...")
 model.save(finalModelName)
 
 # save comparison of predictions vs actual
-print("Saving comparison of predicted vs actual...")
-np.savetxt('predicted_vs_actual.txt', np.c_[test_ids, test_y, test_pred.flatten()])
+print("Saving comparison of predicted vs actual values...")
+
+np.savetxt('test_predicted_vs_actual.txt', np.c_[test_ids, test_y, test_pred_mean, test_pred_std])
+
+np.savetxt('train_predicted_vs_actual.txt', np.c_[train_ids, train_y, train_pred_mean, train_pred_std])
+
+np.savetxt('val_predicted_vs_actual.txt', np.c_[val_ids, val_y, val_pred_mean, val_pred_std])
 
 print("Done! :)")

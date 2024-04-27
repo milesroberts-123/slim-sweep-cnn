@@ -74,36 +74,79 @@ cor.test(pca_results$PC3, y, method = "pearson")
 # compare predictions to actual values on testing dataset
 ```{r}
 #pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
-pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/predicted_vs_actual.txt")
+train_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/train_predicted_vs_actual.txt")
+
+val_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/val_predicted_vs_actual.txt")
+
+test_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual.txt")
 
 # subset data to remove outliers
 #pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= 5000),]
 
 # distribution of fixation times
 
-pred_vs_act_melt = melt(pred_vs_act, id = "V1")
-pred_vs_act_melt$variable = as.character(pred_vs_act_melt$variable)
-pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V2")] = "Actual"
-pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V3")] = "Predicted"
+## training set
+train_pred_vs_act$V2 = log10(train_pred_vs_act$V2)
+train_pred_vs_act_melt = melt(train_pred_vs_act, id = c("V1", "V4"))
+train_pred_vs_act_melt$variable = as.character(train_pred_vs_act_melt$variable)
+train_pred_vs_act_melt$variable[(train_pred_vs_act_melt$variable == "V2")] = "Actual"
+train_pred_vs_act_melt$variable[(train_pred_vs_act_melt$variable == "V3")] = "Predicted"
 
-ggplot(pred_vs_act_melt, aes(x = value, color = variable)) +
+ggplot(train_pred_vs_act_melt, aes(x = value, color = variable)) +
   geom_density() +
   theme_classic() +
   labs(x = "log10(Fixation time, generations)", color = "Type")
 
-# nicer plots
-my_cor_coeff = cor.test(pred_vs_act$V2, pred_vs_act$V3, method = "pearson")
+## validation set
+val_pred_vs_act$V2 = log10(val_pred_vs_act$V2)
+val_pred_vs_act_melt = melt(val_pred_vs_act, id = c("V1", "V4"))
+val_pred_vs_act_melt$variable = as.character(val_pred_vs_act_melt$variable)
+val_pred_vs_act_melt$variable[(val_pred_vs_act_melt$variable == "V2")] = "Actual"
+val_pred_vs_act_melt$variable[(val_pred_vs_act_melt$variable == "V3")] = "Predicted"
+
+ggplot(val_pred_vs_act_melt, aes(x = value, color = variable)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(Fixation time, generations)", color = "Type")
+
+## testing set
+test_pred_vs_act_melt = melt(test_pred_vs_act, id = c("V1", "V4"))
+test_pred_vs_act_melt$variable = as.character(test_pred_vs_act_melt$variable)
+test_pred_vs_act_melt$variable[(test_pred_vs_act_melt$variable == "V2")] = "Actual"
+test_pred_vs_act_melt$variable[(test_pred_vs_act_melt$variable == "V3")] = "Predicted"
+
+ggplot(test_pred_vs_act_melt, aes(x = value, color = variable)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(Fixation time, generations)", color = "Type")
+
+#pred_vs_act_melt = melt(pred_vs_act, id = "V1")
+#pred_vs_act_melt$variable = as.character(pred_vs_act_melt$variable)
+#pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V2")] = "Actual"
+#pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V3")] = "Predicted"
+
+#ggplot(pred_vs_act_melt, aes(x = value, color = variable)) +
+#  geom_density() +
+#  theme_classic() +
+#  labs(x = "log10(Fixation time, generations)", color = "Type")
+
+#ggsave(paste("../results/actual_vs_predicted_fix_time_distribution_", today, ".png", sep = ""), height = 7, width = 7)
+
+# actual vs predicted values
+
+##training set
+my_cor_coeff = cor.test(train_pred_vs_act$V2, train_pred_vs_act$V3, method = "pearson")
 
 cor_est = signif(my_cor_coeff$estimate, digits = 3)
 cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
 cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
 cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
 
-ggplot(aes(x = V2, y = V3), data = pred_vs_act) +
+ggplot(aes(x = V2, y = V3), data = train_pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
-  geom_vline(xintercept = mean(pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
-  geom_hline(yintercept = mean(pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_vline(xintercept = mean(train_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = mean(train_pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") + 
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
@@ -111,8 +154,78 @@ ggplot(aes(x = V2, y = V3), data = pred_vs_act) +
        y = "log10(Predicted fixation time, generations)",
        title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
 
-ggsave(paste("../results/actual_vs_predicted_fix_time_", today, ".png", sep = ""), height = 7, width = 7)
+## validation set
+my_cor_coeff = cor.test(val_pred_vs_act$V2, val_pred_vs_act$V3, method = "pearson")
 
+cor_est = signif(my_cor_coeff$estimate, digits = 3)
+cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
+cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
+cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
+
+ggplot(aes(x = V2, y = V3), data = val_pred_vs_act) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
+  geom_vline(xintercept = mean(val_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = mean(val_pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
+  theme_classic() +
+  labs(x = "log10(Actual fixation time, generations)", 
+       y = "log10(Predicted fixation time, generations)",
+       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
+## test set
+my_cor_coeff = cor.test(test_pred_vs_act$V2, test_pred_vs_act$V3, method = "pearson")
+
+cor_est = signif(my_cor_coeff$estimate, digits = 3)
+cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
+cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
+cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
+
+ggplot(aes(x = V2, y = V3), data = test_pred_vs_act) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
+  geom_vline(xintercept = mean(test_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = mean(test_pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
+  theme_classic() +
+  labs(x = "log10(Actual fixation time, generations)", 
+       y = "log10(Predicted fixation time, generations)",
+       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
+ggsave(paste("../results/test_actual_vs_predicted_", today, ".png", sep = ""), height = 7, width = 7)
+
+# standard deviation of predictions 
+
+## test set
+test_cor_std_vs_act = cor.test(test_pred_vs_act$V2, test_pred_vs_act$V4, method = "pearson")
+
+cor_est = signif(test_cor_std_vs_act$estimate, digits = 3)
+cor_lwb = signif(test_cor_std_vs_act$conf.int[1], digits = 3)
+cor_upb = signif(test_cor_std_vs_act$conf.int[2], digits = 3)
+cor_pvalue = signif(test_cor_std_vs_act$p.value, digits = 3)
+
+ggplot(aes(x = V2, y = V4), data = test_pred_vs_act) +
+  geom_point() +
+  geom_vline(xintercept = mean(test_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = mean(test_pred_vs_act$V4), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
+  theme_classic() +
+  labs(x = "log10(Actual fixation time, generations)", 
+       y = "SD in log10(Predicted fixation time, generations)",
+       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
+# actual vs coefficient of variation in predictions
+ggplot(aes(x = V2, y = V4/V3), data = test_pred_vs_act) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
+  theme_classic() +
+  labs(x = "log10(Actual fixation time, generations)", 
+       y = "CV in log10(Predicted fixation time, generations)",
+       )
 # Measure error between actual and predicted
 pred_vs_act$error = (pred_vs_act$V2 - pred_vs_act$V3)^2
 names(pred_vs_act)[1] = "ID"
@@ -247,7 +360,6 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 
 # Stratified sampling along time to fixation
 ```{r}
-
 # split
 widths_to_try = seq(from = 0.05, to = 1, by = 0.05)
 count_thresh = 1000
