@@ -97,6 +97,8 @@ ggplot(train_pred_vs_act_melt, aes(x = value, color = variable)) +
   theme_classic() +
   labs(x = "log10(Fixation time, generations)", color = "Type")
 
+ggsave(paste("../results/", today, "/train_actual-vs-predicted_density_", today, ".png", sep = ""), height = 7, width = 7)
+
 ## validation set
 val_pred_vs_act$V2 = log10(val_pred_vs_act$V2)
 val_pred_vs_act_melt = melt(val_pred_vs_act, id = c("V1", "V4"))
@@ -109,7 +111,10 @@ ggplot(val_pred_vs_act_melt, aes(x = value, color = variable)) +
   theme_classic() +
   labs(x = "log10(Fixation time, generations)", color = "Type")
 
+ggsave(paste("../results/", today, "/val_actual-vs-predicted_density_", today, ".png", sep = ""), height = 7, width = 7)
+
 ## testing set
+test_pred_vs_act$V2 = log10(test_pred_vs_act$V2)
 test_pred_vs_act_melt = melt(test_pred_vs_act, id = c("V1", "V4"))
 test_pred_vs_act_melt$variable = as.character(test_pred_vs_act_melt$variable)
 test_pred_vs_act_melt$variable[(test_pred_vs_act_melt$variable == "V2")] = "Actual"
@@ -120,17 +125,7 @@ ggplot(test_pred_vs_act_melt, aes(x = value, color = variable)) +
   theme_classic() +
   labs(x = "log10(Fixation time, generations)", color = "Type")
 
-#pred_vs_act_melt = melt(pred_vs_act, id = "V1")
-#pred_vs_act_melt$variable = as.character(pred_vs_act_melt$variable)
-#pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V2")] = "Actual"
-#pred_vs_act_melt$variable[(pred_vs_act_melt$variable == "V3")] = "Predicted"
-
-#ggplot(pred_vs_act_melt, aes(x = value, color = variable)) +
-#  geom_density() +
-#  theme_classic() +
-#  labs(x = "log10(Fixation time, generations)", color = "Type")
-
-#ggsave(paste("../results/actual_vs_predicted_fix_time_distribution_", today, ".png", sep = ""), height = 7, width = 7)
+ggsave(paste("../results/", today, "/test_actual-vs-predicted_density_", today, ".png", sep = ""), height = 7, width = 7)
 
 # actual vs predicted values
 
@@ -152,7 +147,9 @@ ggplot(aes(x = V2, y = V3), data = train_pred_vs_act) +
   theme_classic() +
   labs(x = "log10(Actual fixation time, generations)", 
        y = "log10(Predicted fixation time, generations)",
-       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+       title = paste("r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
+ggsave(paste("../results/", today, "/train_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## validation set
 my_cor_coeff = cor.test(val_pred_vs_act$V2, val_pred_vs_act$V3, method = "pearson")
@@ -164,7 +161,8 @@ cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
 
 ggplot(aes(x = V2, y = V3), data = val_pred_vs_act) +
   geom_point() +
-  geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
+  geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth =
+                2) +
   geom_vline(xintercept = mean(val_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
   geom_hline(yintercept = mean(val_pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") + 
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
@@ -172,7 +170,9 @@ ggplot(aes(x = V2, y = V3), data = val_pred_vs_act) +
   theme_classic() +
   labs(x = "log10(Actual fixation time, generations)", 
        y = "log10(Predicted fixation time, generations)",
-       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+       title = paste("r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
+ggsave(paste("../results/", today, "/val_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## test set
 my_cor_coeff = cor.test(test_pred_vs_act$V2, test_pred_vs_act$V3, method = "pearson")
@@ -192,9 +192,9 @@ ggplot(aes(x = V2, y = V3), data = test_pred_vs_act) +
   theme_classic() +
   labs(x = "log10(Actual fixation time, generations)", 
        y = "log10(Predicted fixation time, generations)",
-       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+       title = paste("r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
 
-ggsave(paste("../results/test_actual_vs_predicted_", today, ".png", sep = ""), height = 7, width = 7)
+ggsave(paste("../results/", today, "/test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 # standard deviation of predictions 
 
@@ -215,7 +215,30 @@ ggplot(aes(x = V2, y = V4), data = test_pred_vs_act) +
   theme_classic() +
   labs(x = "log10(Actual fixation time, generations)", 
        y = "SD in log10(Predicted fixation time, generations)",
-       title = paste("\u03c1 = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+       title = paste("r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
+ggsave(paste("../results/", today, "/test_actual-vs-predicted-sd_scatter_", today, ".png", sep = ""), height = 7, width = 7)
+
+## validation set
+val_cor_std_vs_act = cor.test(val_pred_vs_act$V2, val_pred_vs_act$V4, method = "pearson")
+
+cor_est = signif(val_cor_std_vs_act$estimate, digits = 3)
+cor_lwb = signif(val_cor_std_vs_act$conf.int[1], digits = 3)
+cor_upb = signif(val_cor_std_vs_act$conf.int[2], digits = 3)
+cor_pvalue = signif(val_cor_std_vs_act$p.value, digits = 3)
+
+ggplot(aes(x = V2, y = V4), data = val_pred_vs_act) +
+  geom_point() +
+  geom_vline(xintercept = mean(val_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = mean(val_pred_vs_act$V4), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
+  theme_classic() +
+  labs(x = "log10(Actual fixation time, generations)", 
+       y = "SD in log10(Predicted fixation time, generations)",
+       title = paste("r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
+ggsave(paste("../results/", today, "/val_actual-vs-predicted-sd_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 # actual vs coefficient of variation in predictions
 ggplot(aes(x = V2, y = V4/V3), data = test_pred_vs_act) +
@@ -226,12 +249,13 @@ ggplot(aes(x = V2, y = V4/V3), data = test_pred_vs_act) +
   labs(x = "log10(Actual fixation time, generations)", 
        y = "CV in log10(Predicted fixation time, generations)",
        )
-# Measure error between actual and predicted
-pred_vs_act$error = (pred_vs_act$V2 - pred_vs_act$V3)^2
-names(pred_vs_act)[1] = "ID"
-errors = merge(params, pred_vs_act[,c(1,4)], by = "ID")
 
-# How does error correlate with simulation parameters
+# Measure error between actual and predicted
+# How does error correlate with simulation parameters?
+test_pred_vs_act$error = abs(test_pred_vs_act$V2 - test_pred_vs_act$V3)
+names(test_pred_vs_act)[1] = "ID"
+errors = merge(params, test_pred_vs_act, by = "ID")
+
 error_mod = lm(log10(error) ~ N + log10(sweepS) + sigma + h + log10(mu) + log10(R) + tau + f0 + f1 + B + U, data = errors)
 summary(error_mod)
 plot(error_mod)
@@ -324,6 +348,12 @@ table(fix_times$rcat)
 
 fix_times$rcat = relevel(as.factor(fix_times$rcat), ref = "constant")
 
+# calculate Ne
+ggplot(fix_times[(fix_times$sweepS < 1/(fix_times$N*(2 - fix_times$sigma)/2)) & fix_times$rcat == "constant",], aes(x = N*(2-sigma)/2, y = tf)) +
+  geom_point() +
+  geom_abline(slope = 4, intercept = 0) +
+  theme_classic()
+
 # try linear models, see if there are any problems
 tf_mod = lm(log10(tf) ~ log10(sweepS) + h + log10(mu) + log10(R) + tau + sigma + sigma2 + sigma*h + sigma*log10(R) + f0 + f1 + N + n + lambda + n*lambda + rcat, data = fix_times)
 summary(tf_mod)
@@ -361,46 +391,112 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 # Stratified sampling along time to fixation
 ```{r}
 # split
-widths_to_try = seq(from = 0.05, to = 1, by = 0.05)
-count_thresh = 1000
+#widths_to_try = seq(from = 0.01, to = 1, by = 0.05)
+#count_thresh = 1000
 
-for(width in widths_to_try){
-  breaks = seq(from = min(log10(fix_times$tf)), to = max(log10(fix_times$tf)), by = width)
-  fix_times$bin = cut(log10(fix_times$tf), breaks = breaks)
-  kept_bins = table(fix_times$bin)[table(fix_times$bin) > count_thresh]
-  total_in_downsample = min(kept_bins)*length(kept_bins)
-  print(paste("width: ", width, "; total: ", total_in_downsample))
-}
+#for(width in widths_to_try){
+#  breaks = seq(from = min(log10(fix_times$tf)), to = max(log10(fix_times$tf)), by = width)
+#  fix_times$bin = cut(log10(fix_times$tf), breaks = breaks)
+#  kept_bins = table(fix_times$bin)[table(fix_times$bin) > count_thresh]
+#  total_in_downsample = min(kept_bins)*length(kept_bins)
+#  print(paste("width: ", width, "; total: ", total_in_downsample))
+#}
 
-breaks = seq(from = min(log10(fix_times$tf)), to = max(log10(fix_times$tf)), by = 0.05)
+width = 0.05
+max_bin_height = 1000
+
+breaks = seq(from = min(log10(fix_times$tf)) - width, to = max(log10(fix_times$tf)) + width, by = width)
 fix_times$bin = cut(log10(fix_times$tf), breaks = breaks)
 
-kept_bins = table(fix_times$bin)[table(fix_times$bin) > 800]
-
-bin_height = min(kept_bins)
+table(fix_times$bin)
+max_bin_height = min(table(fix_times$bin)[table(fix_times$bin) >= max_bin_height])
 
 strat_sample = NULL
-for(kept_bin in names(kept_bins)){
-  fix_times_bin = fix_times[(fix_times$bin == kept_bin),]
-  down_sampled_bin = fix_times_bin[sample(1:nrow(fix_times_bin), replace = F, size = bin_height),]
-  strat_sample = rbind(strat_sample, down_sampled_bin)
+for(bin in unique(fix_times$bin)){
+  fix_times_bin = fix_times[(fix_times$bin == bin),]
+  if(nrow(fix_times_bin) >= max_bin_height){
+    down_sampled_bin = fix_times_bin[sample(1:nrow(fix_times_bin), replace = F, size = max_bin_height),]
+    strat_sample = rbind(strat_sample, down_sampled_bin)
+  }
 }
 
-# remove weird NAs, not sure where they come from
-strat_sample = strat_sample[complete.cases(strat_sample),]
+table(strat_sample$bin)
  
 # check that tf is now uniformly distributed across data
-summary(strat_sample$tf)
-
 ggplot(strat_sample, aes(x = log10(tf))) +
   geom_density() +
   theme_classic() +
   labs(x = "log10(Fixation time, generations)")
 
-ggplot(strat_sample, aes(x = tf)) +
+ggplot(strat_sample, aes(x = N)) +
   geom_density() +
   theme_classic() +
-  labs(x = "Fixation time, generations")
+  labs(x = "Population size")
+
+ggplot(strat_sample, aes(x = log10(mu))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(mutation rate)")
+
+ggplot(strat_sample, aes(x = log10(R))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(recombination rate)")
+
+ggplot(strat_sample, aes(x = tau)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "Generations post-fixation when observed")
+
+ggplot(strat_sample, aes(x = sigma)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "Selfing rate")
+
+ggplot(strat_sample, aes(x = h)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "dominance coefficient")
+
+ggplot(strat_sample, aes(x = log10(sweepS))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(selection coefficient)")
+
+ggplot(fix_times, aes(x = log10(sweepS))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(selection coefficient)")
+
+ggplot(strat_sample, aes(x = f0)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "neutral -> benficial frequency")
+
+ggplot(strat_sample, aes(x = f1)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "beneficial -> neutral frequency")
+
+ggplot(strat_sample, aes(x = B)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "proportion of linked mutations which are beneficial")
+
+ggplot(strat_sample, aes(x = U)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "proportion of linked mutations which are deleterious")
+
+ggplot(strat_sample, aes(x = M)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "proportion of linked mutations which are neutral")
+
+# Look at correlation between selection coefficient and tf
+ggplot(strat_sample, aes(x = log10(sweepS*N), y = log10(tf))) +
+  geom_point() +
+  theme_classic()
 
 # randomly subsample data into training, testing, and validation
 train_n = round(nrow(strat_sample)*0.8)
@@ -420,7 +516,7 @@ table(strat_sample$split)
 var(log10(strat_sample$tf))
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_2.tsv", sep = "\t", quote = F, row.names = F)
 
 ```
 

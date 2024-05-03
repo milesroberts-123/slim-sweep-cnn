@@ -100,13 +100,15 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] add monte carlo dropout
 
+- [ ] re-do burn-in to stop once simulations reach equilibrium levels of diversity (within 5 % say of expected value), instead of 10N?
+
 - [ ] add R script to do stratified sampling of simulations
 
 - [ ] add script to tune hyperparameters
 
 - [ ] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
 
-- [ ] expand ranges of simulation parameters
+- [x] expand ranges of simulation parameters
  
 - [x] include both neutral (s < 1/N) and selection (s > 1/N) scenarios
 
