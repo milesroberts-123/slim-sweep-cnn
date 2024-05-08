@@ -100,7 +100,9 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] add monte carlo dropout
 
-- [ ] re-do burn-in to stop once simulations reach equilibrium levels of diversity (within 5 % say of expected value), instead of 10N?
+- [x] re-do burn-in to stop once simulations reach equilibrium levels of diversity (within 5 % say of expected value), instead of 10N?
+
+- [x] output harmonic mean of population size
 
 - [ ] add R script to do stratified sampling of simulations
 

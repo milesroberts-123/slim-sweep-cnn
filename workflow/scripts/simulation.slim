@@ -38,7 +38,7 @@ initialize() {
 	catn("PROPORTION OF COPY TRACTS THAT ARE SIMPLE: " + fsimple);
 
 	// save this run's identifier, used to save and restore
-	defineConstant("simID", getSeed());
+	defineConstant("simID", ID);
 
 	// create subpopulation
 	sim.addSubpop("p1", asInteger(N));
@@ -55,6 +55,9 @@ initialize() {
 
 	// track when burn-in phase ends
 	defineGlobal("endBurn", 10*asInteger(N));
+
+	// vector to track harmonic mean of population sizes
+	defineGlobal("nx", 0);
 
 	// generate schedule for beneficial mutations
 	gens = cumSum(rpois(asInteger(n), lambda)); // make a vector of start gens
@@ -83,6 +86,9 @@ initialize() {
 
 	// reschedule changing of population size
 	community.rescheduleScriptBlock(s5, start=endBurn + 1, end=endBurn + 1000000);
+
+	// reschedule tracking of reciprocal of population sizes
+	community.rescheduleScriptBlock(s6, start=endBurn + 1, end=endBurn + 1000000);
 }
 
 // Every 1000 generations, output the heterozygosity and number of mutations in the population
@@ -104,6 +110,7 @@ s0 1000000 late(){
 	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
 }
 
+// Track reciprocal of population sizes
 // change population size
 s5 1000000 early() {
 	newSize = asInteger(r*(1 - p1.individualCount/K)*p1.individualCount + p1.individualCount); 
@@ -155,9 +162,22 @@ s3 3000000 late() {
                 }
         }
 }
+
+// Track reciprocal of population sizes
+s6 5000000 late(){
+	defineGlobal("nx",  nx + 1/p1.individualCount);
+        if (sim.countOfMutationsOfType(m2) == 0){
+                fixed = (sum(sim.substitutions.mutationType == m2) == 1);
+                if (fixed){
+			community.rescheduleScriptBlock(self,1000000,1000000);
+		}
+	}
+
+}
  
 // check for fixation of beneficial mutation
 s4 4000000 late() {
+
 	if (sim.countOfMutationsOfType(m2) == 0){
 		fixed = (sum(sim.substitutions.mutationType == m2) == 1);
 
@@ -186,8 +206,11 @@ s4 4000000 late() {
 				writeFile("fix_time_" + asString(ID) + ".txt", paste(fixTime));
 
 				// output number of failures, if any
-				// catn(simID + ": " + sim.cycle + " OUTPUTTING FAILURE COUNT");
+				catn(simID + ": " + sim.cycle + " FAILURE COUNT: " + fails);
 				// writeFile("fails_" + asString(ID) + ".txt", paste(fails));
+
+				// output harmonic mean of population size
+				catn(simID + ": " + sim.cycle + " HARMONIC MEAN Ne: " + fixTime/nx);
 
 				catn(simID + ": " + sim.cycle + " SIMULATION FINISHED! :)");
 				sim.simulationFinished();
@@ -210,6 +233,9 @@ s4 4000000 late() {
 
 				// reassign endBurn-in value
 				defineGlobal("endBurn", sim.cycle);
+
+				// reset population size tracker
+				defineGlobal("nx", 0);
 
 				catn(simID + ": " + sim.cycle + " NEW SEED: " + getSeed());
 

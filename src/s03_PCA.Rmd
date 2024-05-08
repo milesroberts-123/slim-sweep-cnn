@@ -403,7 +403,7 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 #}
 
 width = 0.05
-max_bin_height = 1000
+max_bin_height = 2000
 
 breaks = seq(from = min(log10(fix_times$tf)) - width, to = max(log10(fix_times$tf)) + width, by = width)
 fix_times$bin = cut(log10(fix_times$tf), breaks = breaks)
@@ -516,7 +516,7 @@ table(strat_sample$split)
 var(log10(strat_sample$tf))
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_2.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_3.tsv", sep = "\t", quote = F, row.names = F)
 
 ```
 
