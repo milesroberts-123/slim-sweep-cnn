@@ -104,6 +104,8 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] output harmonic mean of population size
 
+- [x] decrease burn-in based on selfing rate
+
 - [ ] add R script to do stratified sampling of simulations
 
 - [ ] add script to tune hyperparameters

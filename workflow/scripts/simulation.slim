@@ -11,34 +11,34 @@ initialize() {
 }
 
 1 early() {
-	// print all parameters for this simulation
-	catn("MUTATION RATE: " + mu);
-	catn("RECOMBINATION RATE: " + R);
-	catn("SELECTION COEFFICIENT: " + sweepS);
-	catn("DOMINANCE COEFFICIENT: " + h);
-	catn("SELFING RATE: " + sigma);
-	catn("GROWTH RATE: " + r);
-	catn("CARRYING CAPACITY: " + K);
-	catn("INITIAL POPULATION SIZE: " + N);
-	catn("ESTABLISHMENT FREQUENCY: " + f0);
-	catn("THRESHOLD FREQUENCY: " + f1);
-	catn("SWEEP AGE: " + tau);
-	catn("NUMBER OF SWEEP MUTATIONS: " + n);
-	catn("AVERAGE WAIT TIME BETWEEN MUTATIONS: " + lambda);
-	catn("AVERAGE EFFECT OF BACKGROUND BENEFICIAL MUTATION: " + bBar);
-	catn("DOMINANCE COEFFICIENT OF BACKGROUND BENEFICIAL MUTATION: " + hB);
-	catn("AVERAGE EFFECT OF BACKGROUND DELETERIOUS MUTATION: " + uBar);
-	catn("DOMINANCE COEFFICIENT OF BACKGROUND DELETERIOUS MUTATION: " + hU);
-	catn("SHAPE PARAMETER OF BACKGROUND DELETERIOUS MUTATION DFE: " + alpha);
-	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE NEUTRAL: " + M);
-	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE DELETERIOUS: " + U);
-	catn("PROPORTION OF BACKGROUND MUTATIONS THAT ARE BENEFICIAL: " + B);
-	catn("PROPORTION OF RECOMBINATION EVENTS THAT AREN'T CROSS-OVERS: " + ncf);
-	catn("MEAN LENGTH OF COPY IN GENE CONVERSION EVENT: " + cl);
-	catn("PROPORTION OF COPY TRACTS THAT ARE SIMPLE: " + fsimple);
-
 	// save this run's identifier, used to save and restore
 	defineConstant("simID", ID);
+
+	// print all parameters for this simulation
+	catn(simID + ": "+ sim.cycle + " - MUTATION RATE: " + mu);
+	catn(simID + ": "+ sim.cycle + " - RECOMBINATION RATE: " + R);
+	catn(simID + ": "+ sim.cycle + " - SELECTION COEFFICIENT: " + sweepS);
+	catn(simID + ": "+ sim.cycle + " - DOMINANCE COEFFICIENT: " + h);
+	catn(simID + ": "+ sim.cycle + " - SELFING RATE: " + sigma);
+	catn(simID + ": "+ sim.cycle + " - GROWTH RATE: " + r);
+	catn(simID + ": "+ sim.cycle + " - CARRYING CAPACITY: " + K);
+	catn(simID + ": "+ sim.cycle + " - INITIAL POPULATION SIZE: " + N);
+	catn(simID + ": "+ sim.cycle + " - ESTABLISHMENT FREQUENCY: " + f0);
+	catn(simID + ": "+ sim.cycle + " - THRESHOLD FREQUENCY: " + f1);
+	catn(simID + ": "+ sim.cycle + " - SWEEP AGE: " + tau);
+	catn(simID + ": "+ sim.cycle + " - NUMBER OF SWEEP MUTATIONS: " + n);
+	catn(simID + ": "+ sim.cycle + " - AVERAGE WAIT TIME BETWEEN MUTATIONS: " + lambda);
+	catn(simID + ": "+ sim.cycle + " - AVERAGE EFFECT OF BACKGROUND BENEFICIAL MUTATION: " + bBar);
+	catn(simID + ": "+ sim.cycle + " - DOMINANCE COEFFICIENT OF BACKGROUND BENEFICIAL MUTATION: " + hB);
+	catn(simID + ": "+ sim.cycle + " - AVERAGE EFFECT OF BACKGROUND DELETERIOUS MUTATION: " + uBar);
+	catn(simID + ": "+ sim.cycle + " - DOMINANCE COEFFICIENT OF BACKGROUND DELETERIOUS MUTATION: " + hU);
+	catn(simID + ": "+ sim.cycle + " - SHAPE PARAMETER OF BACKGROUND DELETERIOUS MUTATION DFE: " + alpha);
+	catn(simID + ": "+ sim.cycle + " - PROPORTION OF BACKGROUND MUTATIONS THAT ARE NEUTRAL: " + M);
+	catn(simID + ": "+ sim.cycle + " - PROPORTION OF BACKGROUND MUTATIONS THAT ARE DELETERIOUS: " + U);
+	catn(simID + ": "+ sim.cycle + " - PROPORTION OF BACKGROUND MUTATIONS THAT ARE BENEFICIAL: " + B);
+	catn(simID + ": "+ sim.cycle + " - PROPORTION OF RECOMBINATION EVENTS THAT AREN'T CROSS-OVERS: " + ncf);
+	catn(simID + ": "+ sim.cycle + " - MEAN LENGTH OF COPY IN GENE CONVERSION EVENT: " + cl);
+	catn(simID + ": "+ sim.cycle + " - PROPORTION OF COPY TRACTS THAT ARE SIMPLE: " + fsimple);
 
 	// create subpopulation
 	sim.addSubpop("p1", asInteger(N));
@@ -54,7 +54,8 @@ initialize() {
 	defineGlobal("fails", 0);
 
 	// track when burn-in phase ends
-	defineGlobal("endBurn", 10*asInteger(N));
+	defineGlobal("endBurn", 10*asInteger(N*(2-sigma)*0.5));
+	catn(simID + ": "+ sim.cycle + " - BURN-IN WILL END AT: " + endBurn);
 
 	// vector to track harmonic mean of population sizes
 	defineGlobal("nx", 0);
@@ -99,7 +100,7 @@ early() {
                 numM2 = size(sim.mutationsOfType(m2));
                 numM3 = size(sim.mutationsOfType(m3));
                 numM4 = size(sim.mutationsOfType(m4));
-                catn(simID + ": " + sim.cycle + " HETEROZYGOSITY: " + pi + " NEUTRAL: " + numM1 + " SWEEP: " + numM2 + " BACKGROUND GOOD: " + numM3 + " BACKGROUND BAD: " + numM4);
+                catn(simID + ": " + sim.cycle + " - HETEROZYGOSITY: " + pi + " NEUTRAL: " + numM1 + " SWEEP: " + numM2 + " BACKGROUND GOOD: " + numM3 + " BACKGROUND BAD: " + numM4);
         }
 }
 
@@ -186,7 +187,7 @@ s4 4000000 late() {
 			if (fixTracker == 0){
 				catn(simID + ": " + sim.cycle + " - FIXED");
 				defineGlobal("fixTime", asInteger(sim.cycle) - asInteger(endBurn));
-				catn(simID + ": " + sim.cycle + " START: " + endBurn + " END: " + sim.cycle + " FIXATION TIME: " + fixTime);
+				catn(simID + ": " + sim.cycle + " - START: " + endBurn + " END: " + sim.cycle + " FIXATION TIME: " + fixTime);
 			}
 
 			// stop some generations after fixation
@@ -194,25 +195,25 @@ s4 4000000 late() {
 				catn(simID + ": " + sim.cycle + " - STOPPED ");
 
 				// random sample of individuals from simulation
-				catn(simID + ": " + sim.cycle + " RANDOMLY SAMPLING POPULATION");
+				catn(simID + ": " + sim.cycle + " - RANDOMLY SAMPLING POPULATION");
 				g = p1.sampleIndividuals(128).genomes;
  	
 				// output sampled genomes as VCF
-				catn(simID + ": " + sim.cycle + " OUTPUTTING VCF");
+				catn(simID + ": " + sim.cycle + " - OUTPUTTING VCF");
 				g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
 
 				// output when sweep fixed
-				catn(simID + ": " + sim.cycle + " OUTPUTTING FIXATION TIME");
+				catn(simID + ": " + sim.cycle + " - OUTPUTTING FIXATION TIME");
 				writeFile("fix_time_" + asString(ID) + ".txt", paste(fixTime));
 
 				// output number of failures, if any
-				catn(simID + ": " + sim.cycle + " FAILURE COUNT: " + fails);
+				catn(simID + ": " + sim.cycle + " - FAILURE COUNT: " + fails);
 				// writeFile("fails_" + asString(ID) + ".txt", paste(fails));
 
 				// output harmonic mean of population size
-				catn(simID + ": " + sim.cycle + " HARMONIC MEAN Ne: " + fixTime/nx);
+				catn(simID + ": " + sim.cycle + " - HARMONIC MEAN Ne: " + fixTime/nx);
 
-				catn(simID + ": " + sim.cycle + " SIMULATION FINISHED! :)");
+				catn(simID + ": " + sim.cycle + " - SIMULATION FINISHED! :)");
 				sim.simulationFinished();
 			}
 
@@ -237,7 +238,7 @@ s4 4000000 late() {
 				// reset population size tracker
 				defineGlobal("nx", 0);
 
-				catn(simID + ": " + sim.cycle + " NEW SEED: " + getSeed());
+				catn(simID + ": " + sim.cycle + " - NEW SEED: " + getSeed());
 
 				// re-register frequency checks for next cycle
 				community.rescheduleScriptBlock(s2, start=endBurn + 1, end=endBurn + 1000000);
