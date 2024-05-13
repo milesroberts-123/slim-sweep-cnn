@@ -38,6 +38,7 @@ print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
   N = sample(1000:10000, size = K, replace = T), # initial population size
+  sweepS = 10^runif(K, min = -5, max = 0), # effect of beneficial mutation
   h = runif(K, min = 0, max = 1), # dominance coefficient
   sigma = runif(K, min = 0, max = 1), # rate of selfing
   mu = 10^runif(K, min = -8, max = -7), # mutation rate
@@ -49,10 +50,6 @@ params = data.frame(
   r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
   ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F) # fraction of recombination events that are not cross overs
 )
-
-# effect of beneficial mutation
-# sample selection coefficients based on initial population size
-params$sweepS = (10^runif(K, min = -3, max = 3))/params$N 
 
 # spacing between beneficial mutations
 params$lambda[(params$n == 1)] = 999999999 # use 9999 instead of NA
@@ -68,12 +65,12 @@ params$fsimple[(params$n > 1)] = runif(K/2, min = 0, max = 1)
   
 # carrying capacity
 # determine which samples will be shrinking, the growth rate for shrinking samples can't be too high, or else you'll get negative population sizes
-params$K = NA
+params$K = params$N
 
 decID = sample(params$ID[( (params$r > 0) & (params$r < 0.5) )], size = K/5, replace = F)
 
 params$K[(params$ID %in% decID)] = params$N[(params$ID %in% decID)]*runif(K/5, min = 0.5, max = 0.99)
-params$K[!(params$ID %in% decID)]  = params$N[!(params$ID %in% decID)]*runif(K/5, min = 1.01, max = 2)
+params$K[!(params$ID %in% decID)]  = params$N[!(params$ID %in% decID)]*runif(K/5, min = 1.01, max = 1.5)
 
 params$K[(params$r > 2 & params$r < sqrt(6))] = params$N[(params$r > 2 & params$r < sqrt(6))]*runif(K/5, min = 0.5, max = 1.5) # 2-cycling
 params$K[(params$r > sqrt(6) & params$r < 3)] = params$N[(params$r > sqrt(6) & params$r < 3)]*runif(K/5, min = 0.5, max = 1.5) # >2-cycling
@@ -100,11 +97,11 @@ params$hB[(params$B > 0)] = runif(K/2)
 params$hB[(params$B == 0)] = 0.999999999
 
 # average effect of beneficial mutation
-params$bBar[(params$B > 0)] = params$sweepS[(params$B > 0)]*runif(K/2, min = 0, max = 1)
+params$bBar[(params$B > 0)] = 10^runif(K, min = -5, max = -3)
 params$bBar[(params$B == 0)] = 0.999999999
 
 # average effect of linked deleterious mutation
-params$uBar[(params$U > 0)] = params$sweepS[(params$U > 0)]*runif(K/2, min = 0, max = 1)*(-1)
+params$uBar[(params$U > 0)] = (10^runif(K, min = -5, max = -3))*(-1)
 params$uBar[(params$U == 0)] = -0.999999999
 
 # shape parameter for deleterious DFE
