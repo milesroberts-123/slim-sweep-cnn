@@ -96,13 +96,29 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] add gene conversion
 
-- [ ] include both neutral (s = 0) and selection (s > 0) scenarios
+- [x] add simulation id to prediction vs actual values output
 
-- [ ] include mildly deleterious mutations (-1/N < s < 0)
+- [x] add monte carlo dropout
+
+- [x] re-do burn-in to stop once simulations reach equilibrium levels of diversity (within 5 % say of expected value), instead of 10N?
+
+- [x] output harmonic mean of population size
+
+- [x] decrease burn-in based on selfing rate
+
+- [ ] add R script to do stratified sampling of simulations
+
+- [ ] add script to tune hyperparameters
+
+- [ ] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
+
+- [x] expand ranges of simulation parameters
+ 
+- [x] include both neutral (s < 1/N) and selection (s > 1/N) scenarios
 
 - [ ] add clonal reproduction?
 
-- [ ] investigate recombination rate * selfing rate interaction
+- [x] investigate recombination rate * selfing rate interaction
 
 - [ ] include polyploidy?
 

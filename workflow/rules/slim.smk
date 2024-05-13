@@ -143,8 +143,8 @@ rule slim:
 		mv fix_time_{wildcards.ID}.txt data/fix_times/
 
 		# move fails to it's own directory
-		mkdir -p data/fails
-		mv fails_{wildcards.ID}.txt data/fails/
+		#mkdir -p data/fails
+		#mv fails_{wildcards.ID}.txt data/fails/
 
 		# convert vcf to simple table
 		# remove hastag from CHROM

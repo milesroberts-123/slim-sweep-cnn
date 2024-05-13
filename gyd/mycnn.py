@@ -21,7 +21,7 @@ batch_size = 32
 epochs = 200
 patience = 20
 #slim_params = "../config/parameters.tsv"
-slim_params = "stratified_sample_3.tsv"
+slim_params = "stratified_sample.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
 
@@ -108,22 +108,19 @@ input_A = keras.layers.Input(shape = [128,128,3], name = "images")
 input_B = keras.layers.Input(shape = [128], name = "positions")
 conv1 = keras.layers.Conv2D(filters = 32, kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
 pool1 = keras.layers.MaxPooling2D(2)(conv1)
-pool1 = keras.layers.Dropout(0.2)(pool1)
-conv2 = keras.layers.Conv2D(filters = 64, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
-pool2 = keras.layers.MaxPooling2D(2)(conv2)
-pool2 = keras.layers.Dropout(0.1)(pool2)
-conv3 = keras.layers.Conv2D(filters = 128, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool2)
-pool3 = keras.layers.MaxPooling2D(2)(conv3)
-pool3 = keras.layers.Dropout(0.1)(pool3)
-flat = keras.layers.Flatten()(pool3)
+pool1 = keras.layers.Dropout(0.5)(pool1)
+#conv2 = keras.layers.Conv2D(filters = 64, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
+#pool2 = keras.layers.MaxPooling2D(2)(conv2)
+#pool2 = keras.layers.Dropout(0.5)(pool2)
+flat = keras.layers.Flatten()(pool1)
 dense_A = keras.layers.Dense(32, activation = "relu")(flat)
-dense_A = keras.layers.Dropout(0.1)(dense_A)
+dense_A = keras.layers.Dropout(0.25)(dense_A)
 dense_B = keras.layers.Dense(32, activation = "relu")(input_B)
-dense_B = keras.layers.Dropout(0.1)(dense_B)
+dense_B = keras.layers.Dropout(0.25)(dense_B)
 concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
-full = keras.layers.Dense(32, activation = "relu")(concat)
-full = keras.layers.Dropout(0.1)(full)
-output = keras.layers.Dense(1, name = "output")(full)
+#full = keras.layers.Dense(32, activation = "relu")(concat)
+#full = keras.layers.Dropout(0.25)(full)
+output = keras.layers.Dense(1, name = "output")(concat)
 model = keras.Model(inputs = [input_A, input_B], outputs = [output])
 
 # compile model

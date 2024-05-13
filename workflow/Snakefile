@@ -18,6 +18,6 @@ rule all:
 		#"best_cnn.h5"
 
 include: "rules/slim.smk"
-include: "rules/degenotate.smk"
+#include: "rules/degenotate.smk"
 include: "rules/create_image.smk"
 #include: "rules/fit_cnn.smk"
