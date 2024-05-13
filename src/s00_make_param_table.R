@@ -42,8 +42,8 @@ params = data.frame(
   h = runif(K, min = 0, max = 1), # dominance coefficient
   sigma = runif(K, min = 0, max = 1), # rate of selfing
   mu = 10^runif(K, min = -8, max = -7), # mutation rate
-  R = 10^runif(K, min = -10, max = -6), # recombination rate
-  tau = sample(0:1000, size = K, replace = T), # time between fixation and observation
+  R = 10^runif(K, min = -9, max = -6), # recombination rate
+  tau = sample(0:2000, size = K, replace = T), # time between fixation and observation
   f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.2)), size = K, replace = F), # establishment frequency
   f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.8, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
   n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
@@ -53,15 +53,15 @@ params = data.frame(
 
 # spacing between beneficial mutations
 params$lambda[(params$n == 1)] = 999999999 # use 9999 instead of NA
-params$lambda[(params$n > 1)] = runif(K/2, min = 0, max = 80) # average waiting time between beneficial mutations
+params$lambda[(params$n > 1)] = runif(K/2, min = 0, max = 100) # average waiting time between beneficial mutations
 
 # mean length of copies in cross over events
-params$cl[(params$n == 1)] = 999999999
-params$cl[(params$n > 1)] = round(10^runif(K/2, 1, 4)) 
+params$cl[(params$ncf == 0)] = 999999
+params$cl[(params$ncf > 0)] = sample(100:10000, size = K/2, replace = T)
 
 # fraction of tracts that are "simple" as opposed to complex
-params$fsimple[(params$n == 1)] = 0.999999999
-params$fsimple[(params$n > 1)] = runif(K/2, min = 0, max = 1) 
+params$fsimple[(params$ncf == 0)] = 0.999999999
+params$fsimple[(params$ncf > 0)] = runif(K/2, min = 0, max = 1) 
   
 # carrying capacity
 # determine which samples will be shrinking, the growth rate for shrinking samples can't be too high, or else you'll get negative population sizes
@@ -97,11 +97,11 @@ params$hB[(params$B > 0)] = runif(K/2)
 params$hB[(params$B == 0)] = 0.999999999
 
 # average effect of beneficial mutation
-params$bBar[(params$B > 0)] = 10^runif(K, min = -5, max = -3)
+params$bBar[(params$B > 0)] = 10^runif(K/2, min = -5, max = -3)
 params$bBar[(params$B == 0)] = 0.999999999
 
 # average effect of linked deleterious mutation
-params$uBar[(params$U > 0)] = (10^runif(K, min = -5, max = -3))*(-1)
+params$uBar[(params$U > 0)] = (10^runif(K/2, min = -5, max = -3))*(-1)
 params$uBar[(params$U == 0)] = -0.999999999
 
 # shape parameter for deleterious DFE
