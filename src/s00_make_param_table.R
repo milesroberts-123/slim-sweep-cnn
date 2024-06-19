@@ -37,46 +37,58 @@ K = yamlfile[["K"]]
 print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
-  N = sample(1000:10000, size = K, replace = T), # initial population size
-  sweepS = 10^runif(K, min = -5, max = 0), # effect of beneficial mutation
+  #N = sample(1000:10000, size = K, replace = T), # initial population size
+  N = 5000,
+  sweepS = 10^runif(K, min = -3, max = 0), # effect of beneficial mutation
   h = runif(K, min = 0, max = 1), # dominance coefficient
-  sigma = runif(K, min = 0, max = 1), # rate of selfing
-  mu = 10^runif(K, min = -8, max = -7), # mutation rate
-  R = 10^runif(K, min = -9, max = -6), # recombination rate
+  #sigma = runif(K, min = 0, max = 1), # rate of selfing
+  sigma = runif(K, min = 0.8, max = 1),
+  #mu = 10^runif(K, min = -8, max = -7), # mutation rate
+  mu = 7e-9,
+  #R = 10^runif(K, min = -9, max = -6), # recombination rate
+  R = 8.06452e-10,
   tau = sample(0:2000, size = K, replace = T), # time between fixation and observation
-  f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.2)), size = K, replace = F), # establishment frequency
-  f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.8, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
+  f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency
+  f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.95, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
   n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
-  r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
+  #r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
+  r = 0,
   ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F) # fraction of recombination events that are not cross overs
 )
 
 # spacing between beneficial mutations
+print("Sampling lambda...")
 params$lambda[(params$n == 1)] = 999999999 # use 9999 instead of NA
 params$lambda[(params$n > 1)] = runif(K/2, min = 0, max = 100) # average waiting time between beneficial mutations
 
 # mean length of copies in cross over events
-params$cl[(params$ncf == 0)] = 999999
+print("Sampling cl...")
+params$cl[(params$ncf == 0)] = 99
 params$cl[(params$ncf > 0)] = sample(100:10000, size = K/2, replace = T)
 
 # fraction of tracts that are "simple" as opposed to complex
+print("Sampling fsimple...")
 params$fsimple[(params$ncf == 0)] = 0.999999999
 params$fsimple[(params$ncf > 0)] = runif(K/2, min = 0, max = 1) 
   
 # carrying capacity
 # determine which samples will be shrinking, the growth rate for shrinking samples can't be too high, or else you'll get negative population sizes
+print("Sampling K...")
 params$K = params$N
 
-decID = sample(params$ID[( (params$r > 0) & (params$r < 0.5) )], size = K/5, replace = F)
+if(any(params$r > 0)){
+  decID = sample(params$ID[( (params$r > 0) & (params$r < 0.5) )], size = K/5, replace = F)
 
-params$K[(params$ID %in% decID)] = params$N[(params$ID %in% decID)]*runif(K/5, min = 0.5, max = 0.99)
-params$K[!(params$ID %in% decID)]  = params$N[!(params$ID %in% decID)]*runif(K/5, min = 1.01, max = 1.5)
+  params$K[(params$ID %in% decID)] = params$N[(params$ID %in% decID)]*runif(K/5, min = 0.5, max = 0.99)
+  params$K[!(params$ID %in% decID)]  = params$N[!(params$ID %in% decID)]*runif(K/5, min = 1.01, max = 1.5)
 
-params$K[(params$r > 2 & params$r < sqrt(6))] = params$N[(params$r > 2 & params$r < sqrt(6))]*runif(K/5, min = 0.5, max = 1.5) # 2-cycling
-params$K[(params$r > sqrt(6) & params$r < 3)] = params$N[(params$r > sqrt(6) & params$r < 3)]*runif(K/5, min = 0.5, max = 1.5) # >2-cycling
+  params$K[(params$r > 2 & params$r < sqrt(6))] = params$N[(params$r > 2 & params$r < sqrt(6))]*runif(K/5, min = 0.8, max = 1.2) # 2-cycling
+  params$K[(params$r > sqrt(6) & params$r < 3)] = params$N[(params$r > sqrt(6) & params$r < 3)]*runif(K/5, min = 0.8, max = 1.2) # >2-cycling
+}
 
 # proportions of deleterious, beneficial, neutral mutations
 # neutral mutation > deleterious mutation > beneficial mutation
+print("Sampling B, U, and M...")
 params$B = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.04)), size = K, replace = F) # beneficial mutations
 params$U = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.04)), size = K, replace = F) # deleterious mutations
 params$M = 1 - params$B - params$U # neutral mutations
@@ -89,6 +101,7 @@ params$M = 1 - params$B - params$U # neutral mutations
 #params$U = pmin(bisect - params$B, 1 - bisect) # deleterious mutations
 
 # dominance for deleterious mutations
+print("Sampling DFE parameters...")
 params$hU[(params$U > 0)] = runif(K/2)
 params$hU[(params$U == 0)] = 0.999999999
 
