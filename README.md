@@ -106,6 +106,12 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] decrease burn-in based on selfing rate
 
+- [x] add parameter to adjust when sweep is introduced relative to burn-in start
+
+- [x] add parameter Q for scaling demographic factors
+
+- [ ] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
+
 - [ ] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
 
 - [ ] add R script to do stratified sampling of simulations

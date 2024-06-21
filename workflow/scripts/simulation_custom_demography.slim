@@ -1,12 +1,12 @@
 initialize() {
-	initializeMutationRate(mu);
+	initializeMutationRate(mu*Q);
 	initializeMutationType("m1", 0.5, "f", 0.0); // neutral mutation
 	initializeMutationType("m2", h, "f", 0.0); // introduced mutation
 	initializeMutationType("m3", hB, "e", bBar); // background beneficial mutations (hitchhickers, hill-robertson interference)
 	initializeMutationType("m4", hU, "g", uBar, alpha); // background deleterious mutations
 	initializeGenomicElementType("g1", c(m1,m3,m4), c(M,B,U));
-	initializeGenomicElement(g1, 0, 1000000);
-	initializeRecombinationRate(R);
+	initializeGenomicElement(g1, 0, 100000);
+	initializeRecombinationRate(R*Q);
 	initializeGeneConversion(ncf, cl, fsimple);
 }
 
@@ -15,20 +15,22 @@ initialize() {
 	defineConstant("simID", ID);
 
 	// print all parameters for this simulation
-	catn(simID + ": "+ sim.cycle + " - MUTATION RATE: " + mu);
-	catn(simID + ": "+ sim.cycle + " - RECOMBINATION RATE: " + R);
-	catn(simID + ": "+ sim.cycle + " - SELECTION COEFFICIENT: " + sweepS);
+	catn(simID + ": "+ sim.cycle + " - SCALING FACTOR: " + Q);
+	catn(simID + ": "+ sim.cycle + " - MUTATION RATE: " + mu + " SCALED: " + mu*Q);
+	catn(simID + ": "+ sim.cycle + " - RECOMBINATION RATE: " + R + " SCALED: " + R*Q);
+	catn(simID + ": "+ sim.cycle + " - SELECTION COEFFICIENT: " + sweepS + " SCALED: " + sweepS*Q);
 	catn(simID + ": "+ sim.cycle + " - DOMINANCE COEFFICIENT: " + h);
 	catn(simID + ": "+ sim.cycle + " - SELFING RATE: " + sigma);
-	catn(simID + ": "+ sim.cycle + " - INITIAL POPULATION SIZE: " + N);
+	catn(simID + ": "+ sim.cycle + " - INITIAL POPULATION SIZE: " + N + " SCALED: " +N/Q);
 	catn(simID + ": "+ sim.cycle + " - ESTABLISHMENT FREQUENCY: " + f0);
 	catn(simID + ": "+ sim.cycle + " - THRESHOLD FREQUENCY: " + f1);
+	catn(simID + ": "+ sim.cycle + " - SWEEP INTRODUCTION TIME: " + kappa + " SCALED:" + asInteger(kappa/Q));
 	catn(simID + ": "+ sim.cycle + " - SWEEP AGE: " + tau);
 	catn(simID + ": "+ sim.cycle + " - NUMBER OF SWEEP MUTATIONS: " + n);
-	catn(simID + ": "+ sim.cycle + " - AVERAGE WAIT TIME BETWEEN MUTATIONS: " + lambda);
-	catn(simID + ": "+ sim.cycle + " - AVERAGE EFFECT OF BACKGROUND BENEFICIAL MUTATION: " + bBar);
+	catn(simID + ": "+ sim.cycle + " - AVERAGE WAIT TIME BETWEEN MUTATIONS: " + lambda + " SCALED: " + lambda/Q);
+	catn(simID + ": "+ sim.cycle + " - AVERAGE EFFECT OF BACKGROUND BENEFICIAL MUTATION: " + bBar + " SCALED: " + bBar*Q);
 	catn(simID + ": "+ sim.cycle + " - DOMINANCE COEFFICIENT OF BACKGROUND BENEFICIAL MUTATION: " + hB);
-	catn(simID + ": "+ sim.cycle + " - AVERAGE EFFECT OF BACKGROUND DELETERIOUS MUTATION: " + uBar);
+	catn(simID + ": "+ sim.cycle + " - AVERAGE EFFECT OF BACKGROUND DELETERIOUS MUTATION: " + uBar + " SCALED: " + uBar*Q);
 	catn(simID + ": "+ sim.cycle + " - DOMINANCE COEFFICIENT OF BACKGROUND DELETERIOUS MUTATION: " + hU);
 	catn(simID + ": "+ sim.cycle + " - SHAPE PARAMETER OF BACKGROUND DELETERIOUS MUTATION DFE: " + alpha);
 	catn(simID + ": "+ sim.cycle + " - PROPORTION OF BACKGROUND MUTATIONS THAT ARE NEUTRAL: " + M);
@@ -39,7 +41,8 @@ initialize() {
 	catn(simID + ": "+ sim.cycle + " - PROPORTION OF COPY TRACTS THAT ARE SIMPLE: " + fsimple);
 
 	// create subpopulation
-	sim.addSubpop("p1", asInteger(N));
+	catn(simID + ": "+ sim.cycle + " - CREATING POPULATION OF SIZE: " + asInteger(N/Q));
+	sim.addSubpop("p1", asInteger(N/Q));
 
 	// set selfing rate
 	p1.setSelfingRate(sigma);
@@ -53,7 +56,7 @@ initialize() {
 
 	// track when burn-in phase ends
 	
-	defineGlobal("endBurn", 10*asInteger(N*(2-sigma)*0.5));
+	defineGlobal("endBurn", 10*asInteger(N*(2-sigma)*0.5*(1/Q)));
 	catn(simID + ": "+ sim.cycle + " - BURN-IN WILL END AT: " + endBurn);
 
 	// Load in file specifying custom 1-population demography
@@ -65,8 +68,8 @@ initialize() {
 
 	for (line in lines) { 
 		fields = strsplit(line, ","); 
-		population_size = asInteger(fields[0]); 
-		time_step = asInteger(fields[1]);
+		population_size = asInteger(asInteger(fields[0])/Q); 
+		time_step = asInteger(asInteger(fields[1])/Q);
 
 		community.registerEarlyEvent(NULL, s5.source, time_step + endBurn, time_step + endBurn);
 		
@@ -84,9 +87,9 @@ initialize() {
 	defineGlobal("nx", 0);
 
 	// generate schedule for beneficial mutations
-	gens = cumSum(rpois(asInteger(n), lambda)); // make a vector of start gens
+	gens = cumSum(rpois(asInteger(n), lambda/Q)); // make a vector of start gens
 
-	gens = gens + (endBurn - min(gens)) + 1; // align to start after burning, plus one to avoid weird ordering
+	gens = gens + (endBurn - min(gens)) + 1 + asInteger(kappa/Q); // align to start after burning, plus one to avoid weird ordering, plus kappa to alter timing of introduction relative to burn-in
 
 	catn(simID + ": "+ sim.cycle + " - GENERATIONS TO ADD SWEEPS: " + paste(gens));
 	defineConstant("Z", max(gens)); // remember the last gen
@@ -96,8 +99,8 @@ initialize() {
 		community.registerLateEvent(NULL, s1.source, gen, gen);
 	}
 
-	// reschedule saving of simulation after burn-in
-	community.rescheduleScriptBlock(s0, start=endBurn, end=endBurn);
+	// reschedule saving of simulation to be after burn-in, but before benefical mutation is introduced
+	community.rescheduleScriptBlock(s0, start=min(gens)-1, end=min(gens)-1);
 
 	// reschedule checking of establishment for soft sweep mutation
 	community.rescheduleScriptBlock(s2, start=endBurn + 1, end=endBurn + 1000000);
@@ -123,7 +126,7 @@ early() {
                 numM2 = size(sim.mutationsOfType(m2));
                 numM3 = size(sim.mutationsOfType(m3));
                 numM4 = size(sim.mutationsOfType(m4));
-                catn(simID + ": " + sim.cycle + " - HETEROZYGOSITY: " + pi + " NEUTRAL: " + numM1 + " SWEEP: " + numM2 + " BACKGROUND GOOD: " + numM3 + " BACKGROUND BAD: " + numM4);
+                catn(simID + ": " + sim.cycle + " - HETEROZYGOSITY: " + pi + " POPULATION SIZE: " + p1.individualCount +" NEUTRAL: " + numM1 + " SWEEP: " + numM2 + " BACKGROUND GOOD: " + numM3 + " BACKGROUND BAD: " + numM4);
         }
 }
 
@@ -152,7 +155,7 @@ s1 1000000 late() {
 		target.addMutations(mut);
 	} 
 	else {
-		target.addNewDrawnMutation(m2, 500000);
+		target.addNewDrawnMutation(m2, 50000);
 	}
 }
 
@@ -163,11 +166,11 @@ s2 2000000 late() {
 	if (size(mut) == 1) { 
 		if (sim.mutationFrequencies(NULL, mut) >= f0) { 
 			catn(simID + ": " + sim.cycle + " - ESTABLISHED - CONVERTING TO BENEFICIAL"); 
-			mut.setSelectionCoeff(sweepS); 
+			mut.setSelectionCoeff(sweepS*Q); 
 			//community.deregisterScriptBlock(self);
 			community.rescheduleScriptBlock(self,1000000,1000000); 
 		} 
-	} 	
+	}
 }
 
 
@@ -208,7 +211,7 @@ s4 4000000 late() {
 			if (fixTracker == 0){
 				catn(simID + ": " + sim.cycle + " - FIXED");
 				defineGlobal("fixTime", asInteger(sim.cycle) - asInteger(endBurn));
-				catn(simID + ": " + sim.cycle + " - START: " + endBurn + " END: " + sim.cycle + " FIXATION TIME: " + fixTime);
+				catn(simID + ": " + sim.cycle + " - START: " + endBurn + " END: " + sim.cycle + " FIXATION TIME: " + fixTime + " SCALED FIXATION TIME: " + fixTime*Q);
 			}
 
 			// stop some generations after fixation
@@ -224,8 +227,8 @@ s4 4000000 late() {
 				g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
 
 				// output when sweep fixed
-				catn(simID + ": " + sim.cycle + " - OUTPUTTING FIXATION TIME");
-				writeFile("fix_time_" + asString(ID) + ".txt", paste(fixTime));
+				//catn(simID + ": " + sim.cycle + " - OUTPUTTING FIXATION TIME");
+				//writeFile("fix_time_" + asString(ID) + ".txt", paste(fixTime));
 
 				// output number of failures, if any
 				catn(simID + ": " + sim.cycle + " - FAILURE COUNT: " + fails);
