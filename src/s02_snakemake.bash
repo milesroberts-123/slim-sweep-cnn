@@ -39,7 +39,10 @@ echo Running snakemake...
 #snakemake --cluster "sbatch --time 7-00:00:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 900 --cores 900 --use-conda --rerun-incomplete --rerun-triggers mtime --retries 2
 
 # command to subset of josephsnodes
-#snakemake --cluster "sbatch --time 3:59:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 100 --cores 100 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going
+for num in {1..320}
+do
+  snakemake --cluster "sbatch --time 3:59:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going --batch all=$num/320
+done
 
 # command to use lots of scavenger nodes
-snakemake --cluster "sbatch --time 3:59:00 --qos=scavenger --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going
+#snakemake --cluster "sbatch --time 3:59:00 --qos=scavenger --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going
