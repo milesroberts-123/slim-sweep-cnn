@@ -60,7 +60,7 @@ params = data.frame(
 # spacing between beneficial mutations
 print("Sampling lambda...")
 params$lambda[(params$n == 1)] = 999999999 # use 9999 instead of NA
-params$lambda[(params$n > 1)] = runif(K/2, min = 0, max = 100) # average waiting time between beneficial mutations
+params$lambda[(params$n > 1)] = runif(K/2, min = 0, max = 10000) # average waiting time between beneficial mutations
 
 # mean length of copies in cross over events
 print("Sampling cl...")

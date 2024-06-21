@@ -110,33 +110,33 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] add parameter Q for scaling demographic factors
 
-- [ ] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
-
-- [ ] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
-
-- [ ] add R script to do stratified sampling of simulations
-
-- [ ] add script to tune hyperparameters
-
-- [ ] add rule to extract outputs of simulations from log files, so that I don't have to make lots of intermediate files?
-
-- [ ] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
-
 - [x] expand ranges of simulation parameters
  
 - [x] include both neutral (s < 1/N) and selection (s > 1/N) scenarios
 
-- [ ] add clonal reproduction?
+- [x] modify slim rule to append output of failure count and fixation times into single files
 
 - [x] investigate recombination rate * selfing rate interaction
+
+- [x] add rule to extract outputs of simulations from log files, so that I don't have to make lots of intermediate files?
+
+- [x] add R script to do stratified sampling of simulations
+
+- [ ] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
+
+- [ ] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
+
+- [ ] add script to tune hyperparameters
+
+- [ ] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
+
+- [ ] add clonal reproduction?
 
 - [ ] include polyploidy?
 
 - [ ] include population structure? (track time for mutation to fix when it needs to migrate to another population first)
 
 - [ ] use gpu instead of cpu for training model
-
-- [ ] modify slim rule to append output of failure count and fixation times into single files
 
 - [ ] re-write neural network as a function with hyperparameters
 
