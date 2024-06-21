@@ -106,9 +106,19 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 
 - [x] decrease burn-in based on selfing rate
 
+- [x] add parameter to adjust when sweep is introduced relative to burn-in start
+
+- [x] add parameter Q for scaling demographic factors
+
+- [ ] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
+
+- [ ] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
+
 - [ ] add R script to do stratified sampling of simulations
 
 - [ ] add script to tune hyperparameters
+
+- [ ] add rule to extract outputs of simulations from log files, so that I don't have to make lots of intermediate files?
 
 - [ ] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
 

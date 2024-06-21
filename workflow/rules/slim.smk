@@ -14,6 +14,10 @@ def get_N(wildcards):
         N = parameters.loc[parameters["ID"] == wildcards.ID, "N"]
         return float(N.iloc[0])
 
+def get_Q(wildcards):
+        Q = parameters.loc[parameters["ID"] == wildcards.ID, "Q"]
+        return float(Q.iloc[0])
+
 def get_mu(wildcards):
         mu = parameters.loc[parameters["ID"] == wildcards.ID, "mu"]
         return float(mu.iloc[0])
@@ -25,6 +29,10 @@ def get_R(wildcards):
 def get_tau(wildcards):
         tau = parameters.loc[parameters["ID"] == wildcards.ID, "tau"]
         return float(tau.iloc[0])
+
+def get_kappa(wildcards):
+        kappa = parameters.loc[parameters["ID"] == wildcards.ID, "kappa"]
+        return float(kappa.iloc[0])
 
 def get_f0(wildcards):
         f0 = parameters.loc[parameters["ID"] == wildcards.ID, "f0"]
@@ -41,14 +49,6 @@ def get_n(wildcards):
 def get_lambda(wildcards):
         lamb = parameters.loc[parameters["ID"] == wildcards.ID, "lambda"]
         return float(lamb.iloc[0])
-
-def get_r(wildcards):
-        r = parameters.loc[parameters["ID"] == wildcards.ID, "r"]
-        return float(r.iloc[0])
-
-def get_K(wildcards):
-        K = parameters.loc[parameters["ID"] == wildcards.ID, "K"]
-        return float(K.iloc[0])
 
 def get_M(wildcards):
         M = parameters.loc[parameters["ID"] == wildcards.ID, "M"]
@@ -108,15 +108,15 @@ rule slim:
 		sigma=get_sigma,
 		h=get_h,
 		N=get_N,
+		Q=get_Q,
 		mu=get_mu,
 		R=get_R,
 		tau=get_tau,
+		kappa=get_kappa,
 		f0=get_f0,
 		f1=get_f1,
 		n=get_n,
 		lamb=get_lambda,
-		r=get_r,
-		K=get_K,
 		M=get_M,
 		U=get_U,
 		B=get_B,
@@ -136,7 +136,7 @@ rule slim:
 	shell:
 		"""
 		# run simulation
-		slim -d ID={wildcards.ID} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d r={params.r} -d K={params.K} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} scripts/simulation.slim &> {log}
+		slim -d ID={wildcards.ID} -d Q={params.Q} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d kappa={params.kappa} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} scripts/simulation_custom_demography.slim &> {log}
 
 		# move fix time to it's own directory
 		mkdir -p data/fix_times

@@ -34,7 +34,7 @@ if(varCount > 128){
  
  # Find distance from center, where beneficial mutation was
  print("Distances from center of simulated region:")
- dist_from_center = abs(simvar$POS - 500001)
+ dist_from_center = abs(simvar$POS - 50001)
  print(dist_from_center)
  
  print("Set of variants closest to beneficial mutation:")
