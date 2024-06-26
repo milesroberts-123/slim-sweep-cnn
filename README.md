@@ -12,6 +12,8 @@ This code corresponds to the following publication: XXX
 
 # How to replicate my results
 
+My workflow requires 3 files, a yaml file of workflow parameters (`config/config.yaml`), a tsv file of SLiM parameters (`config/parameters.tsv`), and a csv file describing a demographic pattern for the SLiM simulations (`config/demography.csv`). I describe each of these inputs below.
+
 ## 0. Set-up workflow
 
 ```
@@ -24,7 +26,7 @@ cd src
 
 ## 1. Choose workflow parameters
 
-All parameters can be found in `config/config.yaml`. Each parameter is described below.
+The workflow parameters can be found in `config/config.yaml`. Each parameter is described below.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
@@ -38,7 +40,25 @@ All parameters can be found in `config/config.yaml`. Each parameter is described
 | distMethod | Method for measuring genetic distance between loci | "manhattan" |
 | clustMethod | Method used to cluster genomes based on genetic distance | "complete " |
 
-## 2. Create table of simulation parameters
+## 2. Specify demographic pattern 
+
+Another required input is `config/demography.csv`. This is a headerless csv file with two columns
+
+| Population size | Time point |
+|-----------------|------------|
+| Column of population sizes | Column of time points, starting with 1 as the generation after burn-in, at which the population size changes |
+
+For example, a file like the following:
+
+```
+1000,10
+2000,15
+3000,20
+```
+
+means that 10 generations after burn-in the population size will change to 1000, at 15 generations post-burn-in the population size will change to 2000, and at 20 generations post-burn-in the population size will change to 3000.
+
+## 3. Create table of simulation parameters
 
 `Rscript s00_createParamTable.R`
 
