@@ -130,7 +130,8 @@ rule slim:
 		fsimple=get_fsimple
 	threads: 1
 	resources:
-		mem_mb_per_cpu=8000
+		mem_mb_per_cpu=8000,
+		time=10080
 	conda:
 		"../envs/slim.yml"
 	shell:

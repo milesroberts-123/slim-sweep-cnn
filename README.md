@@ -6,25 +6,19 @@ This code corresponds to the following publication: XXX
 
 # Contents
 
-[How to replicate my results](#how-to-replicate-my-results)
+[Inputs](#inputs)
+
+[Run workflow](#run-workflow)
+
+[Outputs](#outputs)
 
 [To do](#to-do)
 
-# How to replicate my results
+# Inputs
 
 My workflow requires 3 files, a yaml file of workflow parameters (`config/config.yaml`), a tsv file of SLiM parameters (`config/parameters.tsv`), and a csv file describing a demographic pattern for the SLiM simulations (`config/demography.csv`). I describe each of these inputs below.
 
-## 0. Set-up workflow
-
-```
-# clone repo
-git clone https://github.com/milesroberts-123/selection-demography-cnn.git
-
-# go to source code folder
-cd src
-```
-
-## 1. Choose workflow parameters
+## `config/config.yaml`
 
 The workflow parameters can be found in `config/config.yaml`. Each parameter is described below.
 
@@ -58,13 +52,53 @@ For example, a file like the following:
 
 means that 10 generations after burn-in the population size will change to 1000, at 15 generations post-burn-in the population size will change to 2000, and at 20 generations post-burn-in the population size will change to 3000.
 
-## 3. Create table of simulation parameters
+## `config/parameters.tsv`
 
-`Rscript s00_createParamTable.R`
+There's a simple R script in `src/` to generate this input for you:
 
-## 3. Run simulations and train neural network on outputs
+`Rscript src/s00_createParamTable.R`
+
+Here is a description of each parameter in the table:
+
+| Parameter | Description | 
+|-----------|-------------|
+| ID | Number from 1:K, used as a unique ID for each simulation |
+| Q | scaling factor |
+| N | ancestral population size, used for burn-in |
+| sweepS | selection coefficient for sweep mutation |
+| h | dominance coefficient of sweep mutation |
+| sigma | selfing rate |
+| mu | mutation rate |
+| R | recombination rate |
+| tau | age of sweep (time between fixation and sampling) | 
+| kappa | start time of sweep |
+| f0 | threshold frequency to convert sweep from neutral -> beneficial (for soft sweeps) |
+| f1 | threshold frequency to convert sweep from beneficial -> neutral (for partial sweeps) |
+| n | number of sweep mutations to introduce (recurrent mutation) |
+| lambda | average waiting time between sweep mutations (poisson distribution) |
+| ncf | proportion of cross over events that are gene conversions |
+| cl | length of gene conversion crossover events |
+| fsimple | fraction of crossover events that are simple |
+| B | proportion of non-sweep mutations that are beneficial |
+| U | proportion of non-sweep mutations that are deleterious |
+| M | proportion of non-sweep mutations that are neutral |
+| hU | dominance coefficient for deleterious non-sweep mutations |
+| hB | dominance coefficient for beneficial non-sweep mutations |
+| bBar | average selection coefficient for beneficial non-sweep mutations | 
+| uBar | average selection coefficient for deleterious non-sweep mutations |
+| alpha | shape parameter for distribution of fitness effects for deleterious non-sweep mutations |
+
+# Run workflow
 
 `sbatch s01_snakemake.bash`
+
+# Outputs
+
+* One image per SLiM simulation
+* One model `best_cnn.h5` trained on a stratified sample of SLiM simulations
+* Comparisons between predicted and true values for testing data
+* Comparisons between predicted and true values for training data
+* Comparisons between predicted and true values for validation data
 
 # To do
 
@@ -141,6 +175,8 @@ means that 10 generations after burn-in the population size will change to 1000,
 - [x] add rule to extract outputs of simulations from log files, so that I don't have to make lots of intermediate files?
 
 - [x] add R script to do stratified sampling of simulations
+
+- [ ] add creation of parameter table to workflow
 
 - [ ] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
 
