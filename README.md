@@ -91,7 +91,7 @@ Here is a description of each parameter in the table:
 Supported sweep types:
 
 | Sweep type | f0 | f1 | n |
-|============|====|====|===|
+|------------|----|----|---|
 | hard | 0 | 1 | 1 |
 | soft | 0< | 1 | 1 |
 | partial | 0 | <1 | 1 |
