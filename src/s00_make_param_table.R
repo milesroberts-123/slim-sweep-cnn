@@ -68,7 +68,7 @@ params$lambda[(params$n > 1)] = runif(sum(params$n > 1), min = 0, max = 10000) #
 # mean length of copies in cross over events
 print("Sampling cl...")
 params$cl[(params$ncf == 0)] = 99
-params$cl[(params$ncf > 0)] = sample(100:10000, size = K/2, replace = T)
+params$cl[(params$ncf > 0)] = sample(100:1000, size = K/2, replace = T)
 
 # fraction of tracts that are "simple" as opposed to complex
 print("Sampling fsimple...")

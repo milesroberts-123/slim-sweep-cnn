@@ -88,6 +88,20 @@ Here is a description of each parameter in the table:
 | uBar | average selection coefficient for deleterious non-sweep mutations |
 | alpha | shape parameter for distribution of fitness effects for deleterious non-sweep mutations |
 
+Supported sweep types:
+
+| Sweep type | f0 | f1 | n |
+|============|====|====|===|
+| hard | 0 | 1 | 1 |
+| soft | 0< | 1 | 1 |
+| partial | 0 | <1 | 1 |
+| recurrent | 0 | 1 | >1 |
+| soft + partial | 0< | <1 | 1 |
+| soft + recurrent | 0< | 1 | >1 |
+| partial + recurrent | 0 | <1 | >1 |
+| soft + partial + recurrent | 0< | <1 | >1 |
+
+
 # Run workflow
 
 `sbatch s01_snakemake.bash`
