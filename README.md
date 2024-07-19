@@ -70,8 +70,8 @@ Here is a description of each parameter in the table:
 | sigma | selfing rate |
 | mu | mutation rate |
 | R | recombination rate |
-| tau | age of sweep (time between fixation and sampling) | 
-| kappa | start time of sweep |
+| tau | time when population is sampled (cycles post-burn-in when simulation ends) | 
+| kappa | time when sweep is introduced (simulation will restart here if sweep fails) |
 | f0 | threshold frequency to convert sweep from neutral -> beneficial (for soft sweeps) |
 | f1 | threshold frequency to convert sweep from beneficial -> neutral (for partial sweeps) |
 | n | number of sweep mutations to introduce (recurrent mutation) |
@@ -176,11 +176,13 @@ Here is a description of each parameter in the table:
 
 - [x] add R script to do stratified sampling of simulations
 
+- [x] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
+
+- [ ] add error checking to slim script (tau should be less than kappa for example)
+
 - [ ] add creation of parameter table to workflow
 
 - [ ] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
-
-- [ ] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
 
 - [ ] add script to tune hyperparameters
 

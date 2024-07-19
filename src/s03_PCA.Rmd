@@ -266,6 +266,18 @@ ggplot(aes(x = V2, y = V4), data = val_pred_vs_act) +
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/val_actual-vs-predicted-sd_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
+# variation in predictions vs sweep age
+ggplot(aes(x = V2, y = V4), data = val_pred_vs_act) +
+  geom_point() +
+  geom_vline(xintercept = mean(val_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_hline(yintercept = mean(val_pred_vs_act$V4), linewidth = 1, linetype = "dotted", color = "red") + 
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
+  theme_classic() +
+  labs(x = "log10(Actual Fixation time)", 
+       y = "SD in log10(Predicted Fixation time)",
+       title = paste("Validation set: r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+
 # actual vs coefficient of variation in predictions
 ggplot(aes(x = V2, y = V4/V3), data = test_pred_vs_act) +
   geom_point() +
@@ -356,23 +368,23 @@ ggplot(test_pred_vs_act_melt, aes(x = value, color = variable)) +
 #  ID = gsub(".txt", "", gsub(".*fails_", "", fail_files))
 #)
 
-fix_times = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/fixation_times.txt", col.names = c("ID", "tf"))
+#fix_times = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/fixation_times.txt", col.names = c("ID", "tf"))
 
-fix_times = merge(params, fix_times, by = "ID")
+#fix_times = merge(params, fix_times, by = "ID")
 #fix_times = merge(fix_times, fail_times, by = "ID")
 
 # convert tf to units of Ne
-fix_times$tfne = fix_times$tf/fix_times$Ne
+#fix_times$tfne = fix_times$tf/fix_times$Ne
 
 # square selfing rate
-fix_times$sigma2 = fix_times$sigma^2
+#fix_times$sigma2 = fix_times$sigma^2
 
 # remove any simulations that don't have images
 image_ids = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images", full.names = T)
 
 image_ids = as.numeric(gsub(".*_", "", gsub(".png", "", image_ids)))
 
-fix_times = fix_times[(fix_times$ID %in% image_ids),]
+params = params[(params$ID %in% image_ids),]
 
 # calculate probability of failure
 # For each simulation, what geometric distribution would give the observed number of failures as it's expected value
@@ -623,7 +635,7 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   labs(x = "log10(fixation times)")
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_9.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_10.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 #
