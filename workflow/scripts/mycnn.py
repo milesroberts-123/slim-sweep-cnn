@@ -21,7 +21,7 @@ batch_size = 32
 epochs = 200
 patience = 20
 #slim_params = "../config/parameters.tsv"
-slim_params = "stratified_sample_3.tsv"
+slim_params = "stratified_sample_11.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
 
@@ -34,8 +34,12 @@ train_params = slim_params[slim_params["split"] == "train"].copy().reset_index()
 val_params = slim_params[slim_params["split"] == "val"].copy().reset_index()
 test_params = slim_params[slim_params["split"] == "test"].copy().reset_index()
 
+print(train_params)
+print(val_params)
+print(test_params)
+
 #print("Splitting response variable into training, validation, and testing...")
-#train_y = train_params["sweepS"] 
+#train_y = train_params["sweepS"]
 #val_y = val_params["sweepS"]
 #test_y = test_params["sweepS"]
 
@@ -48,16 +52,16 @@ train_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png
 val_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 test_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 
-#print("Shapes of training, validation, and testing images:")
-#print(train_images.shape)
-#print(val_images.shape)
-#print(test_images.shape)
+print("Shapes of training, validation, and testing images:")
+print(train_images.shape)
+print(val_images.shape)
+print(test_images.shape)
 
 # load fixation times
-print("Loading fixation times...")
-train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
-val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
-test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+#print("Loading fixation times...")
+#train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+#val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
+#test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
 
 # transform fixation times
 #train_y = np.log10(train_y)
@@ -151,11 +155,6 @@ train_params['tf'] = train_params['tf'].apply(np.log10)
 val_params['tf'] = val_params['tf'].apply(np.log10)
 test_params['tf'] = test_params['tf'].apply(np.log10)
 
-# data generator that will transform images, making model more robust to how the data is ordered
-# Helpful links:
-# https://stackoverflow.com/questions/59380430/how-to-use-model-fit-which-supports-generators-after-fit-generator-deprecation
-# https://stackoverflow.com/questions/62997440/keras-multi-input-network-using-images-and-structured-data-how-do-i-build-the
-# https://github.com/keras-team/keras/issues/8130#issuecomment-336855177
 def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
     # create image generator
     mydatagen = ImageDataGenerator(rescale = 1./255, horizontal_flip = True, vertical_flip = True)
@@ -226,16 +225,19 @@ print("Evaluating model on testing data...")
 test_pred = np.stack([model((test_images, test_pos), training = True) for sample in range(100)])
 test_pred_mean = test_pred.mean(axis=0)
 test_pred_std = test_pred.std(axis=0)
-
-print("Evaluating model on training data...")
-train_pred = np.stack([model((train_images, train_pos), training = True) for sample in range(100)])
-train_pred_mean = train_pred.mean(axis=0)
-train_pred_std = train_pred.std(axis=0)
+np.savetxt('test_predicted_vs_actual.txt', np.c_[test_ids, test_params["tf"], test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 print("Evaluating model on validation data...")
 val_pred = np.stack([model((val_images, val_pos), training = True) for sample in range(100)])
 val_pred_mean = val_pred.mean(axis=0)
 val_pred_std = val_pred.std(axis=0)
+np.savetxt('val_predicted_vs_actual.txt', np.c_[val_ids, val_params["tf"], val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+
+print("Evaluating model on training data...")
+train_pred = np.stack([model((train_images, train_pos), training = True) for sample in range(100)])
+train_pred_mean = train_pred.mean(axis=0)
+train_pred_std = train_pred.std(axis=0)
+np.savetxt('train_predicted_vs_actual.txt', np.c_[train_ids, train_params["tf"], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 # test model
 #print("Testing model...")
@@ -272,11 +274,5 @@ model.save(finalModelName)
 
 # save comparison of predictions vs actual
 print("Saving comparison of predicted vs actual values...")
-
-np.savetxt('test_predicted_vs_actual.txt', np.c_[test_ids, test_y, test_pred_mean, test_pred_std])
-
-np.savetxt('train_predicted_vs_actual.txt', np.c_[train_ids, train_y, train_pred_mean, train_pred_std])
-
-np.savetxt('val_predicted_vs_actual.txt', np.c_[val_ids, val_y, val_pred_mean, val_pred_std])
 
 print("Done! :)")
