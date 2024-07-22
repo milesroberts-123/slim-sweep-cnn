@@ -11,7 +11,8 @@ rule create_image:
 		clustMethod="complete"
 	threads: 1
 	resources:
-		mem_mb_per_cpu=8000
+		mem_mb_per_cpu=8000,
+		time=239
 	conda:
 		"../envs/R.yml"
 	shell:

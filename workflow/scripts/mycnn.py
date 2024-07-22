@@ -151,6 +151,11 @@ train_params['tf'] = train_params['tf'].apply(np.log10)
 val_params['tf'] = val_params['tf'].apply(np.log10)
 test_params['tf'] = test_params['tf'].apply(np.log10)
 
+# data generator that will transform images, making model more robust to how the data is ordered
+# Helpful links:
+# https://stackoverflow.com/questions/59380430/how-to-use-model-fit-which-supports-generators-after-fit-generator-deprecation
+# https://stackoverflow.com/questions/62997440/keras-multi-input-network-using-images-and-structured-data-how-do-i-build-the
+# https://github.com/keras-team/keras/issues/8130#issuecomment-336855177
 def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
     # create image generator
     mydatagen = ImageDataGenerator(rescale = 1./255, horizontal_flip = True, vertical_flip = True)

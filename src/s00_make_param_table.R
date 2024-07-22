@@ -48,11 +48,15 @@ params = data.frame(
   mu = runif(K, min = 6e-9, max = 8e-9),
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
   R = runif(K, min = 7e-10, max = 9e-10),
-  tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
-  kappa = sample(0:1.5e6, size = K, replace = T), # time to introduce beneficial mutation after burn-in
-  f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency
-  f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.95, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
-  n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
+  #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
+  tau = 1537687, # number of generations until simulation reaches present day
+  kappa = sample(900000:1527687, size = K, replace = T), # time to introduce beneficial mutation after burn-in
+  #f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency
+  f0 = 0,
+  #f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.95, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
+  f1 = 1,
+  #n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
+  n = 1,
   #r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
   ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F) # fraction of recombination events that are not cross overs
 )
@@ -60,12 +64,12 @@ params = data.frame(
 # spacing between beneficial mutations
 print("Sampling lambda...")
 params$lambda[(params$n == 1)] = 999999999 # use 9999 instead of NA
-params$lambda[(params$n > 1)] = runif(K/2, min = 0, max = 100) # average waiting time between beneficial mutations
+params$lambda[(params$n > 1)] = runif(sum(params$n > 1), min = 0, max = 10000) # average waiting time between beneficial mutations
 
 # mean length of copies in cross over events
 print("Sampling cl...")
 params$cl[(params$ncf == 0)] = 99
-params$cl[(params$ncf > 0)] = sample(100:10000, size = K/2, replace = T)
+params$cl[(params$ncf > 0)] = sample(100:1000, size = K/2, replace = T)
 
 # fraction of tracts that are "simple" as opposed to complex
 print("Sampling fsimple...")
