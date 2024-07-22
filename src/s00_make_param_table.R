@@ -48,8 +48,9 @@ params = data.frame(
   mu = runif(K, min = 6e-9, max = 8e-9),
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
   R = runif(K, min = 7e-10, max = 9e-10),
-  tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
-  kappa = sample(0:1.5e6, size = K, replace = T), # time to introduce beneficial mutation after burn-in
+  #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
+  tau = 1537687, # number of generations until simulation reaches present day
+  kappa = sample(900000:1527687, size = K, replace = T), # time to introduce beneficial mutation after burn-in
   #f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency
   f0 = 0,
   #f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.95, max = 1)), size = K, replace = F), # threshold frequency for partial sweep

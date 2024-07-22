@@ -192,6 +192,8 @@ Supported sweep types:
 
 - [x] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
 
+- [x] add table of sweep types
+
 - [ ] add error checking to slim script (tau should be less than kappa for example)
 
 - [ ] add creation of parameter table to workflow
