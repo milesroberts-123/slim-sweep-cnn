@@ -654,6 +654,42 @@ high_examples = params[(log10(params$tf) > max(train_pred_vs_act$V2)),]
 
 ```
 
+# evaluate results from real images
+```{r}
+real_pred = read.table("../workflow/real_predictions.txt", header = T)
+
+ggplot(real_pred, aes(x=tf_mean)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(predicted fixation times)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_density_", today, ".png", sep = ""), height = 7, width = 7)
+
+# parse figure ids
+split_ids = strsplit(real_pred$ID, "_")
+
+extract_data = function(x, i){
+  x[i]
+}
+
+real_pred$chrom = unlist(lapply(split_ids, FUN = extract_data, i = 1))
+real_pred$start = unlist(lapply(split_ids, FUN = extract_data, i = 2))
+real_pred$end = unlist(lapply(split_ids, FUN = extract_data, i = 3))
+
+# plot 
+ggplot(real_pred[(real_pred$chrom == "1"),], aes(x=start, y = tf_mean)) +
+  geom_point() +
+  theme_classic() +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(x = "Position", y = "tf")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_manhattan_chrom1_", today, ".png", sep = ""), height = 7, width = 7)
+
+
+```
+
+
 #
 ```{r}
 expected_seg_sites = function(N,mu,sigma,L){
