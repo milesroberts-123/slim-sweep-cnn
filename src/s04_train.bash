@@ -1,9 +1,9 @@
 #!/bin/bash --login
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=8
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=7-00:00:00
-#SBATCH --mem-per-cpu=128G
+#SBATCH --mem-per-cpu=16G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=robe1195@msu.edu
 #SBATCH --partition=josephsnodes

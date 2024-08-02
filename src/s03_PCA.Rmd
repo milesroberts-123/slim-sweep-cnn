@@ -506,7 +506,7 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 #fix_times = fix_times[(fix_times$f0 == 0 & fix_times$f1 == 1),]
 
 width = 0.05
-max_bin_height = 200
+max_bin_height = 386
 
 breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
 params$bin = cut(log10(params$tf), breaks = breaks)
@@ -607,9 +607,9 @@ ggplot(strat_sample, aes(x = log10(sweepS*Q), y = log10(tf))) +
   theme_classic()
 
 # randomly subsample data into training, testing, and validation
-train_n = round(nrow(strat_sample)*0.7)
+train_n = round(nrow(strat_sample)*0.8)
 test_n = round(nrow(strat_sample)*0.1)
-val_n = round(nrow(strat_sample)*0.2)
+val_n = round(nrow(strat_sample)*0.1)
 
 excess = (train_n + test_n + val_n) - nrow(strat_sample) # remove excess sims from partitioning
 train_n = train_n - excess
@@ -643,7 +643,7 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   labs(x = "log10(fixation times)")
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_11.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_12.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data
@@ -656,14 +656,14 @@ high_examples = params[(log10(params$tf) > max(train_pred_vs_act$V2)),]
 
 # evaluate results from real images
 ```{r}
-real_pred = read.table("../workflow/real_predictions.txt", header = T)
+real_pred = read.table("/mnt/scratch/robe1195/vcf_to_images/real_predictions.txt", header = T)
 
 ggplot(real_pred, aes(x=tf_mean)) +
   geom_density() +
   theme_classic() +
   labs(x = "log10(predicted fixation times)")
 
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_density_", today, ".png", sep = ""), height = 7, width = 7)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_density_10missing_", today, ".png", sep = ""), height = 7, width = 7)
 
 # parse figure ids
 split_ids = strsplit(real_pred$ID, "_")
@@ -677,7 +677,7 @@ real_pred$start = unlist(lapply(split_ids, FUN = extract_data, i = 2))
 real_pred$end = unlist(lapply(split_ids, FUN = extract_data, i = 3))
 
 # plot 
-ggplot(real_pred[(real_pred$chrom == "1"),], aes(x=start, y = tf_mean)) +
+ggplot(real_pred[(real_pred$chrom == "1"),], aes(x = start, y = tf_mean)) +
   geom_point() +
   theme_classic() +
   theme(axis.text.x=element_blank(),
@@ -685,8 +685,6 @@ ggplot(real_pred[(real_pred$chrom == "1"),], aes(x=start, y = tf_mean)) +
   labs(x = "Position", y = "tf")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_manhattan_chrom1_", today, ".png", sep = ""), height = 7, width = 7)
-
-
 ```
 
 

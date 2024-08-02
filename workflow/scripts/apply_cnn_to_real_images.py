@@ -38,6 +38,6 @@ print("Evaluating model on data...")
 real_pred = np.stack([model((real_images, real_pos), training = True) for sample in range(100)])
 real_pred_mean = real_pred.mean(axis=0)
 real_pred_std = real_pred.std(axis=0)
-np.savetxt('real_predictions.txt', np.c_[real_ids, real_pred_mean, real_pred_std], header = "ID tf_mean tf_std", fmt="%s", comments = "")
+np.savetxt('real_predictions.txt', np.c_[file_prefixes, real_pred_mean, real_pred_std], header = "ID tf_mean tf_std", fmt="%s", comments = "")
 
 print("Done! :)")
