@@ -281,5 +281,18 @@ s4 4000000 late() {
                                 community.rescheduleScriptBlock(s2, start=Y, end=Y + 100000000);
                                 community.rescheduleScriptBlock(s3, start=Y, end=Y + 100000000);
 		}
+
+		if (fails >= 10000) {
+			catn(simID + ": " + sim.cycle + " - STOPPING SIMULATION BECAUSE OF EXCESSIVE SWEEP FAILURE - FAILS: " + fails);
+                
+			// random sample of individuals from simulation
+			catn(simID + ": " + sim.cycle + " - RANDOMLY SAMPLING POPULATION");
+			g = p1.sampleIndividuals(128).genomes;
+
+			// output sampled genomes as VCF
+			catn(simID + ": " + sim.cycle + " - OUTPUTTING VCF");
+			g.outputVCF(filePath = "slim_" + asString(ID) + ".vcf", simplifyNucleotides=F, outputNonnucleotides=T);
+			sim.simulationFinished();
+		}
 	}
 }

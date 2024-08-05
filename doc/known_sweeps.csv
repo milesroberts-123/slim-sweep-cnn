@@ -1,0 +1,22 @@
+Species	Location	References	Notes
+Arabidopsis thaliana	AT1G62360 (STM)	https://doi.org/10.1126/science.1138632 ; https://doi.org/10.1016/j.cub.2010.11.037 ; https://doi.org/10.1038/ng.2678 ;  https://doi.org/10.1101%2Fgr.271726.120 ; https://doi.org/10.1038/ng.911	Appears to be a global sweep
+Arabidopsis thaliana	ARR5	https://doi.org/10.1186/1471-2164-11-188	
+Arabidopsis thaliana	FKF1	https://doi.org/10.1186/1756-0500-4-232	
+Arabidopsis thaliana	LUG1	https://doi.org/10.1186/1756-0500-4-232	
+Arabidopsis thaliana	ANN5	https://doi.org/10.1186/1756-0500-4-232	
+Arabidopsis thaliana	Genome-wide	https://doi.org/10.1093/molbev/msu247	Reference gives mostly sweeps specific to either North or South Sweeden. It's possible these sweeps are just in the process of fixing though
+Arabidopsis halleri	HMA4	https://doi.org/10.1371/journal.pgen.1003707	
+Arabidopsis thaliana	PAL1	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	COI1	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	EIN3	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	PAD4	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	BGL2	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	CYP83B1	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	PBS1	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	CPR5	https://doi.org/10.1534/genetics.107.083279	"Though, the authors think these genes might be under balancing selection too: https://doi.org/10.1105/tpc.106.042614"
+Arabidopsis thaliana	SVP	https://link.springer.com/article/10.1186/s13059-017-1378-9#citeas	amino acid substitution (Ala32/Val32) only existed in the Yangtze River region
+Medicago Truncatula		https://doi.org/10.1093/molbev/msv092	
+Arabidopsis lyrata		https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0002411#s2	Some Fst peaks
+Arabidopsis lyrata		https://doi.org/10.1093/molbev/msx193	"PBS peaks, plus single-population demographic modeling"
+Capsella rubella			
+Capsella grandiflora			

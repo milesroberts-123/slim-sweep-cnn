@@ -33,6 +33,11 @@ fix_times = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-dem
 
 params = merge(params, fix_times, by = "ID")
 
+# merge in sweep ages
+sweep_ages = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/sweep_ages.txt", col.names = c("ID", "ta")) 
+
+params = merge(params, sweep_ages, by = "ID")
+
 # plot fixation times for different types of sweeps
 params$sweepType = NA
 params$sweepType[( (params$f0 == 0) & (params$f1 == 1) )] = "hard"
@@ -47,6 +52,12 @@ ggplot(params, aes(x = log10(tf), color = sweepType)) +
   labs(x = "log10(Fixation time)", color = "Type")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_distribution_by_sweep_type_", today, ".png", sep = ""), height = 7, width = 7)
+
+# distribution of sweep ages
+ggplot(params, aes(x = log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(Sweep age)", color = "Type")
 
 # get random sample of simulation outputs
 mypics = sample(list.files("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images", full.names = T), size = 1000, replace = F)
@@ -607,9 +618,9 @@ ggplot(strat_sample, aes(x = log10(sweepS*Q), y = log10(tf))) +
   theme_classic()
 
 # randomly subsample data into training, testing, and validation
-train_n = round(nrow(strat_sample)*0.7)
+train_n = round(nrow(strat_sample)*0.8)
 test_n = round(nrow(strat_sample)*0.1)
-val_n = round(nrow(strat_sample)*0.2)
+val_n = round(nrow(strat_sample)*0.1)
 
 excess = (train_n + test_n + val_n) - nrow(strat_sample) # remove excess sims from partitioning
 train_n = train_n - excess
@@ -643,7 +654,7 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   labs(x = "log10(fixation times)")
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_11.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_13.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data
@@ -653,6 +664,40 @@ low_examples = params[(log10(params$tf) < min(train_pred_vs_act$V2)),]
 high_examples = params[(log10(params$tf) > max(train_pred_vs_act$V2)),]
 
 ```
+
+# evaluate results from real images
+```{r}
+real_pred = read.table("/mnt/scratch/robe1195/vcf_to_images/real_predictions.txt", header = T)
+
+ggplot(real_pred, aes(x=tf_mean)) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(predicted fixation times)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_density_10missing_", today, ".png", sep = ""), height = 7, width = 7)
+
+# parse figure ids
+split_ids = strsplit(real_pred$ID, "_")
+
+extract_data = function(x, i){
+  x[i]
+}
+
+real_pred$chrom = unlist(lapply(split_ids, FUN = extract_data, i = 1))
+real_pred$start = unlist(lapply(split_ids, FUN = extract_data, i = 2))
+real_pred$end = unlist(lapply(split_ids, FUN = extract_data, i = 3))
+
+# plot 
+ggplot(real_pred[(real_pred$chrom == "1"),], aes(x = start, y = tf_mean)) +
+  geom_point() +
+  theme_classic() +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(x = "Position", y = "tf")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_manhattan_chrom1_", today, ".png", sep = ""), height = 7, width = 7)
+```
+
 
 #
 ```{r}
