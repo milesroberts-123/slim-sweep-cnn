@@ -33,6 +33,11 @@ fix_times = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-dem
 
 params = merge(params, fix_times, by = "ID")
 
+# merge in sweep ages
+sweep_ages = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/sweep_ages.txt", col.names = c("ID", "ta")) 
+
+params = merge(params, sweep_ages, by = "ID")
+
 # plot fixation times for different types of sweeps
 params$sweepType = NA
 params$sweepType[( (params$f0 == 0) & (params$f1 == 1) )] = "hard"
@@ -47,6 +52,12 @@ ggplot(params, aes(x = log10(tf), color = sweepType)) +
   labs(x = "log10(Fixation time)", color = "Type")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_distribution_by_sweep_type_", today, ".png", sep = ""), height = 7, width = 7)
+
+# distribution of sweep ages
+ggplot(params, aes(x = log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(Sweep age)", color = "Type")
 
 # get random sample of simulation outputs
 mypics = sample(list.files("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images", full.names = T), size = 1000, replace = F)
@@ -506,7 +517,7 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 #fix_times = fix_times[(fix_times$f0 == 0 & fix_times$f1 == 1),]
 
 width = 0.05
-max_bin_height = 386
+max_bin_height = 200
 
 breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
 params$bin = cut(log10(params$tf), breaks = breaks)
@@ -643,7 +654,7 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   labs(x = "log10(fixation times)")
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_12.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_13.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data

@@ -194,7 +194,7 @@ Supported sweep types:
 
 - [x] add table of sweep types
 
-- [ ] calculate sweep statistics for ABC: pi, theta_w, tajima's D, omega, zns, gkl kurtosis, gkl var, gkl skew, G123, G12, G1, G2/G3, number of multilocus genotypes
+- [ ] calculate sweep statistics for ABC: pi, theta_w, tajima's D, tajima's D variance, omega, zns, gkl kurtosis, gkl var, gkl skew, G123, G12, G1, G2/G3, number of multilocus genotypes
 
 - [ ] add error checking to slim script (tau should be less than kappa for example)
 
