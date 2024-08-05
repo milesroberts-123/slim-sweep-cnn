@@ -14,9 +14,11 @@ rule all:
 	input:
 		#["data/images/slim_{ID}.png".format(ID=ID) for ID in range(1,config["K"] + 1)]
 		#expand("data/tables/slim_{ID}.table", ID=parameters.index.get_level_values("ID"))
-		expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID"))
+		expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID")),
+		#expand("slim_{ID}.tsv", ID=parameters.index.get_level_values("ID"))
 		#"best_cnn.h5"
 
 include: "rules/slim.smk"
 include: "rules/create_image.smk"
+include: "rules/sweep_stats.smk"
 #include: "rules/fit_cnn.smk"

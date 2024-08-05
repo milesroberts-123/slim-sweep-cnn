@@ -1,11 +1,12 @@
 rule create_image:
 	input:
-		"data/tables/slim_{id}.table"
+		table="data/tables/slim_{ID}.table",
+                stats="slim_{ID}.tsv"
 	output:
-		image = "data/images/slim_{id}.png",
-		pos = "data/positions/slim_{id}.pos"
+		image = "data/images/slim_{ID}.png",
+		pos = "data/positions/slim_{ID}.pos"
 	log:
-		"logs/create_image/{id}.log"
+		"logs/create_image/{ID}.log"
 	params:
 		distMethod="manhattan",
 		clustMethod="complete"
@@ -16,4 +17,4 @@ rule create_image:
 	conda:
 		"../envs/R.yml"
 	shell:
-		"Rscript scripts/create-images.R {input} {output.image} {output.pos} {params.distMethod} {params.clustMethod} &> {log}"
+		"Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} &> {log}"
