@@ -131,7 +131,7 @@ rule slim:
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000,
-		time=10080
+		time=239
 	conda:
 		"../envs/slim.yml"
 	shell:
