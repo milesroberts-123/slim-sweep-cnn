@@ -196,13 +196,13 @@ Supported sweep types:
 
 - [x] calculate sweep statistics for ABC: pi, theta_w, tajima's D, tajima's D variance, omega, zns, gkl kurtosis, gkl var, gkl skew, G123, G12, G1, G2/G3, number of multilocus genotypes, hscan
 
+- [x] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
+
+- [ ] add script to tune hyperparameters
+
 - [ ] add error checking to slim script (tau should be less than kappa for example)
 
 - [ ] add creation of parameter table to workflow
-
-- [ ] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
-
-- [ ] add script to tune hyperparameters
 
 - [ ] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
 
