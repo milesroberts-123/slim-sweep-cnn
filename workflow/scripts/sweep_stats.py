@@ -350,19 +350,25 @@ def main(vcf, window_length, focus, output_prefix):
     #print(pos)
 
     # create window of SNPs nearest to sweep site
-    print(datetime.datetime.now(),"Isolating", window_length, "SNPs closest to focal site of", focus, "...")
-    dist_from_focus = numpy.absolute(pos - focus)
-    #print(dist_from_focus)
+    # if there aren't enough SNPs, just use as many as you can
+    s,n,p = gt.shape
+    if s > window_length:
+        print(datetime.datetime.now(),"Isolating", window_length, "SNPs closest to focal site of", focus, "...")
+        dist_from_focus = numpy.absolute(pos - focus)
+        #print(dist_from_focus)
 
-    sweep_idx = numpy.argpartition(dist_from_focus, window_length)
-    sweep_idx = sweep_idx[:window_length]
-    #print(sweep_idx)
+        sweep_idx = numpy.argpartition(dist_from_focus, window_length)
+        sweep_idx = sweep_idx[:window_length]
+        #print(sweep_idx)
 
-    sweep_pos = pos[sweep_idx]
-    sweep_gt = gt[sweep_idx,:,:]
+        sweep_pos = pos[sweep_idx]
+        sweep_gt = gt[sweep_idx,:,:]
+    else:
+        sweep_pos = pos
+        sweep_gt = gt
 
+    # print out information about focal sweep site
     print(datetime.datetime.now(),"Using SNPs at these positions:", min(sweep_pos), max(sweep_pos))
-
     print(datetime.datetime.now(),"Size of sweep site genotype array:")
     s,n,p = sweep_gt.shape
     print("Number of sites: " + str(s))
@@ -375,33 +381,41 @@ def main(vcf, window_length, focus, output_prefix):
 
     # calculate statistics
     # nucleotide diversity
+    print(datetime.datetime.now(),"Calculating nucleotide diversity...")
     pi_result = numpy.sum(nucleotide_diversity(sweep_gt))/window_bp
 
     # watterson's theta
+    print(datetime.datetime.now(),"Calculating watterson's theta...")
     thetaw_result = numpy.sum(wattersons_theta(sweep_gt))/window_bp
 
     # tajima's d
+    print(datetime.datetime.now(),"Calcualting Tajima's D...")
     tajimasd_incomplete_result = numpy.mean(tajimasd_incomplete(sweep_gt))
     tajimasd_complete_result = tajimasd_complete(sweep_gt)
 
     # garud's statistics
+    print(datetime.datetime.now(),"Calculating garud statistics...")
     garud_result = garud(sweep_gt)
 
     # gkl statistics
+    print(datetime.datetime.now(),"Calculating kern's gkl statistics...")
     gkl_result = kerns_gkl(sweep_gt)
 
     # average zns
+    print(datetime.datetime.now(),"Calculating Kelly's Zns...")
     zns_result = kellys_zns(sweep_gt)
 
     # kim's omega
+    print(datetime.datetime.now(),"Calculating Kim's omega...")
     omega_result = kims_omega(sweep_gt)
 
     # messer's hscan
+    print(datetime.datetime.now(),"Calculating Messer's hscan...")
     hscan_result = hscan(gt,pos,focus)
 
     # print results
     print(datetime.datetime.now(), "Saving results to: " + output_prefix + ".tsv")
-    all_results = numpy.concatenate(([pi_result], [thetaw_result], tajimasd_complete_result, [tajimasd_incomplete_result], garud_result, gkl_result, [zns_result], [omega_result], [hscan_result]))
+    all_results = numpy.concatenate(([s], [pi_result], [thetaw_result], tajimasd_complete_result, [tajimasd_incomplete_result], garud_result, gkl_result, [zns_result], [omega_result], [hscan_result]))
     all_results.tofile(output_prefix + ".tsv", sep="\t")
 
 if __name__ == '__main__':

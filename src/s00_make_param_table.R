@@ -37,9 +37,9 @@ K = yamlfile[["K"]]
 print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
-  Q = runif(K, min = 10, max = 100), # scaling factor for simulation
+  Q = runif(K, min = 10, max = 10), # scaling factor for simulation
   #N = sample(1000:10000, size = K, replace = T), # initial population size
-  N = 73989,
+  N = 124000,
   sweepS = 10^runif(K, min = -4, max = 0), # effect of beneficial mutation
   h = runif(K, min = 0, max = 1), # dominance coefficient
   #sigma = runif(K, min = 0, max = 1), # rate of selfing
@@ -49,8 +49,8 @@ params = data.frame(
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
   R = runif(K, min = 7e-10, max = 9e-10),
   #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
-  tau = 1537687, # number of generations until simulation reaches present day
-  kappa = sample(1517687:1536687, size = K, replace = T), # time to introduce beneficial mutation after burn-in
+  tau = 153000, # number of generations until simulation reaches present day
+  kappa = sample(133000:153000, size = K, replace = T), # time to introduce beneficial mutation after burn-in
   #f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency
   f0 = 0,
   #f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.95, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
@@ -58,7 +58,8 @@ params = data.frame(
   #n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
   n = 1,
   #r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
-  ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F) # fraction of recombination events that are not cross overs
+  #ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F) # fraction of recombination events that are not cross overs
+  ncf = rep(0, times = K)
 )
 
 # spacing between beneficial mutations

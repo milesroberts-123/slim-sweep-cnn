@@ -14,6 +14,8 @@ library(reshape)
 library(ggplot2)
 library(scico)
 library(png)
+library(abc)
+#library(ggpubr)
 
 today = Sys.Date()
 ```
@@ -38,6 +40,30 @@ sweep_ages = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-de
 
 params = merge(params, sweep_ages, by = "ID")
 
+# add in selective sweep statistics
+sweep_stats_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow", pattern = "slim.*.tsv", full.names = T)
+
+sweep_stats = suppressWarnings(lapply(sweep_stats_files, read.table, header = F))
+
+subset_tables = function(x){
+  if(ncol(x) == 18){
+    x = x[,2:18]
+  }
+  colnames(x) = c("pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "zns", "omega", "hscan")
+  return(x)
+}
+
+sweep_stats = lapply(sweep_stats, subset_tables)
+
+#sweep_stats_files = sweep_stats_files[unlist(lapply(sweep_stats, ncol)) == 17]
+#sweep_stats = sweep_stats[unlist(lapply(sweep_stats, ncol)) == 17]
+
+sweep_stats = do.call("rbind", sweep_stats)
+
+sweep_stats$ID = as.numeric(gsub(".tsv", "", gsub(".*slim_", "",sweep_stats_files)))
+
+params = merge(params, sweep_stats, by = "ID")
+
 # plot fixation times for different types of sweeps
 params$sweepType = NA
 params$sweepType[( (params$f0 == 0) & (params$f1 == 1) )] = "hard"
@@ -58,6 +84,13 @@ ggplot(params, aes(x = log10(ta))) +
   geom_density() +
   theme_classic() +
   labs(x = "log10(Sweep age)", color = "Type")
+
+# compare different methods of calculating tajimas d
+ggplot(params, aes(x = tajd, y = tajd_incomplete)) +
+  geom_point() +
+  theme_classic() +
+  geom_abline(slope = 1, intercept = 0) +
+  labs(x = "Tajima's D without missing data", y = "Tajima's D with missing data",color = "Type")
 
 # get random sample of simulation outputs
 mypics = sample(list.files("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images", full.names = T), size = 1000, replace = F)
@@ -107,6 +140,293 @@ cor.test(pca_results$PC2, y, method = "spearman")
 
 plot(pca_results$PC3, y)
 cor.test(pca_results$PC3, y, method = "spearman")
+```
+
+# scale times to fixation 
+```{r}
+
+exponential_integral = function(x){
+  exp(-x)/x
+}
+
+inbreeding_integral = function(t, s, h, Fis){
+  (exp(2*s*(h+Fis-h*Fis)*t) - 1)/t
+}
+
+expected_tf = function(N, s, h, sigma, Q){
+  # scale population size and selection
+  N_scaled = round(N/Q)
+  s_scaled = s*Q
+  x_scaled = 1/(2*N_scaled)
+  
+  # euler's constant
+  gamma = 0.5772
+  
+  # fixation index
+  Fis = sigma/(2-sigma)
+  
+  # effective population size
+  Ne = N_scaled/(1+Fis)
+  
+  # time to fixation
+  c_num = (3*h - 1 + Fis*(2 - 3*h))*log(1 - (1 - Fis)*h) + (2 - 3*h + Fis*(3*h - 1))*log(h + Fis - h*Fis) + (1 + Fis)*(log(4*Ne*s_scaled) + gamma) 
+  
+  c_denom = s_scaled*(h + Fis - h*Fis)*(1 - (1 - Fis)*h)
+  
+  c_term = c_num/c_denom
+  
+  a = -1/(s_scaled*(h + Fis - h*Fis)*(1 - exp(-4*Ne*s_scaled*(h+Fis-h*Fis)*x_scaled)))
+  
+  b = gamma + log(4*Ne*s_scaled*(h + Fis - h*Fis)*x_scaled)
+  
+  d = integrate(exponential_integral, lower = 4*Ne*s_scaled*(h + Fis - h*Fis)*x_scaled, upper = Inf)$value  
+  
+  f_num = -exp(-4*Ne*s_scaled*(h+Fis-h*Fis)*x_scaled) 
+  f_denom = s_scaled*(h + Fis - h*Fis)*(1 - exp(-4*Ne*s_scaled*(h+Fis-h*Fis)*x_scaled))
+  
+  f = f_num/f_denom
+  
+  g = integrate(inbreeding_integral, lower = 0, upper = 2*Ne*x_scaled, s = s_scaled, h = h, Fis = Fis)$value
+  
+  result = c_term - a*(b + d) + f*g
+  
+  return(result)
+  #return(list(c, a*(b + d) + f*g))
+  #return(c(result, a, b, c, d, f, g))
+  #return(c)
+}
+
+expected_tf_soft = function(N, s, h, sigma, Q){
+  # scale population size and selection
+  N = N/Q
+  s = s*Q
+  
+  # euler's constant
+  gamma = 0.5772
+  
+  # fixation index
+  Fis = sigma/(2-sigma)
+  
+  # effective population size
+  Ne = N/(1+Fis)
+  
+  # initial frequency
+  x = 1/(2*N)
+  
+  # calculate expected fixation time
+  a = (gamma + log(4*Ne*s*(1 - (1 - Fis)*h)*(1 - x)))/(s*(1 - (1 - Fis)*h))
+  
+  b = log(x)/(s*(h + F - h*Fis))
+  
+  d = ((1 - Fis)*(1 - 2*h))/(s*(h + Fis - h*Fis)*(1 - (1 - Fis)*h))
+  
+  f = log( (h + Fis - h*Fis + (1 - Fis)*(1 - 2*h)*x)/(1 - (1 - Fis)*h) )
+  
+  return(a - b + d*f)
+}
+
+params$scaled_expected_tfs = mapply(expected_tf, N = 78908, s = params$sweepS, h = params$h, sigma = params$sigma, Q = params$Q)
+
+summary(params$scaled_expected_tfs)
+
+params$unscaled_expected_tfs = mapply(expected_tf, N = 78908, s = params$sweepS, h = params$h, sigma = params$sigma, Q = 1)
+
+summary(params$unscaled_expected_tfs)
+
+params$scaling_factors = params$unscaled_expected_tfs/params$scaled_expected_tfs
+
+summary(params$scaling_factors)
+
+all(params$scaling_factors < params$Q)
+
+summary( (params$Q - params$scaling_factors)/params$Q*100 )
+
+params$scaled_tf = (params$tf/params$Q)*params$scaling_factors
+
+summary( (params$tf - params$scaled_tf)/params$tf*100 )
+
+ggplot(params, aes(x = scaled_tf, y = tf)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_classic() +
+  labs(x = "Properly scaled simulated tf", y = "Improperly scaled simulated tf (Q*tf)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/properly_vs_improperly_scaled_tf_", today, ".png", sep = ""), height = 7, width = 7)
+
+ggplot(params, aes(x = scaled_tf, y = unscaled_expected_tfs)) +
+  geom_point(aes(color = kappa)) +
+  geom_abline(slope = 1, intercept = 0) +
+  #geom_smooth(method = "loess") + 
+  theme_classic() +
+  labs(x = "Properly scaled simulated tf", y = "Expected tf in unscaled population")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/scaled_tf_vs_unscaled_expected_tf_", today, ".png", sep = ""), height = 7, width = 7)
+
+
+# ggplot(params, aes(x = scaled_expected_tfs , y = unscaled_expected_tfs)) +
+#   geom_point() +
+#   geom_smooth(method = "lm") +
+#   theme_classic() +
+#   labs(x = "Expected tf in scaled population", y = "Expected tf in unscaled population")
+# 
+# correct_mod = lm(unscaled_expected_tfs ~ Q + scaled_expected_tfs, params)
+# correct_coeff = coefficients(correct_mod)
+# 
+# params$scaled_tf = correct_coeff[1] + params$scaled_expected_tfs*correct_coeff[2] + correct_mod$residuals
+# 
+# # get formula to correct bias in expected tf line
+# correct_mod = lm(tf/Q ~ scaled_expected_tfs, params)
+# correct_coeff = coefficients(correct_mod)
+# 
+# params$scaled_tf = correct_coeff[1] + params$scaled_expected_tfs*correct_coeff[2] + correct_mod$residuals
+# 
+# summary(params$scaled_tf)
+# #params$scaling_factors = params$unscaled_expected_tfs/params$scaled_expected_tfs
+# 
+# #sum(params$scaling_factors < params$Q)
+# 
+# #params$scaled_tf = (params$tf/params$Q)*params$scaling_factors
+# 
+# #params$scaled_expected_tfs = expected_tf(params$N, params$sweepS, params$h, params$sigma, params$Q)
+# 
+# ggplot(params, aes(x = scaled_expected_tfs , y = tf/Q)) +
+#   geom_point() +
+#   geom_abline(slope = 1, intercept = 0) +
+#   geom_smooth(method = "lm") +
+#   theme_classic() +
+#   labs(y = "Simulated, unscaled tf", x = "Expected tf")
+# 
+# ggplot(params, aes(x = scaled_expected_tfs , y = scaled_tf), color = Q) +
+#   geom_point() +
+#   geom_abline(slope = 1, intercept = 0) +
+#   geom_smooth(method = "lm") +
+#   theme_classic() +
+#   labs(y = "Properly scaled tf", x = "Expected tf in unscaled population")
+# 
+# 
+# ggplot(params, aes(y = tf, x = unscaled_expected_tfs)) +
+#   geom_point() +
+#   geom_abline(slope = 1, intercept = 0) +
+#   geom_smooth(method = "lm") +
+#   theme_classic() +
+#   labs(y = "Q*tf", x = "Expected tf")
+# 
+# ggplot(params, aes(y = scaled_tf, x = unscaled_expected_tfs)) +
+#   geom_point() +
+#   geom_abline(slope = 1, intercept = 0) +
+#   geom_smooth(method = "lm") +
+#   theme_classic() +
+#   labs(y = "Properly scaled tf", x = "Expected tf")
+# 
+# ggplot(params, aes(x = log10(scaled_tf))) +
+#   geom_density() +
+#   theme_classic() +
+#   labs(x = "log10(scaled tf)")
+
+```
+
+# approximate bayesian computation
+```{r}
+data(human)
+
+stat.italy.sim <- subset(stat.3pops.sim, subset=models=="bott")
+
+# target = 1 row dataframe of observed summary statistics
+# param = 1 column dataframe of parameter values from simulated datasets
+# sumstat = matrix of summary statistics from simulated datasets
+res = abc(target=stat.voight["italian",], param=data.frame(Na=par.italy.sim[, "Ne"]), sumstat=stat.italy.sim, tol=0.05, transf=c("log"), method="neuralnet")
+
+summary(res)
+hist(res)
+
+#
+obs_index = sample(1:nrow(params), size = 1)
+
+observation = params[obs_index,]
+obs_stats = observation[,28:44]
+
+simulations = params[-obs_index,]
+sim_stats = simulations[,28:44]
+
+res = abc(target=obs_stats, param=data.frame(tf=simulations$tf), sumstat = sim_stats, tol=0.1, transf=c("log"), method="neuralnet")
+summary(res)
+hist(res)
+abline(v = observation$tf)
+
+# cross validation on simulated datasets to test accuracy of abc
+# methods = 3
+# tolerances = 3
+# statistics = 3
+# total iterations = 3*3*3 = 27
+cv.res.rej.median <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 33:44)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "median")
+
+cv.res.rej.mean <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 33:44)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mean")
+
+cv.res.rej.mode <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 33:44)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mode")
+
+cv.res.reg.median <- cv4abc(data.frame(tf=params$tf), params[,28:44], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "median")
+
+cv.res.reg.mean <- cv4abc(data.frame(tf=params$tf), params[,28:44], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mean")
+
+cv.res.reg.mode <- cv4abc(data.frame(tf=params$tf), params[,28:44], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mode")
+
+summary(cv.res.rej.median)
+summary(cv.res.rej.mean)
+summary(cv.res.rej.mode)
+
+summary(cv.res.reg.median)
+summary(cv.res.reg.mean)
+summary(cv.res.reg.mode)
+
+par(mfrow=c(1,3), mar=c(5,3,4,.5), cex=.8)
+plot(cv.res.rej.median, caption="Rejection - median")
+plot(cv.res.rej.mean, caption="Rejection - mean")
+plot(cv.res.rej.mode, caption="Rejection - mode")
+
+par(mfrow=c(1,3), mar=c(5,3,4,.5), cex=.8)
+plot(cv.res.reg.median, caption="Regression - median")
+plot(cv.res.reg.mean, caption="Regression - mean")
+plot(cv.res.reg.mode, caption="Regression - mode")
+
+plot(cv.res.reg, caption="Ridge regression")
+plot(cv.res.net, caption="Neural net")
+
+cor.test(cv.res.rej$estim$tol0.01, cv.res.rej$true$tf, method = "spearman")
+cor.test(cv.res.reg$estim$tol0.05, cv.res.reg$true$tf, method = "spearman")
+cor.test(cv.res.net$estim$tol0.1, cv.res.net$true$tf, method = "spearman")
+
+# function to plot abc results
+plot_abc_results = function(predictions, truth, model_labels){
+  # Calculate correlation between truth and results
+  my_cor_coeff = cor.test(predictions, truth, method = "pearson")
+  cor_est = signif(my_cor_coeff$estimate, digits = 3)
+  cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
+  cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
+  cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
+  
+  # plot data
+  plotdata = data.frame(predictions = predictions, truth = truth)
+  
+  ggplot(aes(x = predictions, y = truth), data = plotdata) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  theme_classic() +
+  theme(text = element_text(size = 12)) +
+  labs(y = "log10(Actual fixation time)", 
+       x = "log10(Predicted fixation time)",
+       title = paste(model_labels, "\nr = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
+}
+
+rej_fig1 = plot_abc_results(cv.res.rej.median$estim$tol0.01, cv.res.rej.median$true$tf, "Rejection, Median, Tol = 0.01")
+
+rej_fig2 = plot_abc_results(cv.res.rej.median$estim$tol0.05, cv.res.rej.median$true$tf, "Rejection, Median, Tol = 0.05")
+
+rej_fig3 = plot_abc_results(cv.res.rej.median$estim$tol0.1, cv.res.rej.median$true$tf, "Rejection, Median, Tol = 0.1")
+
+ggarrange(rej_fig1, rej_fig2, rej_fig3, nrow = 2, ncol = 2)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_", today, ".png", sep = ""), height = 8, width = 7)
+
 ```
 
 # compare predictions to actual values on testing dataset
@@ -517,7 +837,7 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 #fix_times = fix_times[(fix_times$f0 == 0 & fix_times$f1 == 1),]
 
 width = 0.05
-max_bin_height = 200
+max_bin_height = 300
 
 breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
 params$bin = cut(log10(params$tf), breaks = breaks)
@@ -654,7 +974,7 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   labs(x = "log10(fixation times)")
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_13.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_14.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data
@@ -698,8 +1018,229 @@ ggplot(real_pred[(real_pred$chrom == "1"),], aes(x = start, y = tf_mean)) +
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_manhattan_chrom1_", today, ".png", sep = ""), height = 7, width = 7)
 ```
 
+# Identify population-specific sweeps
+```{r}
+fst_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/", pattern = "_fst.txt", full.names = T)
 
-#
+fst_table = lapply(fst_files, FUN = read.table, sep = "\t", header = T)
+
+fst_table = do.call("rbind", fst_table)
+
+# max_fst_per_window = function(y, x){
+#   
+#   # subset dataframe to a particular window
+#   x_sub = x[( (x$chromosome == y[1]) & (x$window_pos_1 == y[2]) ),]
+#   
+#   # exclude negative windows
+#   x_sub = x_sub[(x_sub$avg_wc_fst > 0),]
+#   
+#   # get maximum fst in that window
+#   result = x_sub[which.max(x_sub$avg_wc_fst),]
+#   
+#   # get result
+#   return(result)
+# }
+# 
+# min_fst_per_window = function(y, x){
+#   
+#   # subset dataframe to a particular window
+#   x_sub = x[( (x$chromosome == y[1]) & (x$window_pos_1 == y[2]) ),]
+#   
+#   # exclude negative windows
+#   x_sub = x_sub[(x_sub$avg_wc_fst > 0),]
+#   
+#   # get maximum fst in that window
+#   result = x_sub[which.min(x_sub$avg_wc_fst),]
+#   
+#   # get result
+#   return(result)
+# }
+# 
+# max_fst_table = apply(unique(fst_table[,c("chromosome", "window_pos_1")]), FUN = max_fst_per_window, x = fst_table, MARGIN = 1)
+# max_fst_table = do.call("rbind", max_fst_table)
+# 
+# min_fst_table = apply(unique(fst_table[,c("chromosome", "window_pos_1")]), FUN = min_fst_per_window, x = fst_table, MARGIN = 1)
+# min_fst_table = do.call("rbind", min_fst_table)
+
+# exclude windows with very few snps
+# max_fst_table = max_fst_table[(max_fst_table$no_snps >= 30),]
+# min_fst_table = min_fst_table[(min_fst_table$no_snps >= 30),]
+
+# calculate branch length for PBS statistic
+fst_table$branch_length = -log(1 - fst_table$avg_wc_fst)
+
+# calculate PBS for north sweden, relative to south sweden and relicts
+fst_north_south = fst_table[((fst_table$pop1 %in% c("north_sweden", "south_sweden")) & (fst_table$pop2 %in% c("north_sweden", "south_sweden"))),]
+fst_north_relict = fst_table[((fst_table$pop1 %in% c("north_sweden", "relict")) & (fst_table$pop2 %in% c("north_sweden", "relict"))),]
+fst_south_relict = fst_table[((fst_table$pop1 %in% c("relict", "south_sweden")) & (fst_table$pop2 %in% c("relict", "south_sweden"))),]
+
+pbs_table = merge(fst_north_south, fst_north_relict, by = c("chromosome", "window_pos_1", "window_pos_2"))
+pbs_table = merge(pbs_table, fst_south_relict, by = c("chromosome", "window_pos_1", "window_pos_2"))
+
+pbs_table$pbs = (pbs_table$branch_length.x + pbs_table$branch_length.y - pbs_table$branch_length)/2
+
+pbs_table = pbs_table[(pbs_table$no_snps >= 30),] # exclude windows with very few SNPs
+
+pbs_table = pbs_table[!is.na(pbs_table$pbs),]
+
+pbs_table = pbs_table[is.finite(pbs_table$pbs),]
+
+# get top 1 %
+top_cutoff = quantile(pbs_table$pbs, probs = 0.99)
+
+# look at just north sweden vs south sweden
+n_s_sweden_fst = fst_table[((fst_table$pop1 %in% c("north_sweden", "south_sweden")) & (fst_table$pop2 %in% c("north_sweden", "south_sweden"))),]
+
+n_s_sweden_fst = n_s_sweden_fst[(n_s_sweden_fst$no_snps >= 30),]
+
+# Plot Fst for north vs south sweden, see if known sweeps from other publications are there
+ggplot(n_s_sweden_fst[(n_s_sweden_fst$chromosome == 1),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(n_s_sweden_fst[(n_s_sweden_fst$chromosome == 1),"avg_wc_fst"]), linetype = 2) +
+  geom_vline(xintercept = 20270000, color = "grey") + 
+  geom_vline(xintercept = 19020000, color = "red") +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 1")
+
+ggplot(n_s_sweden_fst[(n_s_sweden_fst$chromosome == 4),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(n_s_sweden_fst[(n_s_sweden_fst$chromosome == 4),"avg_wc_fst"]), linetype = 2) +
+  geom_vline(xintercept = 6637000, color = "red") +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 4")
+
+ggplot(n_s_sweden_fst[(n_s_sweden_fst$chromosome == 5),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(n_s_sweden_fst[(n_s_sweden_fst$chromosome == 5),"avg_wc_fst"]), linetype = 2) +
+  geom_vline(xintercept = 2228000, color = "red") +
+  geom_vline(xintercept = 6748000, color = "red") +
+  geom_vline(xintercept = 26166000, color = "red") +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 5")
+
+# plot pbs for north sweden
+ggplot(pbs_table[(pbs_table$chromosome == 1),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(pbs_table[(pbs_table$chromosome == 1),"pbs"], na.rm = T), linetype = 2) +
+  geom_vline(xintercept = 20270000, color = "grey") + 
+  geom_vline(xintercept = 19020000, color = "red") +
+  geom_hline(yintercept = top_cutoff, lwd = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 1")
+
+ggplot(pbs_table[(pbs_table$chromosome == 2),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(pbs_table[(pbs_table$chromosome == 1),"pbs"], na.rm = T), linetype = 2) +
+  geom_hline(yintercept = top_cutoff, lwd = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 2")
+
+ggplot(pbs_table[(pbs_table$chromosome == 3),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(pbs_table[(pbs_table$chromosome == 1),"pbs"], na.rm = T), linetype = 2) +
+  geom_hline(yintercept = top_cutoff, lwd = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 3")
+
+ggplot(pbs_table[(pbs_table$chromosome == 4),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(pbs_table[(pbs_table$chromosome == 1),"pbs"], na.rm = T), linetype = 2) +
+  geom_hline(yintercept = top_cutoff, lwd = 2) +
+  geom_vline(xintercept = 6637000, color = "red") +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 4")
+
+ggplot(pbs_table[(pbs_table$chromosome == 5),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(pbs_table[(pbs_table$chromosome == 1),"pbs"], na.rm = T), linetype = 2) +
+  geom_hline(yintercept = top_cutoff, lwd = 2) +
+  geom_vline(xintercept = 2228000, color = "red") +
+  geom_vline(xintercept = 6748000, color = "red") +
+  geom_vline(xintercept = 26166000, color = "red") +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 5")
+```
+
+```{r}
+# plot max fst values by chromosome
+ggplot(max_fst_table[(max_fst_table$chromosome == 1),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(max_fst_table[(max_fst_table$chromosome == 1),"avg_wc_fst"]), linetype = 2) +
+  geom_vline(xintercept = 20270000, color = "red") + # known sweep
+  geom_vline(xintercept = 15000000, color = "grey") + # centromere
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 1")
+
+ggplot(max_fst_table[(max_fst_table$chromosome == 2),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(max_fst_table[(max_fst_table$chromosome == 2),"avg_wc_fst"]), linetype = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 2")
+
+ggplot(max_fst_table[(max_fst_table$chromosome == 3),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(max_fst_table[(max_fst_table$chromosome == 3),"avg_wc_fst"]), linetype = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 3")
+
+ggplot(max_fst_table[(max_fst_table$chromosome == 4),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(max_fst_table[(max_fst_table$chromosome == 4),"avg_wc_fst"]), linetype = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 4")
+
+ggplot(max_fst_table[(max_fst_table$chromosome == 5),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(max_fst_table[(max_fst_table$chromosome == 5),"avg_wc_fst"]), linetype = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 5")
+
+# plot min fst values by chromosome
+ggplot(min_fst_table[(min_fst_table$chromosome == 1),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(min_fst_table[(min_fst_table$chromosome == 1),"avg_wc_fst"]), linetype = 2) +
+  geom_vline(xintercept = 23060322) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Minimum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 1")
+
+ggplot(min_fst_table[(min_fst_table$chromosome == 2),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(min_fst_table[(min_fst_table$chromosome == 2),"avg_wc_fst"]), linetype = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Minimum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 2")
+
+ggplot(min_fst_table[(min_fst_table$chromosome == 3),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(min_fst_table[(min_fst_table$chromosome == 3),"avg_wc_fst"]), linetype = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Minimum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 3")
+
+ggplot(min_fst_table[(min_fst_table$chromosome == 4),], aes(x = (window_pos_1 + window_pos_2)/2, y = avg_wc_fst)) +
+  geom_point() +
+  geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
+  geom_hline(yintercept = mean(min_fst_table[(min_fst_table$chromosome == 4),"avg_wc_fst"]), linetype = 2) +
+  theme_classic() +
+  labs(x = "Middle of window", y = "Minimum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 4")
+
+```
+
+# DEPRECATED
 ```{r}
 expected_seg_sites = function(N,mu,sigma,L){
 
