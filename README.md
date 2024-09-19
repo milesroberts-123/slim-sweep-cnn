@@ -198,6 +198,10 @@ Supported sweep types:
 
 - [x] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
 
+- [x] my simulations continue forever if I introduce a sweep mutation at the very end of the simulation, add condition to catch this
+
+- [ ] test workflow on southern sweden, subpopulation needs at least 128 individuals for my idea to work
+
 - [ ] add script to tune hyperparameters
 
 - [ ] add error checking to slim script (tau should be less than kappa for example)
