@@ -37,13 +37,13 @@ K = yamlfile[["K"]]
 print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
-  Q = runif(K, min = 10, max = 10), # scaling factor for simulation
+  Q = runif(K, min = 10, max = 15), # scaling factor for simulation
   #N = sample(1000:10000, size = K, replace = T), # initial population size
   N = 124000,
   sweepS = 10^runif(K, min = -4, max = 0), # effect of beneficial mutation
   h = runif(K, min = 0, max = 1), # dominance coefficient
   #sigma = runif(K, min = 0, max = 1), # rate of selfing
-  sigma = runif(K, min = 0.9, max = 1),
+  sigma = runif(K, min = 0.95, max = 1),
   #mu = 10^runif(K, min = -8, max = -7), # mutation rate
   mu = runif(K, min = 6e-9, max = 8e-9),
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
