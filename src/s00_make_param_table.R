@@ -37,20 +37,20 @@ K = yamlfile[["K"]]
 print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
-  Q = runif(K, min = 10, max = 10), # scaling factor for simulation
+  Q = runif(K, min = 10, max = 15), # scaling factor for simulation
   #N = sample(1000:10000, size = K, replace = T), # initial population size
   N = 124000,
   sweepS = 10^runif(K, min = -4, max = 0), # effect of beneficial mutation
   h = runif(K, min = 0, max = 1), # dominance coefficient
   #sigma = runif(K, min = 0, max = 1), # rate of selfing
-  sigma = runif(K, min = 0.9, max = 1),
+  sigma = runif(K, min = 0.95, max = 1),
   #mu = 10^runif(K, min = -8, max = -7), # mutation rate
   mu = runif(K, min = 6e-9, max = 8e-9),
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
   R = runif(K, min = 7e-10, max = 9e-10),
   #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
   tau = 153000, # number of generations until simulation reaches present day
-  kappa = sample(133000:153000, size = K, replace = T), # time to introduce beneficial mutation after burn-in
+  kappa = sample(132000:152000, size = K, replace = T), # time to introduce beneficial mutation after burn-in
   #f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency
   f0 = 0,
   #f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.95, max = 1)), size = K, replace = F), # threshold frequency for partial sweep

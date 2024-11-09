@@ -10,7 +10,7 @@ output:
 ```{r}
 rm(list = ls())
 library(data.table)
-library(reshape)
+#library(reshape)
 library(ggplot2)
 library(scico)
 library(png)
@@ -45,61 +45,158 @@ sweep_stats_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Project
 
 sweep_stats = suppressWarnings(lapply(sweep_stats_files, read.table, header = F))
 
-subset_tables = function(x){
-  if(ncol(x) == 18){
-    x = x[,2:18]
-  }
-  colnames(x) = c("pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "zns", "omega", "hscan")
-  return(x)
-}
+#subset_tables = function(x){
+#  if(ncol(x) == 18){
+#    x = x[,2:18]
+#  }
+#  colnames(x) = c("pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "zns", "omega", "hscan")
+#  return(x)
+#}
 
-sweep_stats = lapply(sweep_stats, subset_tables)
+#sweep_stats = lapply(sweep_stats, subset_tables)
 
 #sweep_stats_files = sweep_stats_files[unlist(lapply(sweep_stats, ncol)) == 17]
 #sweep_stats = sweep_stats[unlist(lapply(sweep_stats, ncol)) == 17]
 
 sweep_stats = do.call("rbind", sweep_stats)
 
+colnames(sweep_stats) = c("S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "zns", "omega", "hscan")
+
 sweep_stats$ID = as.numeric(gsub(".tsv", "", gsub(".*slim_", "",sweep_stats_files)))
 
 params = merge(params, sweep_stats, by = "ID")
 
-# plot fixation times for different types of sweeps
-params$sweepType = NA
-params$sweepType[( (params$f0 == 0) & (params$f1 == 1) )] = "hard"
-params$sweepType[( (params$f0 > 0) & (params$f1 == 1) )] = "soft"
-params$sweepType[( (params$f0 == 0) & (params$f1 < 1) )] = "partial"
-params$sweepType[( (params$f0 > 0) & (params$f1 < 1) )] = "soft+partial"
-table(params$sweepType)
+# get simulation outputs
+mypics = list.files("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images", full.names = T)
 
-ggplot(params, aes(x = log10(tf), color = sweepType)) +
+# get sim ids
+picids = as.integer(gsub(".png", "", gsub("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images/slim_", "", mypics)))
+
+# only keep simulations that have images
+params = params[(params$ID %in% picids),]
+```
+
+# Exploratory data analysis
+```{r}
+# plot fixation times for different types of sweeps
+# params$sweepType = NA
+# params$sweepType[( (params$f0 == 0) & (params$f1 == 1) )] = "hard"
+# params$sweepType[( (params$f0 > 0) & (params$f1 == 1) )] = "soft"
+# params$sweepType[( (params$f0 == 0) & (params$f1 < 1) )] = "partial"
+# params$sweepType[( (params$f0 > 0) & (params$f1 < 1) )] = "soft+partial"
+# table(params$sweepType)
+
+# does short tf, long ta look similar to long tf, short ta
+ggplot(params, aes(x = log10(tf), y = log10(ta), color = hscan)) +
+  geom_point() +
+  theme_classic() +
+  scale_colour_gradient(high = "#B200B2", low = "#FFFF66", name = "Messer's\nHscan") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time)", y = "log10(sweep age)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_vs_ta_vs_hscan.png", sep = ""), height = 7, width = 8)
+
+ggplot(params, aes(x = log10(tf), y = log10(ta), color = log10(pi))) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = tf, y = ta, color = num_haplos)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = tf, y = ta, color = omega)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = tf, y = ta, color = zns)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = tf, y = ta, color = gkl_var)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = tf, y = ta, color = h123)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x=log10(tf), y=log10(ta)) ) +
+  geom_density_2d_filled() +
+  theme_classic()
+
+ggplot(params, aes(x=log10(tf), y=log10(ta)) ) +
+  geom_bin_2d() +
+  theme_classic()
+
+# distribution of tf
+ggplot(params, aes(x = log10(tf))) +
   geom_density() +
   theme_classic() +
-  labs(x = "log10(Fixation time)", color = "Type")
+  labs(x = "log10(Fixation time)")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_distribution_by_sweep_type_", today, ".png", sep = ""), height = 7, width = 7)
 
-# distribution of sweep ages
+# distribution of sweep ages: time between fixation and observation
 ggplot(params, aes(x = log10(ta))) +
   geom_density() +
   theme_classic() +
-  labs(x = "log10(Sweep age)", color = "Type")
+  labs(x = "log10(sweep age: fixation-observation)")
+
+# distribution of sweep ages: time between observation and mutation introduction
+ggplot(params, aes(x = log10(tau - kappa))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age: mutation-observation)")
 
 # compare different methods of calculating tajimas d
 ggplot(params, aes(x = tajd, y = tajd_incomplete)) +
   geom_point() +
   theme_classic() +
   geom_abline(slope = 1, intercept = 0) +
-  labs(x = "Tajima's D without missing data", y = "Tajima's D with missing data",color = "Type")
+  labs(x = "Tajima's D without missing data", y = "Tajima's D with missing data")
+
+# how does nucleotide diversity correlate with tf and ta
+ggplot(params, aes(y = log10(pi), x = log10(tf/Q))) +
+  geom_point() +
+  geom_hline(yintercept = log10((7e-8)*4*12400*0.16)) +
+  theme_classic() +
+  labs(y = "log10(Nucleotide diversity)", x = "log10(fixation time + 1)")
+
+ggplot(params, aes(x = log10(pi), y = log10(ta/Q + 1))) +
+  geom_point() +
+  geom_vline(xintercept = log10((7e-8)*4*12400*0.16)) +
+  theme_classic() +
+  labs(x = "log10(Nucleotide diversity)", y = "log10(sweep age + 1)")
+
+# how does tajimas d correlate with tf
+ggplot(params, aes(y = tajd, x = log10(tf/Q))) +
+  geom_point() +
+  theme_classic() +
+  labs(y = "Tajima's D", x = "log10(fixation time + 1)")
+
+ggplot(params, aes(y = num_haplos, x = log10(tf/Q))) +
+  geom_point() +
+  theme_classic() +
+  labs(y = "Number of diplotypes", x = "log10(fixation time + 1)")
+
+ggplot(params, aes(y = log10(zns), x = log10(tf/Q))) +
+  geom_point() +
+  theme_classic() +
+  labs(y = "log10(Kelly's Zns)", x = "log10(fixation time + 1)")
+
+ggplot(params, aes(y = log10(hscan), x = log10(tf/Q))) +
+  geom_point() +
+  theme_classic() +
+  labs(y = "Messer's Hscan", x = "log10(fixation time + 1)")
 
 # get random sample of simulation outputs
-mypics = sample(list.files("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images", full.names = T), size = 1000, replace = F)
+mypics_sub = sample(mypics[(picids %in% params$ID)], size = 1000, replace = F)
 
 # get sim ids
-picids = as.integer(gsub(".png", "", gsub("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images/slim_", "", mypics)))
+picids_sub = as.integer(gsub(".png", "", gsub("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images/slim_", "", mypics_sub)))
 
 # get variable that outputs should predict 
-y = log10(params[(params$ID %in% picids), "tf"])
+y = log10(params[(params$ID %in% picids_sub), "tf"])
 summary(y)
 
 # define function for reading pngs,
@@ -144,7 +241,6 @@ cor.test(pca_results$PC3, y, method = "spearman")
 
 # scale times to fixation 
 ```{r}
-
 exponential_integral = function(x){
   exp(-x)/x
 }
@@ -191,9 +287,6 @@ expected_tf = function(N, s, h, sigma, Q){
   result = c_term - a*(b + d) + f*g
   
   return(result)
-  #return(list(c, a*(b + d) + f*g))
-  #return(c(result, a, b, c, d, f, g))
-  #return(c)
 }
 
 expected_tf_soft = function(N, s, h, sigma, Q){
@@ -225,11 +318,11 @@ expected_tf_soft = function(N, s, h, sigma, Q){
   return(a - b + d*f)
 }
 
-params$scaled_expected_tfs = mapply(expected_tf, N = 78908, s = params$sweepS, h = params$h, sigma = params$sigma, Q = params$Q)
+params$scaled_expected_tfs = mapply(expected_tf, N = 198400, s = params$sweepS, h = params$h, sigma = params$sigma, Q = params$Q)
 
 summary(params$scaled_expected_tfs)
 
-params$unscaled_expected_tfs = mapply(expected_tf, N = 78908, s = params$sweepS, h = params$h, sigma = params$sigma, Q = 1)
+params$unscaled_expected_tfs = mapply(expected_tf, N = 198400, s = params$sweepS, h = params$h, sigma = params$sigma, Q = 1)
 
 summary(params$unscaled_expected_tfs)
 
@@ -326,49 +419,25 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 ```
 
 # approximate bayesian computation
+
+## cross-fold validation to choose a model
 ```{r}
-data(human)
-
-stat.italy.sim <- subset(stat.3pops.sim, subset=models=="bott")
-
-# target = 1 row dataframe of observed summary statistics
-# param = 1 column dataframe of parameter values from simulated datasets
-# sumstat = matrix of summary statistics from simulated datasets
-res = abc(target=stat.voight["italian",], param=data.frame(Na=par.italy.sim[, "Ne"]), sumstat=stat.italy.sim, tol=0.05, transf=c("log"), method="neuralnet")
-
-summary(res)
-hist(res)
-
-#
-obs_index = sample(1:nrow(params), size = 1)
-
-observation = params[obs_index,]
-obs_stats = observation[,28:44]
-
-simulations = params[-obs_index,]
-sim_stats = simulations[,28:44]
-
-res = abc(target=obs_stats, param=data.frame(tf=simulations$tf), sumstat = sim_stats, tol=0.1, transf=c("log"), method="neuralnet")
-summary(res)
-hist(res)
-abline(v = observation$tf)
-
 # cross validation on simulated datasets to test accuracy of abc
 # methods = 3
 # tolerances = 3
 # statistics = 3
 # total iterations = 3*3*3 = 27
-cv.res.rej.median <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 33:44)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "median")
+cv.res.rej.median <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "median")
 
-cv.res.rej.mean <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 33:44)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mean")
+cv.res.rej.mean <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=200, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mean")
 
-cv.res.rej.mode <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 33:44)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mode")
+cv.res.rej.mode <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mode")
 
-cv.res.reg.median <- cv4abc(data.frame(tf=params$tf), params[,28:44], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "median")
+cv.res.reg.median <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "median")
 
-cv.res.reg.mean <- cv4abc(data.frame(tf=params$tf), params[,28:44], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mean")
+cv.res.reg.mean <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mean")
 
-cv.res.reg.mode <- cv4abc(data.frame(tf=params$tf), params[,28:44], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mode")
+cv.res.reg.mode <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mode")
 
 summary(cv.res.rej.median)
 summary(cv.res.rej.mean)
@@ -377,23 +446,6 @@ summary(cv.res.rej.mode)
 summary(cv.res.reg.median)
 summary(cv.res.reg.mean)
 summary(cv.res.reg.mode)
-
-par(mfrow=c(1,3), mar=c(5,3,4,.5), cex=.8)
-plot(cv.res.rej.median, caption="Rejection - median")
-plot(cv.res.rej.mean, caption="Rejection - mean")
-plot(cv.res.rej.mode, caption="Rejection - mode")
-
-par(mfrow=c(1,3), mar=c(5,3,4,.5), cex=.8)
-plot(cv.res.reg.median, caption="Regression - median")
-plot(cv.res.reg.mean, caption="Regression - mean")
-plot(cv.res.reg.mode, caption="Regression - mode")
-
-plot(cv.res.reg, caption="Ridge regression")
-plot(cv.res.net, caption="Neural net")
-
-cor.test(cv.res.rej$estim$tol0.01, cv.res.rej$true$tf, method = "spearman")
-cor.test(cv.res.reg$estim$tol0.05, cv.res.reg$true$tf, method = "spearman")
-cor.test(cv.res.net$estim$tol0.1, cv.res.net$true$tf, method = "spearman")
 
 # function to plot abc results
 plot_abc_results = function(predictions, truth, model_labels){
@@ -407,29 +459,199 @@ plot_abc_results = function(predictions, truth, model_labels){
   # plot data
   plotdata = data.frame(predictions = predictions, truth = truth)
   
-  ggplot(aes(x = predictions, y = truth), data = plotdata) +
+  ggplot(aes(y = log10(predictions), x = log10(truth)), data = plotdata) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
-  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   theme_classic() +
-  theme(text = element_text(size = 12)) +
-  labs(y = "log10(Actual fixation time)", 
-       x = "log10(Predicted fixation time)",
-       title = paste(model_labels, "\nr = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(Actual tf)", 
+       y = "log10(Predicted tf)",
+       title = paste(model_labels, "\nr = ", cor_est, "\nCI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
 }
 
-rej_fig1 = plot_abc_results(cv.res.rej.median$estim$tol0.01, cv.res.rej.median$true$tf, "Rejection, Median, Tol = 0.01")
+# rejection method
 
-rej_fig2 = plot_abc_results(cv.res.rej.median$estim$tol0.05, cv.res.rej.median$true$tf, "Rejection, Median, Tol = 0.05")
+## mean
+rej_mean_tol001_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.01, cv.res.rej.mean$true$tf, "Rej, Mean, Tol = 0.01")
 
-rej_fig3 = plot_abc_results(cv.res.rej.median$estim$tol0.1, cv.res.rej.median$true$tf, "Rejection, Median, Tol = 0.1")
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mean_tol001_", today, ".png", sep = ""), height = 7, width = 7)
 
-ggarrange(rej_fig1, rej_fig2, rej_fig3, nrow = 2, ncol = 2)
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_", today, ".png", sep = ""), height = 8, width = 7)
+rej_mean_tol005_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.05, cv.res.rej.mean$true$tf, "Rej, Mean, Tol = 0.05")
+
+rej_mean_tol010_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.1, cv.res.rej.mean$true$tf, "Rej, Mean, Tol = 0.1")
+
+
+
+ggarrange(rej_mean_tol001_fig, rej_mean_tol005_fig, rej_mean_tol010_fig, nrow = 1, ncol = 3)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mean_", today, ".png", sep = ""), height = 3, width = 8)
+
+## median
+rej_med_tol001_fig = plot_abc_results(cv.res.rej.median$estim$tol0.01, cv.res.rej.median$true$tf, "Rej, Med, Tol = 0.01")
+
+rej_med_tol005_fig = plot_abc_results(cv.res.rej.median$estim$tol0.05, cv.res.rej.median$true$tf, "Rej, Med, Tol = 0.05")
+
+rej_med_tol010_fig = plot_abc_results(cv.res.rej.median$estim$tol0.1, cv.res.rej.median$true$tf, "Rej, Med, Tol = 0.1")
+
+ggarrange(rej_med_tol001_fig, rej_med_tol005_fig, rej_med_tol010_fig, nrow = 1, ncol = 3)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_median_", today, ".png", sep = ""), height = 3, width = 8)
+
+## mode
+rej_mode_tol001_fig = plot_abc_results(cv.res.rej.mode$estim$tol0.01, cv.res.rej.mode$true$tf, "Rej, Mode, Tol = 0.01")
+
+rej_mode_tol005_fig = plot_abc_results(cv.res.rej.mode$estim$tol0.05, cv.res.rej.mode$true$tf, "Rej, Mode, Tol = 0.05")
+
+rej_mode_tol010_fig = plot_abc_results(cv.res.rej.mode$estim$tol0.1, cv.res.rej.mode$true$tf, "Rej, Mode, Tol = 0.1")
+
+ggarrange(rej_mode_tol001_fig, rej_mode_tol005_fig, rej_mode_tol010_fig, nrow = 1, ncol = 3)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mode_", today, ".png", sep = ""), height = 3, width = 8)
+
+# regression method
+
+## mean
+
+## median
+
+## mode
 
 ```
 
-# compare predictions to actual values on testing dataset
+## apply best method to make predictions on real data
+
+```{r}
+# data(human)
+# 
+# stat.italy.sim <- subset(stat.3pops.sim, subset=models=="bott")
+
+# target = 1 row dataframe of observed summary statistics
+# param = 1 column dataframe of parameter values from simulated datasets
+# sumstat = matrix of summary statistics from simulated datasets
+# res = abc(target=stat.voight["italian",], param=data.frame(Na=par.italy.sim[, "Ne"]), sumstat=stat.italy.sim, tol=0.05, transf=c("log"), method="neuralnet")
+# 
+# summary(res)
+# hist(res)
+
+#
+# obs_index = sample(1:nrow(params), size = 1)
+# 
+# observation = params[obs_index,]
+# obs_stats = observation[,28:44]
+# 
+# simulations = params[-obs_index,]
+# sim_stats = simulations[,28:44]
+# 
+# res = abc(target=obs_stats, param=data.frame(tf=simulations$tf), sumstat = sim_stats, tol=0.1, transf=c("log"), method="neuralnet")
+# summary(res)
+# hist(res)
+# abline(v = observation$tf)
+
+# check that observed statistics actually fall within range of summary statistics
+ggplot(params, aes(x = log10(pi))) +
+    geom_density() +
+    geom_vline(xintercept = log10(targets$V2), color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "log10(Nucleotide diversity)")
+  
+ggplot(params, aes(x = tajd)) +
+    geom_density() +
+    geom_vline(xintercept = targets$V4, color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "Tajima's D")
+
+ggplot(params, aes(x = num_haplos)) +
+    geom_density() +
+    geom_vline(xintercept = targets$V7, color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "Number of diplotypes")
+
+ggplot(params, aes(x = h123)) +
+    geom_density() +
+    geom_vline(xintercept = targets$V11, color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "Hscan")
+
+ggplot(params, aes(x = gkl_var)) +
+    geom_density() +
+    geom_vline(xintercept = targets$V13, color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "gkl variance")
+
+ggplot(params, aes(x = gkl_skew)) +
+    geom_density() +
+    geom_vline(xintercept = targets$V14, color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "gkl skew")
+
+ggplot(params, aes(x = hscan)) +
+    geom_density() +
+    geom_vline(xintercept = targets$V18, color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "Hscan")
+
+# load in targets
+target_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow", pattern = ".*_sweep_stats.tsv", full.names = T)
+
+targets = lapply(target_files, read.table, sep = "\t")
+
+targets = do.call("rbind", targets)
+
+# function to use abc to make predictions
+# target = 1 row dataframe of observed summary statistics
+# param = 1 column dataframe of parameter values from simulated datasets
+# sumstat = matrix of summary statistics from simulated datasets
+abc_pred_for_real_data = function(target, param, sumstat, tol, method){
+  
+  # check if any stats have missing, undefined, or infinite values for the target
+  inf_check = as.vector(apply(target, MARGIN = 1, FUN = is.infinite))
+  nan_check = as.vector(apply(target, MARGIN = 1, FUN = is.nan))
+  na_check = as.vector(apply(target, MARGIN = 1, FUN = is.na))
+  
+  ss_to_keep = ( !(inf_check) & !(nan_check) & !(na_check) )
+  
+  target = target[,ss_to_keep]
+  sumstat = sumstat[,ss_to_keep]
+  
+  # use abc to make prediction
+  my_prediction = abc(target=target, param=param, sumstat=sumstat, tol=tol, method=method)
+  
+  # plot point estimate and credible interval on posterior distribution
+  plotdata = as.data.frame(my_prediction$unadj.values)
+
+  cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
+  
+  point_est = round(summary(my_prediction)[[4]])
+
+  final_plot = ggplot(plotdata, aes(x = V1)) +
+    geom_density() +
+    geom_vline(xintercept = cred_int[1], color = "red", lwd = 1.5, lty = 2) +
+    geom_vline(xintercept = point_est, color = "black", lwd = 1.5, lty = 2) +
+    geom_vline(xintercept = cred_int[2], color = "red", lwd = 1.5, lty = 2) +
+    theme_classic() +
+    theme(text=element_text(size=20)) +
+    labs(x = "tf", title = paste("point estimate = ", point_est, "\n89 % Cred. Int. = [", cred_int[1], ", ", cred_int[2], "]", sep = ""))
+  
+  return(final_plot)
+  
+}
+
+# apply abc to each observation
+abc_pred_for_real_data(targets[1,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
+abc_pred_for_real_data(targets[2,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
+abc_pred_for_real_data(targets[3,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
+abc_pred_for_real_data(targets[4,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
+abc_pred_for_real_data(targets[5,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
+```
+
+# Machine learning
+
+## compare predictions to actual values on testing dataset
 ```{r}
 #pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
 train_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/train_predicted_vs_actual.txt")
@@ -444,7 +666,7 @@ test_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/select
 # distribution of fixation times
 
 ## training set
-train_pred_vs_act_melt = melt(train_pred_vs_act, id = c("V1", "V4"))
+train_pred_vs_act_melt = melt(as.data.table(train_pred_vs_act), id = c("V1", "V4"))
 train_pred_vs_act_melt$variable = as.character(train_pred_vs_act_melt$variable)
 train_pred_vs_act_melt$variable[(train_pred_vs_act_melt$variable == "V2")] = "Actual"
 train_pred_vs_act_melt$variable[(train_pred_vs_act_melt$variable == "V3")] = "Predicted"
@@ -458,7 +680,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 
 ## validation set
 #val_pred_vs_act$V2 = log10(val_pred_vs_act$V2)
-val_pred_vs_act_melt = melt(val_pred_vs_act, id = c("V1", "V4"))
+val_pred_vs_act_melt = melt(as.data.table(val_pred_vs_act), id = c("V1", "V4"))
 val_pred_vs_act_melt$variable = as.character(val_pred_vs_act_melt$variable)
 val_pred_vs_act_melt$variable[(val_pred_vs_act_melt$variable == "V2")] = "Actual"
 val_pred_vs_act_melt$variable[(val_pred_vs_act_melt$variable == "V3")] = "Predicted"
@@ -466,13 +688,14 @@ val_pred_vs_act_melt$variable[(val_pred_vs_act_melt$variable == "V3")] = "Predic
 ggplot(val_pred_vs_act_melt, aes(x = value, color = variable)) +
   geom_density() +
   theme_classic() +
+  theme(text= element_text(size = 20)) +
   labs(x = "log10(Fixation time)", color = "Type", title = "Valdiation set")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/val_actual-vs-predicted_density_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## testing set
 #test_pred_vs_act$V2 = log10(test_pred_vs_act$V2)
-test_pred_vs_act_melt = melt(test_pred_vs_act, id = c("V1", "V4"))
+test_pred_vs_act_melt = melt(as.data.table(test_pred_vs_act), id = c("V1", "V4"))
 test_pred_vs_act_melt$variable = as.character(test_pred_vs_act_melt$variable)
 test_pred_vs_act_melt$variable[(test_pred_vs_act_melt$variable == "V2")] = "Actual"
 test_pred_vs_act_melt$variable[(test_pred_vs_act_melt$variable == "V3")] = "Predicted"
@@ -480,6 +703,7 @@ test_pred_vs_act_melt$variable[(test_pred_vs_act_melt$variable == "V3")] = "Pred
 ggplot(test_pred_vs_act_melt, aes(x = value, color = variable)) +
   geom_density() +
   theme_classic() +
+  theme(text= element_text(size = 20)) +
   labs(x = "log10(Fixation time)", color = "Type", title = "Testing set")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_density_", today, ".png", sep = ""), height = 7, width = 7)
@@ -494,7 +718,7 @@ cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
 cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
 cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
 
-ggplot(aes(x = V3, y = V2), data = train_pred_vs_act) +
+ggplot(aes(y = V3, x = V2), data = train_pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
   geom_vline(xintercept = mean(train_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
@@ -502,9 +726,10 @@ ggplot(aes(x = V3, y = V2), data = train_pred_vs_act) +
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
-  labs(y = "log10(Actual Fixation time)", 
-       x = "log10(Predicted Fixation time)",
-       title = paste("Training set: r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+  theme(text= element_text(size = 20)) +
+  labs(x = "log10(Actual Fixation time)", 
+       y = "log10(Predicted Fixation time)",
+       title = paste("Training set: r = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]\np = ", cor_pvalue, sep = ""))
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/train_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
@@ -516,7 +741,7 @@ cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
 cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
 cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
 
-ggplot(aes(x = V2, y = V3), data = val_pred_vs_act) +
+ggplot(aes(y = V2, x = V3), data = val_pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth =
                 2) +
@@ -525,9 +750,10 @@ ggplot(aes(x = V2, y = V3), data = val_pred_vs_act) +
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
-  labs(x = "log10(Actual Fixation time)", 
-       y = "log10(Predicted Fixation time)",
-       title = paste("Validation set: r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+  theme(text= element_text(size = 20)) +
+  labs(y = "log10(Actual Fixation time)", 
+       x = "log10(Predicted Fixation time)",
+       title = paste("Validation set: r = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]\np = ", cor_pvalue, sep = ""))
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/val_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
@@ -539,17 +765,18 @@ cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
 cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
 cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
 
-ggplot(aes(x = V3, y = V2), data = test_pred_vs_act) +
+ggplot(aes(y = V3, x = V2), data = test_pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
-  geom_vline(xintercept = mean(test_pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") +
-  geom_hline(yintercept = mean(test_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
-  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  #geom_vline(xintercept = mean(test_pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") +
+  #geom_hline(yintercept = mean(test_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
+  #geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
-  labs(y = "log10(Actual Fixation time)", 
-       x = "log10(Predicted Fixation time)",
-       title = paste("Testing set: r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+  theme(text= element_text(size = 20)) +
+  labs(x = "log10(Actual Fixation time)", 
+       y = "log10(Predicted Fixation time)",
+       title = paste("Testing set: r = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]\np = ", cor_pvalue, sep = ""))
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
@@ -570,9 +797,10 @@ ggplot(aes(x = V2, y = V4), data = test_pred_vs_act) +
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
+  theme(text= element_text(size = 20)) +
   labs(x = "log10(Actual Fixation time)", 
        y = "SD in log10(Predicted Fixation time)",
-       title = paste("Testing set: r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+       title = paste("Testing set: r = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]\np = ", cor_pvalue, sep = ""))
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted-sd_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
@@ -591,9 +819,10 @@ ggplot(aes(x = V2, y = V4), data = val_pred_vs_act) +
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
+  theme(text= element_text(size = 20)) +
   labs(x = "log10(Actual Fixation time)", 
        y = "SD in log10(Predicted Fixation time)",
-       title = paste("Validation set: r = ", cor_est, ", 95 % CI = [",  cor_lwb, ", ", cor_upb, "] , p = ", cor_pvalue, sep = ""))
+       title = paste("Validation set: r = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]\np = ", cor_pvalue, sep = ""))
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/val_actual-vs-predicted-sd_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
@@ -837,7 +1066,7 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 #fix_times = fix_times[(fix_times$f0 == 0 & fix_times$f1 == 1),]
 
 width = 0.05
-max_bin_height = 300
+max_bin_height = 500
 
 breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
 params$bin = cut(log10(params$tf), breaks = breaks)
@@ -861,6 +1090,15 @@ ggplot(strat_sample, aes(x = log10(tf))) +
   geom_density() +
   theme_classic() +
   labs(x = "log10(Fixation time)")
+
+ggplot(strat_sample, aes(x = log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age)")
+
+ggplot(strat_sample, aes(x=log10(tf), y=log10(ta)) ) +
+  geom_bin_2d() +
+  theme_classic()
 
 ggplot(strat_sample, aes(x = log10(tf))) +
   geom_boxplot() +
@@ -974,7 +1212,7 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   labs(x = "log10(fixation times)")
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_14.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_16.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data
@@ -987,14 +1225,13 @@ high_examples = params[(log10(params$tf) > max(train_pred_vs_act$V2)),]
 
 # evaluate results from real images
 ```{r}
-real_pred = read.table("/mnt/scratch/robe1195/vcf_to_images/real_predictions.txt", header = T)
+real_pred = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/real_predictions.txt", header = T)
 
 ggplot(real_pred, aes(x=tf_mean)) +
   geom_density() +
+  geom_vline(xintercept = 3.17) +
   theme_classic() +
   labs(x = "log10(predicted fixation times)")
-
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/real_density_10missing_", today, ".png", sep = ""), height = 7, width = 7)
 
 # parse figure ids
 split_ids = strsplit(real_pred$ID, "_")
@@ -1020,7 +1257,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 
 # Identify population-specific sweeps
 ```{r}
-fst_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/", pattern = "_fst.txt", full.names = T)
+fst_files = list.files(path = "/mnt/ufs18/home-010/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/2024-08-21/", pattern = "_fst.txt", full.names = T)
 
 fst_table = lapply(fst_files, FUN = read.table, sep = "\t", header = T)
 
@@ -1069,14 +1306,20 @@ fst_table = do.call("rbind", fst_table)
 # calculate branch length for PBS statistic
 fst_table$branch_length = -log(1 - fst_table$avg_wc_fst)
 
-# calculate PBS for north sweden, relative to south sweden and relicts
-fst_north_south = fst_table[((fst_table$pop1 %in% c("north_sweden", "south_sweden")) & (fst_table$pop2 %in% c("north_sweden", "south_sweden"))),]
-fst_north_relict = fst_table[((fst_table$pop1 %in% c("north_sweden", "relict")) & (fst_table$pop2 %in% c("north_sweden", "relict"))),]
-fst_south_relict = fst_table[((fst_table$pop1 %in% c("relict", "south_sweden")) & (fst_table$pop2 %in% c("relict", "south_sweden"))),]
+# calculate PBS for south sweden, relative to south sweden and relicts
+fst_south_north = fst_table[((fst_table$pop1 %in% c("north_sweden", "south_sweden")) & (fst_table$pop2 %in% c("north_sweden", "south_sweden"))),]
+fst_south_relict = fst_table[((fst_table$pop1 %in% c("south_sweden", "relict")) & (fst_table$pop2 %in% c("south_sweden", "relict"))),]
+fst_north_relict = fst_table[((fst_table$pop1 %in% c("relict", "north_sweden")) & (fst_table$pop2 %in% c("relict", "north_sweden"))),]
 
-pbs_table = merge(fst_north_south, fst_north_relict, by = c("chromosome", "window_pos_1", "window_pos_2"))
-pbs_table = merge(pbs_table, fst_south_relict, by = c("chromosome", "window_pos_1", "window_pos_2"))
+pbs_table = merge(fst_south_north, fst_south_relict, by = c("chromosome", "window_pos_1", "window_pos_2"))
+pbs_table = merge(pbs_table, fst_north_relict, by = c("chromosome", "window_pos_1", "window_pos_2"))
 
+# calculate branch lengths
+pbs_table$branch_length = -log(pbs_table$avg_wc_fst)
+pbs_table$branch_length.x = -log(pbs_table$avg_wc_fst.x)
+pbs_table$branch_length.y = -log(pbs_table$avg_wc_fst.y)
+
+# calculate pbs
 pbs_table$pbs = (pbs_table$branch_length.x + pbs_table$branch_length.y - pbs_table$branch_length)/2
 
 pbs_table = pbs_table[(pbs_table$no_snps >= 30),] # exclude windows with very few SNPs
@@ -1121,7 +1364,7 @@ ggplot(n_s_sweden_fst[(n_s_sweden_fst$chromosome == 5),], aes(x = (window_pos_1 
   theme_classic() +
   labs(x = "Middle of window", y = "Maximum Weir-Cockerham Fst\nacross all population pairs", title = "Chromosome 5")
 
-# plot pbs for north sweden
+# plot pbs for south sweden
 ggplot(pbs_table[(pbs_table$chromosome == 1),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
   geom_point() +
   geom_smooth(method = "loess", n = 1000, span = 0.1, color = "purple") +
@@ -1130,7 +1373,7 @@ ggplot(pbs_table[(pbs_table$chromosome == 1),], aes(x = (window_pos_1 + window_p
   geom_vline(xintercept = 19020000, color = "red") +
   geom_hline(yintercept = top_cutoff, lwd = 2) +
   theme_classic() +
-  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 1")
+  labs(x = "Middle of window", y = "Population branch statistic\nSouth Sweden focus", title = "Chromosome 1")
 
 ggplot(pbs_table[(pbs_table$chromosome == 2),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
   geom_point() +
@@ -1138,7 +1381,7 @@ ggplot(pbs_table[(pbs_table$chromosome == 2),], aes(x = (window_pos_1 + window_p
   geom_hline(yintercept = mean(pbs_table[(pbs_table$chromosome == 1),"pbs"], na.rm = T), linetype = 2) +
   geom_hline(yintercept = top_cutoff, lwd = 2) +
   theme_classic() +
-  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 2")
+  labs(x = "Middle of window", y = "Population branch statistic\nSouth Sweden focus", title = "Chromosome 2")
 
 ggplot(pbs_table[(pbs_table$chromosome == 3),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
   geom_point() +
@@ -1146,7 +1389,7 @@ ggplot(pbs_table[(pbs_table$chromosome == 3),], aes(x = (window_pos_1 + window_p
   geom_hline(yintercept = mean(pbs_table[(pbs_table$chromosome == 1),"pbs"], na.rm = T), linetype = 2) +
   geom_hline(yintercept = top_cutoff, lwd = 2) +
   theme_classic() +
-  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 3")
+  labs(x = "Middle of window", y = "Population branch statistic\nSouth Sweden focus", title = "Chromosome 3")
 
 ggplot(pbs_table[(pbs_table$chromosome == 4),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
   geom_point() +
@@ -1155,7 +1398,7 @@ ggplot(pbs_table[(pbs_table$chromosome == 4),], aes(x = (window_pos_1 + window_p
   geom_hline(yintercept = top_cutoff, lwd = 2) +
   geom_vline(xintercept = 6637000, color = "red") +
   theme_classic() +
-  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 4")
+  labs(x = "Middle of window", y = "Population branch statistic\nSouth Sweden focus", title = "Chromosome 4")
 
 ggplot(pbs_table[(pbs_table$chromosome == 5),], aes(x = (window_pos_1 + window_pos_2)/2, y = pbs)) +
   geom_point() +
@@ -1166,7 +1409,7 @@ ggplot(pbs_table[(pbs_table$chromosome == 5),], aes(x = (window_pos_1 + window_p
   geom_vline(xintercept = 6748000, color = "red") +
   geom_vline(xintercept = 26166000, color = "red") +
   theme_classic() +
-  labs(x = "Middle of window", y = "Population branch statistic\nNorth Sweden focus", title = "Chromosome 5")
+  labs(x = "Middle of window", y = "Population branch statistic\nSouth Sweden focus", title = "Chromosome 5")
 ```
 
 ```{r}
