@@ -282,7 +282,7 @@ s4 4000000 late() {
                                 community.rescheduleScriptBlock(s3, start=Y, end=Y + 100000000);
 		}
 
-		if (fails >= 10000) {
+		if (fails >= 1000) {
 			catn(simID + ": " + sim.cycle + " - STOPPING SIMULATION BECAUSE OF EXCESSIVE SWEEP FAILURE - FAILS: " + fails);
                 
 			// random sample of individuals from simulation

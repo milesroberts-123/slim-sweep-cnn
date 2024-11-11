@@ -94,7 +94,21 @@ ggplot(params, aes(x = log10(tf), y = log10(ta), color = hscan)) +
   theme(text = element_text(size = 20)) +
   labs(x = "log10(fixation time)", y = "log10(sweep age)")
 
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_vs_ta_vs_hscan.png", sep = ""), height = 7, width = 8)
+ggplot(params, aes(x = log10((tf/(tf + ta))), y = log10(pi))) +
+  geom_point() +
+  theme_classic() +
+  theme(text = element_text(size = 20))
+
+#ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_vs_ta_vs_hscan.png", sep = ""), height = 7, width = 8)
+
+# what is the distribution of tf/ta?
+ggplot(params, aes(x = log10(tf/ta))) +
+  geom_density() +
+  theme_classic()
+
+ggplot(params, aes(x = log10((tf/(tf + ta))))) +
+  geom_density() +
+  theme_classic()
 
 ggplot(params, aes(x = log10(tf), y = log10(ta), color = log10(pi))) +
   geom_point() +
@@ -1068,8 +1082,9 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 width = 0.05
 max_bin_height = 500
 
-breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
-params$bin = cut(log10(params$tf), breaks = breaks)
+#breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
+breaks = seq(from = min(log10(params$tf/(params$tf + params$ta))) - width, to = max(log10(params$tf/(params$tf + params$ta))) + width, by = width)
+params$bin = cut(log10(params$tf/(params$tf + params$ta)), breaks = breaks)
 
 table(params$bin)
 max_bin_height = min(table(params$bin)[table(params$bin) >= max_bin_height])
