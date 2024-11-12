@@ -43,7 +43,8 @@ params = data.frame(
   #N = 124000,
   N = 5000,
   sweepS = 10^runif(K, min = -4, max = 0), # effect of beneficial mutation
-  h = runif(K, min = 0, max = 1), # dominance coefficient
+  #h = runif(K, min = 0, max = 1), # dominance coefficient
+  h = 1,
   #sigma = runif(K, min = 0, max = 1), # rate of selfing
   #sigma = runif(K, min = 0.95, max = 1),
   sigma = 0,
@@ -101,8 +102,10 @@ params$fsimple[(params$ncf > 0)] = runif(K/2, min = 0, max = 1)
 # proportions of deleterious, beneficial, neutral mutations
 # neutral mutation > deleterious mutation > beneficial mutation
 print("Sampling B, U, and M...")
-params$B = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # beneficial mutations
-params$U = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # deleterious mutations
+#params$B = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # beneficial mutations
+params$B = 0
+#params$U = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # deleterious mutations
+params$U = 0
 params$M = 1 - params$B - params$U # neutral mutations
 
 #bisect_interval = function(x){
