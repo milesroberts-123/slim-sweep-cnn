@@ -25,7 +25,7 @@ initialize() {
 	catn(simID + ": "+ sim.cycle + " - ESTABLISHMENT FREQUENCY: " + f0);
 	catn(simID + ": "+ sim.cycle + " - THRESHOLD FREQUENCY: " + f1);
 	catn(simID + ": "+ sim.cycle + " - SWEEP INTRODUCTION TIME: " + kappa + " SCALED:" + asInteger(kappa/Q));
-	catn(simID + ": "+ sim.cycle + " - SAMPLING TIME POST-BURN-IN: " + tau + " SCALED: " + asInteger(tau/Q));
+	catn(simID + ": "+ sim.cycle + " - SWEEP AGE: " + tau + " SCALED: " + asInteger(tau/Q));
 	catn(simID + ": "+ sim.cycle + " - NUMBER OF SWEEP MUTATIONS: " + n);
 	catn(simID + ": "+ sim.cycle + " - AVERAGE WAIT TIME BETWEEN MUTATIONS: " + lambda + " SCALED: " + lambda/Q);
 	catn(simID + ": "+ sim.cycle + " - AVERAGE EFFECT OF BACKGROUND BENEFICIAL MUTATION: " + bBar + " SCALED: " + bBar*Q);
@@ -56,9 +56,7 @@ initialize() {
 
 	// track when burn-in and simulation ends
 	defineGlobal("endBurn", 10*asInteger(N/Q));
-	defineGlobal("simEnd", endBurn + asInteger(tau/Q));
 	catn(simID + ": "+ sim.cycle + " - BURN-IN WILL END AT: " + endBurn);
-	catn(simID + ": "+ sim.cycle + " - SIMULATION WILL END AT: " + simEnd);
 
 	// Load in file specifying custom 1-population demography
 	lines = readFile("../config/demography.csv"); 
@@ -112,12 +110,6 @@ initialize() {
 
 	// reschedule checking of fixation until after beneficial mutation is introduced
 	community.rescheduleScriptBlock(s4, start=Y, end=Y + 100000000);
-
-	// reschedule changing of population size
-	//community.rescheduleScriptBlock(s5, start=endBurn + 1, end=endBurn + 100000000);
-
-	// reschedule tracking of reciprocal of population sizes
-	// community.rescheduleScriptBlock(s6, start=endBurn + 1, end=endBurn + 100000000);
 }
 
 // Every 1000 generations, output the heterozygosity and number of mutations in the population
@@ -189,17 +181,6 @@ s3 3000000 late() {
                 }
         }
 }
-
-// Track reciprocal of population sizes
-//s6 5000000 late(){
-//	defineGlobal("nx",  nx + 1/p1.individualCount);
-//        if (sim.countOfMutationsOfType(m2) == 0){
-//                fixed = (sum(sim.substitutions.mutationType == m2) == 1);
-//                if (fixed){
-//			community.rescheduleScriptBlock(self,100000000,100000000);
-//		}
-//	}
-//}
  
 // check for fixation of beneficial mutation
 s4 4000000 late() {
@@ -216,8 +197,8 @@ s4 4000000 late() {
 			}
 
 			// stop simulation after fixation and simulation reached present day
-			if ( sim.cycle == simEnd ){
-				catn(simID + ": " + sim.cycle + " - STOPPED GENERATIONS POST-FIXATION : " + fixTracker + " SCALED:" + fixTracker*Q);
+			if (fixTracker == asInteger(tau/Q)){
+				catn(simID + ": " + sim.cycle + " - STOPPED GENERATIONS POST-FIXATION: " + fixTracker + " SCALED:" + fixTracker*Q);
 
 				// random sample of individuals from simulation
 				catn(simID + ": " + sim.cycle + " - RANDOMLY SAMPLING POPULATION");
@@ -266,22 +247,6 @@ s4 4000000 late() {
 	}
 
 	else {
-		if ( (sim.cycle >= simEnd) & (sim.countOfMutationsOfType(m2) == 1) ){
-                                fails = fails + 1; // increment fail counter
-                                catn(simID + ": " + sim.cycle + " - SWEEP STILL SEGREGATING AT TIME OF SAMPLING - RESTARTING - FAILS: " + fails);
-
-                                // go back to tick before sweep introduced
-                                sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
-
-                                // start a newly seeded run
-                                setSeed(rdunif(1, 0, asInteger(2^62) - 1));
-                                catn(simID + ": " + sim.cycle + " - NEW SEED: " + getSeed());
-
-                                // re-register frequency checks for next cycle
-                                community.rescheduleScriptBlock(s2, start=Y, end=Y + 100000000);
-                                community.rescheduleScriptBlock(s3, start=Y, end=Y + 100000000);
-		}
-
 		if (fails >= 1000) {
 			catn(simID + ": " + sim.cycle + " - STOPPING SIMULATION BECAUSE OF EXCESSIVE SWEEP FAILURE - FAILS: " + fails);
                 

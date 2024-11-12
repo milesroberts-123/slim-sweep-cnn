@@ -2,13 +2,12 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --time=5-00:00:00
+#SBATCH --time=7-00:00:00
 #SBATCH --mem-per-cpu=16G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=robe1195@msu.edu
 #SBATCH --partition=josephsnodes
 #SBATCH --account=josephsnodes
-#SBATCH --reservation=centos_compute
 
 # output information about how this job is running using bash commands
 echo "This job is running on $HOSTNAME on `date`"
@@ -45,9 +44,9 @@ echo Running snakemake...
 #snakemake --cluster "sbatch --time 7-00:00:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 900 --cores 900 --use-conda --rerun-incomplete --rerun-triggers mtime --retries 2
 
 # command to subset of josephsnodes
-for num in {11..320}
+for num in {1..320}
 do
-  snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=josephsnodes --account=josephsnodes --reservation=centos_compute" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going --batch all=$num/320
+  snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=josephsnodes --account=josephsnodes" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going --batch all=$num/320
 done
 
 # command to use lots of scavenger nodes

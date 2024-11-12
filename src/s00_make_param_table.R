@@ -37,20 +37,27 @@ K = yamlfile[["K"]]
 print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
-  Q = runif(K, min = 10, max = 15), # scaling factor for simulation
+  #Q = runif(K, min = 10, max = 15), # scaling factor for simulation
+  Q = 1,
   #N = sample(1000:10000, size = K, replace = T), # initial population size
-  N = 124000,
+  #N = 124000,
+  N = 5000,
   sweepS = 10^runif(K, min = -4, max = 0), # effect of beneficial mutation
-  h = runif(K, min = 0, max = 1), # dominance coefficient
+  #h = runif(K, min = 0, max = 1), # dominance coefficient
+  h = 1,
   #sigma = runif(K, min = 0, max = 1), # rate of selfing
-  sigma = runif(K, min = 0.95, max = 1),
+  #sigma = runif(K, min = 0.95, max = 1),
+  sigma = 0,
   #mu = 10^runif(K, min = -8, max = -7), # mutation rate
-  mu = runif(K, min = 6e-9, max = 8e-9),
+  #mu = runif(K, min = 6e-9, max = 8e-9),
+  mu = 1e-8,
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
-  R = runif(K, min = 7e-10, max = 9e-10),
+  #R = runif(K, min = 7e-10, max = 9e-10),
+  R = 1e-8,
   #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
-  tau = 153000, # number of generations until simulation reaches present day
-  kappa = sample(132000:152000, size = K, replace = T), # time to introduce beneficial mutation after burn-in
+  tau = 10^runif(K, min = 0, max = 4),
+  #kappa = sample(132000:152000, size = K, replace = T), # time to introduce beneficial mutation after burn-in
+  kappa = 1,
   #f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency
   f0 = 0,
   #f1 = sample(c(rep(1, times = K/2), runif(K/2, min = 0.95, max = 1)), size = K, replace = F), # threshold frequency for partial sweep
@@ -59,7 +66,7 @@ params = data.frame(
   n = 1,
   #r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
   #ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F) # fraction of recombination events that are not cross overs
-  ncf = rep(0, times = K)
+  ncf = 0
 )
 
 # spacing between beneficial mutations
@@ -95,8 +102,10 @@ params$fsimple[(params$ncf > 0)] = runif(K/2, min = 0, max = 1)
 # proportions of deleterious, beneficial, neutral mutations
 # neutral mutation > deleterious mutation > beneficial mutation
 print("Sampling B, U, and M...")
-params$B = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # beneficial mutations
-params$U = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # deleterious mutations
+#params$B = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # beneficial mutations
+params$B = 0
+#params$U = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # deleterious mutations
+params$U = 0
 params$M = 1 - params$B - params$U # neutral mutations
 
 #bisect_interval = function(x){
