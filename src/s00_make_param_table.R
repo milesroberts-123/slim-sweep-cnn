@@ -41,8 +41,8 @@ params = data.frame(
   Q = 1,
   #N = sample(1000:10000, size = K, replace = T), # initial population size
   #N = 124000,
-  N = 5000,
-  sweepS = 10^runif(K, min = -4, max = 0), # effect of beneficial mutation
+  N = 1000,
+  sweepS = 10^runif(K, min = -3, max = 0), # effect of beneficial mutation
   #h = runif(K, min = 0, max = 1), # dominance coefficient
   h = 1,
   #sigma = runif(K, min = 0, max = 1), # rate of selfing
@@ -55,7 +55,7 @@ params = data.frame(
   #R = runif(K, min = 7e-10, max = 9e-10),
   R = 1e-8,
   #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
-  tau = 10^runif(K, min = 0, max = 4),
+  tau = 1,
   #kappa = sample(132000:152000, size = K, replace = T), # time to introduce beneficial mutation after burn-in
   kappa = 1,
   #f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency

@@ -10,6 +10,7 @@ from tensorflow import keras
 #from keras.optimizers import SGD
 from keras.preprocessing.image import ImageDataGenerator
 import scipy
+import keras_tuner
 
 # Check if GPUs are available
 #print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
@@ -21,7 +22,7 @@ batch_size = 32
 epochs = 200
 patience = 20
 #slim_params = "../config/parameters.tsv"
-slim_params = "stratified_sample_11.tsv"
+slim_params = "stratified_sample_18.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
 
@@ -56,6 +57,17 @@ print("Shapes of training, validation, and testing images:")
 print(train_images.shape)
 print(val_images.shape)
 print(test_images.shape)
+
+# reformat IDs, and log transform dependent variable
+train_params['ID'] = train_params['ID'].astype(str)
+val_params['ID'] = val_params['ID'].astype(str)
+
+train_params['ID'] = train_params["ID"].replace(to_replace = r"$", value = ".png", regex = True).replace(to_replace = r"^", value = "slim_", regex = True)
+val_params['ID'] = val_params["ID"].replace(to_replace = r"$", value = ".png", regex = True).replace(to_replace = r"^", value = "slim_", regex = True)
+
+train_params['tf'] = train_params['tf'].apply(np.log10)
+val_params['tf'] = val_params['tf'].apply(np.log10)
+test_params['tf'] = test_params['tf'].apply(np.log10)
 
 # load fixation times
 #print("Loading fixation times...")
@@ -107,35 +119,61 @@ print(val_pos.shape)
 print(test_pos.shape)
 
 # Create model with functional API
-print("Creating model...")
-input_A = keras.layers.Input(shape = [128,128,3], name = "images")
-input_B = keras.layers.Input(shape = [128], name = "positions")
-conv1 = keras.layers.Conv2D(filters = 32, kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
-pool1 = keras.layers.MaxPooling2D(2)(conv1)
-pool1 = keras.layers.Dropout(0.2)(pool1)
-conv2 = keras.layers.Conv2D(filters = 64, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
-pool2 = keras.layers.MaxPooling2D(2)(conv2)
-pool2 = keras.layers.Dropout(0.1)(pool2)
-conv3 = keras.layers.Conv2D(filters = 128, kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool2)
-pool3 = keras.layers.MaxPooling2D(2)(conv3)
-pool3 = keras.layers.Dropout(0.1)(pool3)
-flat = keras.layers.Flatten()(pool3)
-dense_A = keras.layers.Dense(32, activation = "relu")(flat)
-dense_A = keras.layers.Dropout(0.1)(dense_A)
-dense_B = keras.layers.Dense(32, activation = "relu")(input_B)
-dense_B = keras.layers.Dropout(0.1)(dense_B)
-concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
-full = keras.layers.Dense(32, activation = "relu")(concat)
-full = keras.layers.Dropout(0.1)(full)
-output = keras.layers.Dense(1, name = "output")(full)
-model = keras.Model(inputs = [input_A, input_B], outputs = [output])
+# https://keras.io/guides/keras_tuner/getting_started/
+def build_model(hp):
+  print("Creating model...")
+  input_A = keras.layers.Input(shape = [128,128,3], name = "images")
+  input_B = keras.layers.Input(shape = [128], name = "positions")
+  conv1 = keras.layers.Conv2D(filters = hp.Int("conv1-filters", min_value=16, max_value=128, step=16), kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
+  pool1 = keras.layers.MaxPooling2D(2)(conv1)
+  pool1 = keras.layers.Dropout(hp.Float(name = "pool1-dropout", min_value=0, max_value=1))(pool1)
+  conv2 = keras.layers.Conv2D(filters = hp.Int("conv2-filters", min_value=16, max_value=128, step=16), kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
+  pool2 = keras.layers.MaxPooling2D(2)(conv2)
+  pool2 = keras.layers.Dropout(hp.Float(name = "pool2-dropout", min_value=0, max_value=1))(pool2)
+  conv3 = keras.layers.Conv2D(filters = hp.Int("conv3-filters", min_value=16, max_value=128, step=16), kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool2)
+  pool3 = keras.layers.MaxPooling2D(2)(conv3)
+  pool3 = keras.layers.Dropout(hp.Float(name = "pool3-dropout", min_value=0, max_value=1))(pool3)
+  flat = keras.layers.Flatten()(pool3)
+  dense_A = keras.layers.Dense(units=hp.Int("denseA-units", min_value=32, max_value=512, step=32), activation = "relu")(flat)
+  dense_A = keras.layers.Dropout(hp.Float(name = "denseA-dropout", min_value=0, max_value=1))(dense_A)
+  dense_B = keras.layers.Dense(units=hp.Int("denseB-units", min_value=32, max_value=512, step=32), activation = "relu")(input_B)
+  dense_B = keras.layers.Dropout(hp.Float(name = "denseB-dropout", min_value=0, max_value=1))(dense_B)
+  concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
+  full = keras.layers.Dense(units=hp.Int("full-units", min_value=32, max_value=512, step=32), activation = "relu")(concat)
+  full = keras.layers.Dropout(hp.Float(name = "full-dropout", min_value=0, max_value=1))(full)
+  output = keras.layers.Dense(1, name = "output")(full)
+  model = keras.Model(inputs = [input_A, input_B], outputs = [output])
 
-# compile model
-print("Compiling model...")
-#model.compile(loss='mean_squared_error', optimizer='adam')
-model.compile(optimizer='adam', loss="mse", metrics = [tf.keras.metrics.MeanSquaredError()])
-#opt = SGD(lr=0.01) # create optimizer
-#model.compile(loss = "binary_crossentropy", optimizer = opt, metrics = ["accuracy"])
+  # compile model
+  print("Compiling model...")
+  model.compile(optimizer='adam', loss="mse", metrics = [tf.keras.metrics.MeanSquaredError()])
+
+  return model
+
+
+# build hyperparameter tuner
+tuner = keras_tuner.BayesianOptimization(
+    hypermodel=build_model,
+    objective="val_mean_squared_error",
+    max_trials=60,
+    overwrite=True,
+    directory="tuning_dir",
+    project_name="slimcnn",
+)
+
+# print summary of search space
+tuner.search_space_summary()
+
+# Seach hyperparameter space
+print("Starting search...")
+tuner.search((train_images, train_pos), train_params["tf"], epochs=2, validation_data=((val_images, val_pos), val_params["tf"]))
+
+# Get the top 2 models.
+print("Extract best model...")
+models = tuner.get_best_models(num_models=2)
+best_model = models[0]
+best_model.summary()
+model = best_model
 
 # add callbacks: early stopping and saving at checkpoints
 earlystop = keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0, patience=patience, verbose=0, mode='auto')
@@ -145,23 +183,13 @@ callbacks = [earlystop, checkpoint]
 # add image generator
 print("Creating image generators...")
 
-train_params['ID'] = train_params['ID'].astype(str)
-val_params['ID'] = val_params['ID'].astype(str)
-
-train_params['ID'] = train_params["ID"].replace(to_replace = r"$", value = ".png", regex = True).replace(to_replace = r"^", value = "slim_", regex = True)
-val_params['ID'] = val_params["ID"].replace(to_replace = r"$", value = ".png", regex = True).replace(to_replace = r"^", value = "slim_", regex = True)
-
-train_params['tf'] = train_params['tf'].apply(np.log10)
-val_params['tf'] = val_params['tf'].apply(np.log10)
-test_params['tf'] = test_params['tf'].apply(np.log10)
-
 def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
     # create image generator
     mydatagen = ImageDataGenerator(rescale = 1./255, horizontal_flip = True, vertical_flip = True)
 
     # Shuffles the dataframe, and so the batches as well
     dff = dff.sample(frac=1)
-    np_arrays = np_arrays[dff.index]    
+    np_arrays = np_arrays[dff.index]
 
     # Shuffle=False is EXTREMELY important to keep order of image and coord
     flow = mydatagen.flow_from_dataframe(
@@ -177,7 +205,7 @@ def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
     idx = 0
     n = len(dff) - batch_size
     batch = 0
-    while True : 
+    while True :
         # Get next batch of images
         X1 = flow.next()
         # idx to reach
