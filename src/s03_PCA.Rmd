@@ -15,7 +15,7 @@ library(ggplot2)
 library(scico)
 library(png)
 library(abc)
-#library(ggpubr)
+library(ggpubr)
 
 today = Sys.Date()
 ```
@@ -86,6 +86,27 @@ params = params[(params$ID %in% picids),]
 # params$sweepType[( (params$f0 > 0) & (params$f1 < 1) )] = "soft+partial"
 # table(params$sweepType)
 
+# what is the distribution of tf/ta?
+ggplot(params, aes(x = log10(tf))) +
+  geom_density() +
+  theme_classic()
+
+ggplot(params, aes(x = log10(ta))) +
+  geom_density() +
+  theme_classic()
+
+ggplot(params, aes(x = log10(tf/ta))) +
+  geom_density() +
+  theme_classic()
+
+ggplot(params, aes(x = log10((tf/(tf + ta))))) +
+  geom_density() +
+  theme_classic()
+
+ggplot(params, aes(x = log10(tf + ta))) +
+  geom_density() +
+  theme_classic()
+
 # does short tf, long ta look similar to long tf, short ta
 ggplot(params, aes(x = log10(tf), y = log10(ta), color = hscan)) +
   geom_point() +
@@ -94,17 +115,30 @@ ggplot(params, aes(x = log10(tf), y = log10(ta), color = hscan)) +
   theme(text = element_text(size = 20)) +
   labs(x = "log10(fixation time)", y = "log10(sweep age)")
 
+# Can we predict the sum of tf and ta?
+ggplot(params, aes(x = log10(tf + ta), y = hscan)) +
+  geom_point() +
+  theme_classic() +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time + sweep age)", y = "Messer's Hscan")
+
+ggplot(params, aes(x = log10(tf + ta), y = log10(pi))) +
+  geom_point() +
+  theme_classic() +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time + sweep age)", y = "Nucleotide diversity")
+
 ggplot(params, aes(x = log10((tf/(tf + ta))), y = log10(pi))) +
   geom_point() +
   theme_classic() +
   theme(text = element_text(size = 20))
 
-#ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_vs_ta_vs_hscan.png", sep = ""), height = 7, width = 8)
+ggplot(params, aes(x = log10((tf/ta)), y = log10(pi))) +
+  geom_point() +
+  theme_classic() +
+  theme(text = element_text(size = 20))
 
-# what is the distribution of tf/ta?
-ggplot(params, aes(x = log10(tf/ta))) +
-  geom_density() +
-  theme_classic()
+#ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/tf_vs_ta_vs_hscan.png", sep = ""), height = 7, width = 8)
 
 ggplot(params, aes(x = log10((tf/(tf + ta))))) +
   geom_density() +
@@ -441,6 +475,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 # tolerances = 3
 # statistics = 3
 # total iterations = 3*3*3 = 27
+
 cv.res.rej.median <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "median")
 
 cv.res.rej.mean <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=200, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mean")
@@ -476,7 +511,7 @@ plot_abc_results = function(predictions, truth, model_labels){
   ggplot(aes(y = log10(predictions), x = log10(truth)), data = plotdata) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
-  #geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   theme_classic() +
   theme(text = element_text(size = 20)) +
   labs(x = "log10(Actual tf)", 
@@ -489,13 +524,11 @@ plot_abc_results = function(predictions, truth, model_labels){
 ## mean
 rej_mean_tol001_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.01, cv.res.rej.mean$true$tf, "Rej, Mean, Tol = 0.01")
 
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mean_tol001_", today, ".png", sep = ""), height = 7, width = 7)
+#ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mean_tol001_", today, ".png", sep = ""), height = 7, width = 7)
 
 rej_mean_tol005_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.05, cv.res.rej.mean$true$tf, "Rej, Mean, Tol = 0.05")
 
 rej_mean_tol010_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.1, cv.res.rej.mean$true$tf, "Rej, Mean, Tol = 0.1")
-
-
 
 ggarrange(rej_mean_tol001_fig, rej_mean_tol005_fig, rej_mean_tol010_fig, nrow = 1, ncol = 3)
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mean_", today, ".png", sep = ""), height = 3, width = 8)
@@ -674,6 +707,10 @@ val_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selecti
 
 test_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual.txt")
 
+#
+names(params)[1] = "V1"
+test_pred_vs_act = merge(params[,c("V1", "ta")], test_pred_vs_act, by = "V1")
+
 # subset data to remove outliers
 #pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= 5000),]
 
@@ -779,12 +816,12 @@ cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
 cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
 cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
 
-ggplot(aes(y = V3, x = V2), data = test_pred_vs_act) +
+ggplot(aes(y = V3, x = V2, color = log10(ta)), data = test_pred_vs_act) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
   #geom_vline(xintercept = mean(test_pred_vs_act$V3), linewidth = 1, linetype = "dotted", color = "red") +
   #geom_hline(yintercept = mean(test_pred_vs_act$V2), linewidth = 1, linetype = "dotted", color = "red") + 
-  #geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   #geom_smooth(method = "loess", color = "#B2F2FD", linewidth = 2) +
   theme_classic() +
   theme(text= element_text(size = 20)) +
@@ -883,6 +920,7 @@ step(error_mod)
 error_mod = lm(log10(error) ~ log10(SQ) + NQ + h, data = errors)
 summary(error_mod)
 ```
+sq
 # Adjust model predictions so that they have a 1:1 relationship with simulations
 ```{r}
 
@@ -1062,6 +1100,7 @@ summary(tf_mod)
 cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)])
 ```
 
+
 # Stratified sampling along time to fixation
 ```{r}
 # split
@@ -1079,14 +1118,37 @@ cor.test(fix_times$tf[(fix_times$h < 0.5)], fix_times$sigma[(fix_times$h < 0.5)]
 # focus on just hard sweeps
 #fix_times = fix_times[(fix_times$f0 == 0 & fix_times$f1 == 1),]
 
-width = 0.05
-max_bin_height = 500
+width = 0.1
+#max_bin_height = 10
+max_bin_height = 400
 
-#breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
-breaks = seq(from = min(log10(params$tf/(params$tf + params$ta))) - width, to = max(log10(params$tf/(params$tf + params$ta))) + width, by = width)
-params$bin = cut(log10(params$tf/(params$tf + params$ta)), breaks = breaks)
+breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
+#breaks_tf = seq(from = min(log10(params$tf))- width, to = max(log10(params$tf))+ width, by = width)
+#breaks_ta = seq(from = min(log10(params$ta))- width, to = max(log10(params$ta))+width, by = width)
+
+#breaks = seq(from = min(log10(params$tf/(params$tf + params$ta))) - width, to = max(log10(params$tf/(params$tf + params$ta))) + width, by = width)
+
+params$bin = cut(log10(params$tf), breaks = breaks)
+#params$bin_tf = cut(log10(params$tf), breaks = breaks_tf)
+#params$bin_ta = cut(log10(params$ta), breaks = breaks_ta)
 
 table(params$bin)
+#table(params$bin_tf, params$bin_ta)
+
+# ggplot(params, aes(x=bin_tf, y=bin_ta) ) + 
+#   geom_bin2d() +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+# 
+# ggplot(params[(log10(params$tf) > 2.55) & (log10(params$tf) <= 4.15),], aes(x=bin_tf, y=bin_ta) ) + 
+#   geom_bin2d() +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+# 
+# levels_to_keep = c("(2.55,2.65]", "(2.65,2.75]", "(2.75,2.85]", "(2.85,2.95]", "(2.95,3.05]", "(3.05,3.15]", "(3.15,3.25]", "(3.25,3.35]", "(3.35,3.45]", "(3.45,3.55]", "(3.55,3.65]", "(3.65,3.75]", "(3.75,3.85]", "(3.85,3.95]", "(3.95,4.05]", "(4.05,4.15]")
+# 
+# params_filt = params[(params$bin_tf %in% levels_to_keep),]
+# 
+# table(params_filt$bin_tf, params_filt$bin_ta)
+
 max_bin_height = min(table(params$bin)[table(params$bin) >= max_bin_height])
 
 strat_sample = NULL
@@ -1095,11 +1157,26 @@ for(bin in unique(params$bin)){
   if(nrow(fix_times_bin) >= max_bin_height){
     down_sampled_bin = fix_times_bin[sample(1:nrow(fix_times_bin), replace = F, size = max_bin_height),]
     strat_sample = rbind(strat_sample, down_sampled_bin)
-  }
+ }
 }
 
-table(strat_sample$bin)
- 
+
+# max_bin_height = min(as.vector(table(params_filt$bin_tf, params_filt$bin_ta))[as.vector(table(params_filt$bin_tf, params_filt$bin_ta)) >= max_bin_height])
+#  
+# strat_sample = NULL
+# for(bin_tf in unique(params_filt$bin_tf)){
+#   for(bin_ta in unique(params_filt$bin_ta)){
+#     fix_times_bin = params_filt[( (params_filt$bin_tf == bin_tf) & (params_filt$bin_ta == bin_ta) ),]
+#     if(nrow(fix_times_bin) >= max_bin_height){
+#       down_sampled_bin = fix_times_bin[sample(1:nrow(fix_times_bin), replace = F, size = max_bin_height),]
+#     strat_sample = rbind(strat_sample, down_sampled_bin)
+#     }
+#   }
+# }
+#  
+# table(strat_sample$bin_tf, strat_sample$bin_ta)
+
+
 # check that tf is now uniformly distributed across data
 ggplot(strat_sample, aes(x = log10(tf))) +
   geom_density() +
@@ -1110,6 +1187,11 @@ ggplot(strat_sample, aes(x = log10(ta))) +
   geom_density() +
   theme_classic() +
   labs(x = "log10(sweep age)")
+
+ggplot(strat_sample, aes(x = log10(tf + ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(fixation time + sweep age)")
 
 ggplot(strat_sample, aes(x=log10(tf), y=log10(ta)) ) +
   geom_bin_2d() +
@@ -1227,7 +1309,7 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   labs(x = "log10(fixation times)")
 
 # save stratified sample
-write.table(strat_sample, "stratified_sample_16.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_18.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data

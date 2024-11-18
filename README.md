@@ -202,13 +202,17 @@ Supported sweep types:
 
 - [x] test workflow on southern sweden, subpopulation needs at least 128 individuals for my idea to work
 
-- [ ] add script to tune hyperparameters
+- [x] add script to tune hyperparameters
+
+- [x] add in RISE algorithm
+
+- [x] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
+
+- [x] re-write neural network as a function with hyperparameters
 
 - [ ] add error checking to slim script (tau should be less than kappa for example)
 
 - [ ] add creation of parameter table to workflow
-
-- [ ] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
 
 - [ ] add clonal reproduction?
 
@@ -217,8 +221,6 @@ Supported sweep types:
 - [ ] include population structure? (track time for mutation to fix when it needs to migrate to another population first)
 
 - [ ] use gpu instead of cpu for training model
-
-- [ ] re-write neural network as a function with hyperparameters
 
 - [ ] add a table of hyperparameters combinations to test for neural network
 
