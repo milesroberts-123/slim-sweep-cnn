@@ -55,7 +55,8 @@ params = data.frame(
   #R = runif(K, min = 7e-10, max = 9e-10),
   R = 1e-8,
   #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
-  tau = 1,
+  #tau = 1,
+  tau = round(10^runif(K, min = 0, max = 3)),
   #kappa = sample(132000:152000, size = K, replace = T), # time to introduce beneficial mutation after burn-in
   kappa = 1,
   #f0 = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.05)), size = K, replace = F), # establishment frequency

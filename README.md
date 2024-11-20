@@ -4,6 +4,8 @@ This workflow trains a convolutional neural network using population genetics da
 
 This code corresponds to the following publication: XXX
 
+Maximum number of simulations I can probably run at once is about 320000
+
 # Contents
 
 [Inputs](#inputs)
@@ -209,6 +211,8 @@ Supported sweep types:
 - [x] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
 
 - [x] re-write neural network as a function with hyperparameters
+
+- [ ] add method to calculate saliency maps from backpropagation gradients
 
 - [ ] add error checking to slim script (tau should be less than kappa for example)
 
