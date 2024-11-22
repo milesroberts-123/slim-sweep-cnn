@@ -212,9 +212,11 @@ Supported sweep types:
 
 - [x] re-write neural network as a function with hyperparameters
 
+- [x] train model to infer both tf and ta
+
 - [ ] add method to calculate saliency maps from backpropagation gradients
 
-- [ ] add error checking to slim script (tau should be less than kappa for example)
+- [ ] add error checking (tau should be less than kappa for example)
 
 - [ ] add creation of parameter table to workflow
 

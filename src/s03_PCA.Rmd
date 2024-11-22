@@ -95,6 +95,11 @@ ggplot(params, aes(x = log10(ta))) +
   geom_density() +
   theme_classic()
 
+ggplot(params, aes(x=log10(tf), y=log10(ta)) ) +
+  geom_bin2d() +
+  scale_fill_continuous(type = "viridis") +
+  theme_classic()
+
 ggplot(params, aes(x = log10(tf/ta))) +
   geom_density() +
   theme_classic()
@@ -920,7 +925,24 @@ step(error_mod)
 error_mod = lm(log10(error) ~ log10(SQ) + NQ + h, data = errors)
 summary(error_mod)
 ```
-sq
+
+## multivariate models
+```{r}
+val_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/val_predicted_vs_actual.txt")
+
+test_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual.txt")
+
+ggplot(test_pred_vs_act, aes(x = test_pred_vs_act$V2, y = test_pred_vs_act$V4)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_classic()
+
+ggplot(test_pred_vs_act, aes(x = test_pred_vs_act$V3, y = test_pred_vs_act$V5)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_classic()
+```
+
 # Adjust model predictions so that they have a 1:1 relationship with simulations
 ```{r}
 
@@ -1177,6 +1199,56 @@ for(bin in unique(params$bin)){
 # table(strat_sample$bin_tf, strat_sample$bin_ta)
 
 
+```
+
+# 2D stratified random sampling
+```{r}
+width = 0.15
+max_bin_height = 10
+
+breaks_tf = seq(from = min(log10(params$tf))- width, to = max(log10(params$tf))+ width, by = width)
+breaks_ta = seq(from = min(log10(params$ta))- width, to = max(log10(params$ta))+width, by = width)
+
+params$bin_tf = cut(log10(params$tf), breaks = breaks_tf)
+params$bin_ta = cut(log10(params$ta), breaks = breaks_ta)
+
+table(params$bin_tf, params$bin_ta)
+
+ggplot(params, aes(x=bin_tf, y=bin_ta) ) + 
+   geom_bin2d() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ 
+ggplot(params[(log10(params$tf) > 1.95) & (log10(params$tf) < 4.05),], aes(x=bin_tf, y=bin_ta) ) + 
+   geom_bin2d() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# Levels 
+levels_to_keep = c("(2.15,2.25]", "(2.25,2.35]", "(2.35,2.45]", "(2.45,2.55]", "(2.55,2.65]", "(2.65,2.75]", "(2.75,2.85]", "(2.85,2.95]", "(2.95,3.05]", "(3.05,3.15]", "(3.15,3.25]", "(3.25,3.35]", "(3.35,3.45]", "(3.45,3.55]", "(3.55,3.65]", "(3.65,3.75]")
+ 
+params_filt = params[(params$bin_tf %in% levels_to_keep),]
+ 
+table(params_filt$bin_tf, params_filt$bin_ta)
+
+max_bin_height = min(as.vector(table(params_filt$bin_tf, params_filt$bin_ta))[as.vector(table(params_filt$bin_tf, params_filt$bin_ta)) >= max_bin_height])
+
+strat_sample = NULL
+ for(bin_tf in unique(params_filt$bin_tf)){
+   for(bin_ta in unique(params_filt$bin_ta)){
+     fix_times_bin = params_filt[( (params_filt$bin_tf == bin_tf) & (params_filt$bin_ta == bin_ta) ),]
+     if(nrow(fix_times_bin) >= max_bin_height){
+       down_sampled_bin = fix_times_bin[sample(1:nrow(fix_times_bin), replace = F, size = max_bin_height),]
+     strat_sample = rbind(strat_sample, down_sampled_bin)
+    }
+  }
+}
+  
+
+table(strat_sample$bin_tf, strat_sample$bin_ta)
+
+```
+
+
+```{r}
 # check that tf is now uniformly distributed across data
 ggplot(strat_sample, aes(x = log10(tf))) +
   geom_density() +
@@ -1308,8 +1380,23 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   theme_classic() +
   labs(x = "log10(fixation times)")
 
+ggplot(strat_sample[(strat_sample$split == "train"),], aes(x=log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age)")
+
+ggplot(strat_sample[(strat_sample$split == "test"),], aes(x=log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age)")
+
+ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age)")
+
 # save stratified sample
-write.table(strat_sample, "stratified_sample_18.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_19.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data
