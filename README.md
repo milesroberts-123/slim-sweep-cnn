@@ -214,6 +214,8 @@ Supported sweep types:
 
 - [x] train model to infer both tf and ta
 
+- [ ] add ML model that uses only summary stats for inference
+
 - [ ] add method to calculate saliency maps from backpropagation gradients
 
 - [ ] add error checking (tau should be less than kappa for example)

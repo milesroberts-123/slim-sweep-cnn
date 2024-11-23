@@ -21,6 +21,7 @@ path = "data/images/"
 batch_size = 32
 epochs = 200
 patience = 20
+tuning_trials = 60
 #slim_params = "../config/parameters.tsv"
 slim_params = "stratified_sample_19.tsv"
 weightFolderName = "data/weights"
@@ -159,7 +160,7 @@ def build_model(hp):
 tuner = keras_tuner.BayesianOptimization(
     hypermodel=build_model,
     objective="val_mean_squared_error",
-    max_trials=60,
+    max_trials=tuning_trials,
     overwrite=True,
     directory="tuning_dir",
     project_name="slimcnn",
@@ -247,10 +248,21 @@ val_generator = createGenerator(val_params, val_pos, batch_size, "data/images/",
 #                                              class_mode="other", target_size=(128, 128),
 #                                              batch_size=batch_size)
 
+# Seach hyperparameter space
+#print("Starting search...")
+#tuner.search(train_generator, epochs=2, validation_data=val_generator, steps_per_epoch = int(np.ceil(val_pos.shape[0] / batch_size)), batch_size = batch_size, validation_steps = int(np.ceil(val_pos.shape[0] / batch_size)))
+
+# Get the top 2 models.
+#print("Extract best model...")
+#models = tuner.get_best_models(num_models=2)
+#best_model = models[0]
+#best_model.summary()
+#model = best_model
+
 # fit model
 print("Fitting model...")
-#history = model.fit((train_images, train_pos), train_y, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=((val_images, val_pos), val_y), callbacks=callbacks)
-history = model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=val_generator, callbacks=callbacks, steps_per_epoch = int(np.ceil(train_pos.shape[0] / batch_size)), validation_steps = int(np.ceil(val_pos.shape[0] / batch_size)))
+history = model.fit((train_images, train_pos), (train_params['tf'], train_params['ta']), batch_size=batch_size, epochs=epochs, verbose=1, validation_data=((val_images, val_pos), (val_params['tf'], val_params['ta'])), callbacks=callbacks)
+#history = model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=val_generator, callbacks=callbacks, steps_per_epoch = int(np.ceil(train_pos.shape[0] / batch_size)), validation_steps = int(np.ceil(val_pos.shape[0] / batch_size)))
 
 # evaluate total error in model
 print("Evaluating model on testing data...")
