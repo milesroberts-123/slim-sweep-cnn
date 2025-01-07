@@ -22,6 +22,56 @@ today = Sys.Date()
 
 # plotting functions
 ```{r}
+# evaluate abc model similar to cnn (performance on validation data after training on training data)
+# use training data to make a prediction about a validation data point
+# repeat for all validation data points
+train_abc = function(train_sample, val_sample, outcomes, summary_stats, tol, method){
+  # vectors to store results
+  lwr_results = c()
+  median_results = c()
+  mean_results = c()
+  mode_results = c()
+  upr_results = c()
+  
+  # subset frames to relevant metrics
+  train_outcomes = train_sample[,outcomes]
+  train_stats = train_sample[,summary_stats]
+  val_stats = val_sample[,summary_stats]
+  
+  # loop over validation data
+  for(i in 1:nrow(val_stats)){
+    # get one validation simulation
+    val_target = val_stats[i,]
+    
+    # run abc on validation sim
+    result = invisible(capture.output(abc(val_target, train_outcomes, train_stats, tol, method)))
+
+    #cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
+    cred_int = round(c(summary(result)[[2]], summary(result)[[6]]))
+    median_est = round(summary(result)[[3]])
+    mean_est = round(summary(result)[[4]])
+    mode_est = round(summary(result)[[5]])
+    
+    # save prediction
+    lwr_results = c(lwr_results, cred_int[1])
+    median_results = c(median_results, median_est)
+    mean_results = c(mean_results, mean_est)
+    mode_results = c(mode_results, mode_est)
+    upr_results = c(upr_results, cred_int[2])
+  }
+  
+  return(
+    data.frame(
+      truth = val_sample[,outcomes],
+      lwr_cred_int = lwr_results,
+      pred_mean = mean_results,
+      pred_median = median_results,
+      pred_mode = mode_results,
+      upr_cred_int = upr_results
+    )
+  )
+}
+
 # compare predicted values to true values for a continuous variable as a scatterplot
 compare_predictions_truth_scatter = function(predictions, truth, model_labels, truthlab, predlab){
   # Calculate correlation between truth and results
@@ -514,11 +564,22 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 
 strat_sample = read.table("stratified_sample_20.tsv", sep = "\t", header = T)
 
+# 
+train_sample = strat_sample[(strat_sample$split == "train"),]
+
+val_sample = strat_sample[(strat_sample$split == "val"),]
+
+val_sample = val_sample[!is.na(val_sample$num_haplos),]
+
+# function to make predictions for validation data based on training data
+
+train_abc(train_sample, val_sample, "tf", summary_stats, 0.05, "rejection", "median")
+
 nval = 889
 tols = c(0.01, 0.05, 0.1)
-summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "zns", "omega", "hscan")
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
 
-cv.res.rej.median <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "median")
+cv.res.rej.median <- cv4abc(data.frame(tf=abc_sample$tf), abc_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "median")
 
 cv.res.rej.mean <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "mean")
 
@@ -530,13 +591,10 @@ cv.res.reg.mean <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_
 
 cv.res.reg.mode <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="ridge", statistic = "mode")
 
-summary(cv.res.rej.median)
-summary(cv.res.rej.mean)
-summary(cv.res.rej.mode)
+# multivariate
+cv.res.rej.median <- cv4abc(data.frame(tf=abc_sample$tf, ta=abc_sample$ta), abc_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "median")
 
-summary(cv.res.reg.median)
-summary(cv.res.reg.mean)
-summary(cv.res.reg.mode)
+summary(cv.res.rej.median)
 
 # function to plot abc results
 plot_abc_results = function(predictions, truth, model_labels){
@@ -560,6 +618,11 @@ plot_abc_results = function(predictions, truth, model_labels){
        y = "log10(Predicted tf)",
        title = paste(model_labels, "\nr = ", cor_est, "\nCI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
 }
+
+# multivariate
+plot_abc_results(cv.res.rej.median$estim$tol0.05[,"tf"], cv.res.rej.median$true$tf, "Rej, Median, Tol = 0.05")
+
+plot_abc_results(cv.res.rej.median$estim$tol0.05[,"ta"], cv.res.rej.median$true$ta, "Rej, Median, Tol = 0.05")
 
 # rejection method
 
