@@ -1,8 +1,6 @@
-
-
 This workflow trains a convolutional neural network using population genetics data simulated with SLiM. 
 
-This code corresponds to the following publication: XXX
+Maximum number of simulations I can probably run at once is about 320,000
 
 # Contents
 
@@ -18,7 +16,7 @@ This code corresponds to the following publication: XXX
 
 My workflow requires 3 files, a yaml file of workflow parameters (`config/config.yaml`), a tsv file of SLiM parameters (`config/parameters.tsv`), and a csv file describing a demographic pattern for the SLiM simulations (`config/demography.csv`). I describe each of these inputs below.
 
-## `config/config.yaml`
+## 1. Configure workflow with `config/config.yaml`
 
 The workflow parameters can be found in `config/config.yaml`. Each parameter is described below.
 
@@ -28,31 +26,12 @@ The workflow parameters can be found in `config/config.yaml`. Each parameter is 
 | train | Proportion of simulations to use for training | 0.8 |
 | test | Proportion of simulations to use for testing | 0.1 |
 | val | Proportion of simulations to use for validation | 0.1 |
-| gff | Path to gff file, which will be used to construct gene models | "../config/genome/Osativa_323_v7.0.gene.gff3" |
 | nidv | Number of individual genomes to sample from each simulation | 128 |
 | nloc | Number of loci to sample from each simulation | 128 |
 | distMethod | Method for measuring genetic distance between loci | "manhattan" |
 | clustMethod | Method used to cluster genomes based on genetic distance | "complete " |
 
-## 2. Specify demographic pattern 
-
-Another required input is `config/demography.csv`. This is a headerless csv file with two columns
-
-| Population size | Time point |
-|-----------------|------------|
-| Column of population sizes | Column of time points, starting with 1 as the generation after burn-in, at which the population size changes |
-
-For example, a file like the following:
-
-```
-1000,10
-2000,15
-3000,20
-```
-
-means that 10 generations after burn-in the population size will change to 1000, at 15 generations post-burn-in the population size will change to 2000, and at 20 generations post-burn-in the population size will change to 3000.
-
-## `config/parameters.tsv`
+## 2. Generate table of simulation parameters `config/parameters.tsv`
 
 There's a simple R script in `src/` to generate this input for you:
 
@@ -60,7 +39,7 @@ There's a simple R script in `src/` to generate this input for you:
 
 Here is a description of each parameter in the table:
 
-| Parameter | Description | 
+| Parameter | Description |
 |-----------|-------------|
 | ID | Number from 1:K, used as a unique ID for each simulation |
 | Q | scaling factor |
@@ -70,7 +49,7 @@ Here is a description of each parameter in the table:
 | sigma | selfing rate |
 | mu | mutation rate |
 | R | recombination rate |
-| tau | time when population is sampled (cycles post-burn-in when simulation ends) | 
+| tau | time when population is sampled (cycles post-burn-in when simulation ends) |
 | kappa | time when sweep is introduced (simulation will restart here if sweep fails) |
 | f0 | threshold frequency to convert sweep from neutral -> beneficial (for soft sweeps) |
 | f1 | threshold frequency to convert sweep from beneficial -> neutral (for partial sweeps) |
@@ -84,11 +63,14 @@ Here is a description of each parameter in the table:
 | M | proportion of non-sweep mutations that are neutral |
 | hU | dominance coefficient for deleterious non-sweep mutations |
 | hB | dominance coefficient for beneficial non-sweep mutations |
-| bBar | average selection coefficient for beneficial non-sweep mutations | 
+| bBar | average selection coefficient for beneficial non-sweep mutations |
 | uBar | average selection coefficient for deleterious non-sweep mutations |
 | alpha | shape parameter for distribution of fitness effects for deleterious non-sweep mutations |
+| r | logistic growth rate |
+| K | logistic carrying capacity |
+| demog | whether to use custom demography in config/demography.csv or a logistic model |
 
-Supported sweep types:
+Depending on your parameter choices, you can simulate lots of different sweep types. Here is a table summarizing what parameter values produce what sweep types:
 
 | Sweep type | f0 | f1 | n |
 |------------|----|----|---|
@@ -101,6 +83,23 @@ Supported sweep types:
 | partial + recurrent | 0 | <1 | >1 |
 | soft + partial + recurrent | 0< | <1 | >1 |
 
+## 3. Specify demographic pattern 
+
+For each simulation in `config/parameters.tsv` you need to define a switch called `demog`. If `demog != 1`, then slim will look for r and K values in to use a logistic growth/death model for the population. If `demog == 1`, then slim will look for `config/demography.csv`. This is a file specifying a cutom demographic pattern. It is a headerless csv file with two columns:
+
+| Population size | Time point |
+|-----------------|------------|
+| Column of population sizes | Column of time points, starting with 1 as the generation after burn-in, at which the population size changes |
+
+For example, a file like the following:
+
+```
+1000,10
+2000,15
+3000,20
+```
+
+means that 10 generations after burn-in the population size will change to 1000 (burn-in population size is defined by N), at 15 generations post-burn-in the population size will change to 2000, and at 20 generations post-burn-in the population size will change to 3000.
 
 # Run workflow
 
@@ -210,7 +209,13 @@ Supported sweep types:
 
 - [x] re-write neural network as a function with hyperparameters
 
-- [ ] add error checking to slim script (tau should be less than kappa for example)
+- [x] train model to infer both tf and ta
+
+- [x] add ML model that uses only summary stats for inference
+
+- [ ] add method to calculate saliency maps from backpropagation gradients
+
+- [ ] add error checking (tau should be less than kappa for example)
 
 - [ ] add creation of parameter table to workflow
 

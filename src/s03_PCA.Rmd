@@ -20,6 +20,88 @@ library(ggpubr)
 today = Sys.Date()
 ```
 
+# plotting functions
+```{r}
+# evaluate abc model similar to cnn (performance on validation data after training on training data)
+# use training data to make a prediction about a validation data point
+# repeat for all validation data points
+train_abc = function(train_sample, val_sample, outcomes, summary_stats, tol, method){
+  # vectors to store results
+  lwr_results = c()
+  median_results = c()
+  mean_results = c()
+  mode_results = c()
+  upr_results = c()
+  
+  # subset frames to relevant metrics
+  train_outcomes = train_sample[,outcomes]
+  train_stats = train_sample[,summary_stats]
+  val_stats = val_sample[,summary_stats]
+  
+  # loop over validation data
+  for(i in 1:nrow(val_stats)){
+    # get one validation simulation
+    val_target = val_stats[i,]
+    
+    # run abc on validation sim
+    result = suppressWarnings(suppressMessages(abc(val_target, train_outcomes, train_stats, tol, method)))
+    #msgs <- invisible(suppressWarnings(suppressMessages(capture.output(capture.output(result <- abc(val_target, train_outcomes, train_stats, tol, method), type = "message"), type="output"))))
+    
+    #cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
+    cred_int = round(c(summary(result)[[2]], summary(result)[[6]]))
+    median_est = round(summary(result)[[3]])
+    mean_est = round(summary(result)[[4]])
+    mode_est = round(summary(result)[[5]])
+    
+    # save prediction
+    lwr_results = c(lwr_results, cred_int[1])
+    median_results = c(median_results, median_est)
+    mean_results = c(mean_results, mean_est)
+    mode_results = c(mode_results, mode_est)
+    upr_results = c(upr_results, cred_int[2])
+  }
+  
+  return(
+    data.frame(
+      truth = val_sample[,outcomes],
+      lwr_cred_int = lwr_results,
+      pred_mean = mean_results,
+      pred_median = median_results,
+      pred_mode = mode_results,
+      upr_cred_int = upr_results
+    )
+  )
+}
+
+# compare predicted values to true values for a continuous variable as a scatterplot
+compare_predictions_truth_scatter = function(predictions, truth, model_labels, truthlab, predlab){
+  # Calculate correlation between truth and results
+  my_cor_coeff = cor.test(predictions, truth, method = "pearson")
+  cor_est = signif(my_cor_coeff$estimate, digits = 3)
+  cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
+  cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
+  cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
+  
+  # plot data
+  plotdata = data.frame(predictions = predictions, truth = truth)
+  
+  p = ggplot(aes(y = predictions, x = truth), data = plotdata) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
+  geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  theme_classic() +
+  theme(text = element_text(size = 18)) +
+  labs(x = truthlab, 
+       y = predlab,
+       title = paste(model_labels, "\nr = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
+  
+  return(p)
+}
+
+# compare distributions of true and predicted values
+
+```
+
 # load data
 ```{r}
 # simulation parameters
@@ -93,6 +175,11 @@ ggplot(params, aes(x = log10(tf))) +
 
 ggplot(params, aes(x = log10(ta))) +
   geom_density() +
+  theme_classic()
+
+ggplot(params, aes(x=log10(tf), y=log10(ta)) ) +
+  geom_bin2d() +
+  scale_fill_continuous(type = "viridis") +
   theme_classic()
 
 ggplot(params, aes(x = log10(tf/ta))) +
@@ -468,33 +555,102 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 
 # approximate bayesian computation
 
+## tune abc hyperparameters
+```{r message=FALSE, warning=FALSE, include=FALSE}
+strat_sample = read.table("stratified_sample_20.tsv", sep = "\t", header = T)
+
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
+
+tols = c(0.01, 0.05, 0.1)
+
+meths = c("rejection", "loclinear", "ridge")
+
+# split data
+train_sample = strat_sample[(strat_sample$split == "train"),]
+
+val_sample = strat_sample[(strat_sample$split == "val"),]
+
+val_sample = val_sample[!is.na(val_sample$num_haplos),]
+
+test_sample = strat_sample[(strat_sample$split == "test"),]
+
+test_sample = test_sample[!is.na(test_sample$num_haplos),]
+
+# make predictions for validation data based on training data
+trained_mods = vector("list", length(tols)*length(meths))
+i = 1
+for(meth in meths){
+  for(tol in tols){
+    print(c(meth, tol))
+    trained_mod = train_abc(train_sample, val_sample, "tf", summary_stats, tol, meth)
+    trained_mods[[i]] = trained_mod
+    names(trained_mods)[[1]] = paste(meth, ", tol = ", tol, sep = "")
+  }
+}
+
+# plot abc performance
+for(trained_mod in trained_mods){
+  compare_predictions_truth_scatter(log10(trained_mod$pred_mean), log10(trained_mod$truth), paste(name(trained_mod), ", Mean", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  
+  compare_predictions_truth_scatter(log10(trained_mod$pred_median), log10(trained_mod$truth), paste(name(trained_mod), ", Median", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+
+compare_predictions_truth_scatter(log10(trained_mod$pred_mode), log10(trained_mod$truth), paste(name(trained_mod), ", Mode", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+}
+```
+
+## testing final abc model
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# use best combination of hyperparameters and evaluate testing data
+best_abc = train_abc(train_sample, test_sample, "tf", summary_stats, 0.01, "rejection")
+
+compare_predictions_truth_scatter(log10(best_abc$pred_median), log10(best_abc$truth), "Rej., Median, tol = 0.01", "log10(True tf)", "log10(Predicted tf)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_median_tol001_", today, ".png", sep = ""), height = 7, width = 7)
+```
+
 ## cross-fold validation to choose a model
-```{r}
+```{r message=FALSE}
 # cross validation on simulated datasets to test accuracy of abc
 # methods = 3
 # tolerances = 3
 # statistics = 3
 # total iterations = 3*3*3 = 27
 
-cv.res.rej.median <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "median")
+strat_sample = read.table("stratified_sample_20.tsv", sep = "\t", header = T)
 
-cv.res.rej.mean <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=200, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mean")
+nval = 889
+tols = c(0.01, 0.05, 0.1)
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
 
-cv.res.rej.mode <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="rejection", statistic = "mode")
+# 
+train_sample = strat_sample[(strat_sample$split == "train"),]
 
-cv.res.reg.median <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "median")
+val_sample = strat_sample[(strat_sample$split == "val"),]
 
-cv.res.reg.mean <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mean")
+val_sample = val_sample[!is.na(val_sample$num_haplos),]
 
-cv.res.reg.mode <- cv4abc(data.frame(tf=params$tf), params[,c(28:31, 34:45)], nval=100, tols=c(0.01, 0.05, 0.1), method="ridge", statistic = "mode")
+# function to make predictions for validation data based on training data
+
+rej.med.tol005 = train_abc(train_sample, val_sample[1:5,], "tf", summary_stats, 0.05, "rejection")
+
+
+
+cv.res.rej.median <- cv4abc(data.frame(tf=abc_sample$tf), abc_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "median")
+
+cv.res.rej.mean <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "mean")
+
+cv.res.rej.mode <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "mode")
+
+cv.res.reg.median <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="ridge", statistic = "median")
+
+cv.res.reg.mean <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="ridge", statistic = "mean")
+
+cv.res.reg.mode <- cv4abc(data.frame(tf=strat_sample$tf), strat_sample[,summary_stats], nval=nval, tols=tols, method="ridge", statistic = "mode")
+
+# multivariate
+cv.res.rej.median <- cv4abc(data.frame(tf=abc_sample$tf, ta=abc_sample$ta), abc_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "median")
 
 summary(cv.res.rej.median)
-summary(cv.res.rej.mean)
-summary(cv.res.rej.mode)
-
-summary(cv.res.reg.median)
-summary(cv.res.reg.mean)
-summary(cv.res.reg.mode)
 
 # function to plot abc results
 plot_abc_results = function(predictions, truth, model_labels){
@@ -513,11 +669,16 @@ plot_abc_results = function(predictions, truth, model_labels){
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
   theme_classic() +
-  theme(text = element_text(size = 20)) +
+  theme(text = element_text(size = 18)) +
   labs(x = "log10(Actual tf)", 
        y = "log10(Predicted tf)",
        title = paste(model_labels, "\nr = ", cor_est, "\nCI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
 }
+
+# multivariate
+plot_abc_results(cv.res.rej.median$estim$tol0.05[,"tf"], cv.res.rej.median$true$tf, "Rej, Median, Tol = 0.05")
+
+plot_abc_results(cv.res.rej.median$estim$tol0.05[,"ta"], cv.res.rej.median$true$ta, "Rej, Median, Tol = 0.05")
 
 # rejection method
 
@@ -531,7 +692,7 @@ rej_mean_tol005_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.05, cv.res.rej
 rej_mean_tol010_fig = plot_abc_results(cv.res.rej.mean$estim$tol0.1, cv.res.rej.mean$true$tf, "Rej, Mean, Tol = 0.1")
 
 ggarrange(rej_mean_tol001_fig, rej_mean_tol005_fig, rej_mean_tol010_fig, nrow = 1, ncol = 3)
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mean_", today, ".png", sep = ""), height = 3, width = 8)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mean_", today, ".png", sep = ""), height = 6, width = 8)
 
 ## median
 rej_med_tol001_fig = plot_abc_results(cv.res.rej.median$estim$tol0.01, cv.res.rej.median$true$tf, "Rej, Med, Tol = 0.01")
@@ -541,7 +702,7 @@ rej_med_tol005_fig = plot_abc_results(cv.res.rej.median$estim$tol0.05, cv.res.re
 rej_med_tol010_fig = plot_abc_results(cv.res.rej.median$estim$tol0.1, cv.res.rej.median$true$tf, "Rej, Med, Tol = 0.1")
 
 ggarrange(rej_med_tol001_fig, rej_med_tol005_fig, rej_med_tol010_fig, nrow = 1, ncol = 3)
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_median_", today, ".png", sep = ""), height = 3, width = 8)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_median_", today, ".png", sep = ""), height = 6, width = 8)
 
 ## mode
 rej_mode_tol001_fig = plot_abc_results(cv.res.rej.mode$estim$tol0.01, cv.res.rej.mode$true$tf, "Rej, Mode, Tol = 0.01")
@@ -551,16 +712,39 @@ rej_mode_tol005_fig = plot_abc_results(cv.res.rej.mode$estim$tol0.05, cv.res.rej
 rej_mode_tol010_fig = plot_abc_results(cv.res.rej.mode$estim$tol0.1, cv.res.rej.mode$true$tf, "Rej, Mode, Tol = 0.1")
 
 ggarrange(rej_mode_tol001_fig, rej_mode_tol005_fig, rej_mode_tol010_fig, nrow = 1, ncol = 3)
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mode_", today, ".png", sep = ""), height = 3, width = 8)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_mode_", today, ".png", sep = ""), height = 6, width = 8)
 
 # regression method
 
 ## mean
+reg_mean_tol001_fig = plot_abc_results(cv.res.reg.mean$estim$tol0.01, cv.res.reg.mean$true$tf, "Rej, Mean, Tol = 0.01")
+
+reg_mean_tol005_fig = plot_abc_results(cv.res.reg.mean$estim$tol0.05, cv.res.reg.mean$true$tf, "Rej, Mean, Tol = 0.05")
+
+reg_mean_tol010_fig = plot_abc_results(cv.res.reg.mean$estim$tol0.1, cv.res.reg.mean$true$tf, "Rej, Mean, Tol = 0.1")
+
+ggarrange(reg_mean_tol001_fig, reg_mean_tol005_fig, reg_mean_tol010_fig, nrow = 1, ncol = 3)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_regression_mean_", today, ".png", sep = ""), height = 6, width = 8)
 
 ## median
+reg_median_tol001_fig = plot_abc_results(cv.res.reg.median$estim$tol0.01, cv.res.reg.median$true$tf, "Rej, Median, Tol = 0.01")
+
+reg_median_tol005_fig = plot_abc_results(cv.res.reg.median$estim$tol0.05, cv.res.reg.median$true$tf, "Rej, Median, Tol = 0.05")
+
+reg_median_tol010_fig = plot_abc_results(cv.res.reg.median$estim$tol0.1, cv.res.reg.median$true$tf, "Rej, Median, Tol = 0.1")
+
+ggarrange(reg_median_tol001_fig, reg_median_tol005_fig, reg_median_tol010_fig, nrow = 1, ncol = 3)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_regression_median_", today, ".png", sep = ""), height = 6, width = 8)
 
 ## mode
+reg_mode_tol001_fig = plot_abc_results(cv.res.reg.mode$estim$tol0.01, cv.res.reg.mode$true$tf, "Rej, Mode, Tol = 0.01")
 
+reg_mode_tol005_fig = plot_abc_results(cv.res.reg.mode$estim$tol0.05, cv.res.reg.mode$true$tf, "Rej, Mode, Tol = 0.05")
+
+reg_mode_tol010_fig = plot_abc_results(cv.res.reg.mode$estim$tol0.1, cv.res.reg.mode$true$tf, "Rej, Mode, Tol = 0.1")
+
+ggarrange(reg_mode_tol001_fig, reg_mode_tol005_fig, reg_mode_tol010_fig, nrow = 1, ncol = 3)
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_regression_mode_", today, ".png", sep = ""), height = 6, width = 8)
 ```
 
 ## apply best method to make predictions on real data
@@ -653,7 +837,7 @@ targets = do.call("rbind", targets)
 # target = 1 row dataframe of observed summary statistics
 # param = 1 column dataframe of parameter values from simulated datasets
 # sumstat = matrix of summary statistics from simulated datasets
-abc_pred_for_real_data = function(target, param, sumstat, tol, method){
+abc_plot_for_real_data = function(target, param, sumstat, tol, method, estim){
   
   # check if any stats have missing, undefined, or infinite values for the target
   inf_check = as.vector(apply(target, MARGIN = 1, FUN = is.infinite))
@@ -671,21 +855,68 @@ abc_pred_for_real_data = function(target, param, sumstat, tol, method){
   # plot point estimate and credible interval on posterior distribution
   plotdata = as.data.frame(my_prediction$unadj.values)
 
-  cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
+  #cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
+  cred_int = round(c(summary(my_prediction)[[2]], summary(my_prediction)[[6]]))
   
-  point_est = round(summary(my_prediction)[[4]])
+  if(estim == "median"){
+    point_est = round(summary(my_prediction)[[3]])
+  }
+  
+  if(estim == "mean"){
+    point_est = round(summary(my_prediction)[[4]])
+  }
 
+  if(estim == "mode"){
+    point_est = round(summary(my_prediction)[[5]])
+  }
+  
   final_plot = ggplot(plotdata, aes(x = V1)) +
-    geom_density() +
-    geom_vline(xintercept = cred_int[1], color = "red", lwd = 1.5, lty = 2) +
-    geom_vline(xintercept = point_est, color = "black", lwd = 1.5, lty = 2) +
-    geom_vline(xintercept = cred_int[2], color = "red", lwd = 1.5, lty = 2) +
-    theme_classic() +
-    theme(text=element_text(size=20)) +
-    labs(x = "tf", title = paste("point estimate = ", point_est, "\n89 % Cred. Int. = [", cred_int[1], ", ", cred_int[2], "]", sep = ""))
+     geom_density() +
+     geom_vline(xintercept = cred_int[1], color = "red", lwd = 1.5, lty = 2) +
+     geom_vline(xintercept = point_est, color = "black", lwd = 1.5, lty = 2) +
+     geom_vline(xintercept = cred_int[2], color = "red", lwd = 1.5, lty = 2) +
+     theme_classic() +
+     theme(text=element_text(size=20)) +
+     labs(x = "tf", title = paste("point estimate = ", point_est, "\n95 % Cred. Int. = [", cred_int[1], ", ", cred_int[2], "]", sep = ""))
   
   return(final_plot)
   
+}
+
+abc_pred_for_real_data = function(target, param, sumstat, tol, method, estim){
+  
+  # check if any stats have missing, undefined, or infinite values for the target
+  inf_check = as.vector(apply(target, MARGIN = 1, FUN = is.infinite))
+  nan_check = as.vector(apply(target, MARGIN = 1, FUN = is.nan))
+  na_check = as.vector(apply(target, MARGIN = 1, FUN = is.na))
+  
+  ss_to_keep = ( !(inf_check) & !(nan_check) & !(na_check) )
+  
+  target = target[,ss_to_keep]
+  sumstat = sumstat[,ss_to_keep]
+  
+  # use abc to make prediction
+  my_prediction = suppressMessages(abc(target=target, param=param, sumstat=sumstat, tol=tol, method=method))
+  
+  # use summary to get credible intervals
+  pred_summary = suppressMessages(summary(my_prediction))
+
+  #cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
+  cred_int = round(c(pred_summary[[2]], pred_summary[[6]]))
+  
+  if(estim == "median"){
+    point_est = round(pred_summary[[3]])
+  }
+  
+  if(estim == "mean"){
+    point_est = round(pred_summary[[4]])
+  }
+
+  if(estim == "mode"){
+    point_est = round(pred_summary[[5]])
+  }
+  
+  return(c(cred_int[1], point_est, cred_int[2]))
 }
 
 # apply abc to each observation
@@ -694,6 +925,29 @@ abc_pred_for_real_data(targets[2,], data.frame(tf = params[,"tf"]), params[,28:4
 abc_pred_for_real_data(targets[3,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
 abc_pred_for_real_data(targets[4,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
 abc_pred_for_real_data(targets[5,], data.frame(tf = params[,"tf"]), params[,28:45], 0.01, "rejection")
+
+# Use ABC to make predictions on testing data
+# using the training data as the baseline
+# use parameters that appeared optimal during cross-validation
+all_predictions = NULL
+
+for(i in strat_sample$ID[which(strat_sample$split == "test")]){
+  
+  new_prediction = abc_pred_for_real_data(strat_sample[(strat_sample$ID == i),summary_stats], data.frame(tf = strat_sample[(strat_sample$split == "train"),"tf"]), strat_sample[(strat_sample$split == "train"),summary_stats], 0.05, "ridge", "median")
+
+  all_predictions = rbind(all_predictions, c(i, new_prediction))  
+  
+}
+
+all_predictions = as.data.frame(all_predictions)
+
+names(all_predictions) = c("ID", "abc_lwr_ci", "abc_est", "abc_upr_ci")
+
+strat_sample_abc = merge(strat_sample, all_predictions, by = "ID")
+
+compare_predictions_truth(log10(strat_sample_abc$abc_est), log10(strat_sample_abc$tf), "ABC, ridge, tol = 0.05", "log10(true tf)", "log10(predicted tf)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 ```
 
 # Machine learning
@@ -707,9 +961,9 @@ val_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selecti
 
 test_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual.txt")
 
-#
-names(params)[1] = "V1"
-test_pred_vs_act = merge(params[,c("V1", "ta")], test_pred_vs_act, by = "V1")
+# merge in sweep ages to see how predictions falter with older sweeps
+#names(params)[1] = "V1"
+#test_pred_vs_act = merge(params[,c("V1", "ta")], test_pred_vs_act, by = "V1")
 
 # subset data to remove outliers
 #pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= 5000),]
@@ -809,6 +1063,11 @@ ggplot(aes(y = V2, x = V3), data = val_pred_vs_act) +
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/val_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## test set
+
+compare_predictions_truth(test_pred_vs_act$V3, test_pred_vs_act$V2, "CNN, test set", "log10(true tf)", "log10(predicted tf)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
+
 my_cor_coeff = cor.test(test_pred_vs_act$V2, test_pred_vs_act$V3, method = "pearson")
 
 cor_est = signif(my_cor_coeff$estimate, digits = 3)
@@ -920,7 +1179,65 @@ step(error_mod)
 error_mod = lm(log10(error) ~ log10(SQ) + NQ + h, data = errors)
 summary(error_mod)
 ```
-sq
+
+## dense neural net models
+
+```{r}
+# load data
+train_pred_vs_act_dense = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/train_predicted_vs_actual_dense.txt")
+
+val_pred_vs_act_dense = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/val_predicted_vs_actual_dense.txt")
+
+test_pred_vs_act_dense = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual_dense.txt")
+
+## Distribution of fixation times
+test_pred_vs_act_dense_melt = melt(as.data.table(test_pred_vs_act_dense), id = c("V1", "V4"))
+test_pred_vs_act_dense_melt$variable = as.character(test_pred_vs_act_dense_melt$variable)
+test_pred_vs_act_dense_melt$variable[(test_pred_vs_act_dense_melt$variable == "V2")] = "Actual"
+test_pred_vs_act_dense_melt$variable[(test_pred_vs_act_dense_melt$variable == "V3")] = "Predicted"
+
+ggplot(test_pred_vs_act_dense_melt, aes(x = value, color = variable)) +
+  geom_density() +
+  theme_classic() +
+  theme(text= element_text(size = 20)) +
+  labs(x = "log10(Fixation time)", color = "Type", title = "Testing set")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_density_denseNet_", today, ".png", sep = ""), height = 7, width = 7)
+
+# scatterplot
+compare_predictions_truth(test_pred_vs_act_dense$V3, test_pred_vs_act_dense$V2, "Neural Net, test set", "log10(true tf)", "log10(predicted tf)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_denseNet_", today, ".png", sep = ""), height = 7, width = 7)
+```
+
+## multivariate models
+
+```{r}
+val_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/val_predicted_vs_actual.txt")
+
+test_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual.txt")
+
+ggplot(test_pred_vs_act, aes(x = V2, y = V4)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_classic()
+
+ggplot(test_pred_vs_act, aes(x = V3, y = V5)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_classic()
+
+ggplot(val_pred_vs_act, aes(x = V2, y = V4)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_classic()
+
+ggplot(val_pred_vs_act, aes(x = V3, y = V5)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  theme_classic()
+```
+
 # Adjust model predictions so that they have a 1:1 relationship with simulations
 ```{r}
 
@@ -1177,6 +1494,60 @@ for(bin in unique(params$bin)){
 # table(strat_sample$bin_tf, strat_sample$bin_ta)
 
 
+```
+
+# 2D stratified random sampling
+```{r}
+width = 0.15
+max_bin_height = 10
+
+breaks_tf = seq(from = min(log10(params$tf))- width, to = max(log10(params$tf))+ width, by = width)
+breaks_ta = seq(from = min(log10(params$ta))- width, to = max(log10(params$ta))+width, by = width)
+
+params$bin_tf = cut(log10(params$tf), breaks = breaks_tf)
+params$bin_ta = cut(log10(params$ta), breaks = breaks_ta)
+
+table(params$bin_tf, params$bin_ta)
+
+ggplot(params, aes(x=bin_tf, y=bin_ta) ) + 
+   geom_bin2d() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ 
+ggplot(params[(log10(params$tf) > 1.64) & (log10(params$tf) < 4.49),], aes(x=bin_tf, y=bin_ta) ) + 
+   geom_bin2d() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# Levels 
+levels_to_keep = c("(1.64,1.79]", "(1.79,1.94]", "(1.94,2.09]", "(2.09,2.24]", "(2.24,2.39]", "(2.39,2.54]", "(2.54,2.69]", "(2.69,2.84]", "(2.84,2.99]", "(2.99,3.14]", "(3.14,3.29]", "(3.29,3.44]", "(3.44,3.59]", "(3.59,3.74]", "(3.74,3.89]", "(3.89,4.04]", "(4.04,4.19]", "(4.19,4.34]")
+ 
+params_filt = params[(params$bin_tf %in% levels_to_keep),]
+ 
+table(params_filt$bin_tf, params_filt$bin_ta)
+
+max_bin_height = min(as.vector(table(params_filt$bin_tf, params_filt$bin_ta))[as.vector(table(params_filt$bin_tf, params_filt$bin_ta)) >= max_bin_height])
+
+strat_sample = NULL
+ for(bin_tf in unique(params_filt$bin_tf)){
+   for(bin_ta in unique(params_filt$bin_ta)){
+     fix_times_bin = params_filt[( (params_filt$bin_tf == bin_tf) & (params_filt$bin_ta == bin_ta) ),]
+     if(nrow(fix_times_bin) >= max_bin_height){
+       down_sampled_bin = fix_times_bin[sample(1:nrow(fix_times_bin), replace = F, size = max_bin_height),]
+     strat_sample = rbind(strat_sample, down_sampled_bin)
+    }
+  }
+}
+  
+
+table(strat_sample$bin_tf, strat_sample$bin_ta)
+
+ggplot(strat_sample, aes(x=bin_tf, y=bin_ta) ) + 
+   geom_bin2d() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+
+```{r}
 # check that tf is now uniformly distributed across data
 ggplot(strat_sample, aes(x = log10(tf))) +
   geom_density() +
@@ -1308,8 +1679,23 @@ ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(tf))) +
   theme_classic() +
   labs(x = "log10(fixation times)")
 
+ggplot(strat_sample[(strat_sample$split == "train"),], aes(x=log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age)")
+
+ggplot(strat_sample[(strat_sample$split == "test"),], aes(x=log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age)")
+
+ggplot(strat_sample[(strat_sample$split == "val"),], aes(x=log10(ta))) +
+  geom_density() +
+  theme_classic() +
+  labs(x = "log10(sweep age)")
+
 # save stratified sample
-write.table(strat_sample, "stratified_sample_18.tsv", sep = "\t", quote = F, row.names = F)
+write.table(strat_sample, "stratified_sample_20.tsv", sep = "\t", quote = F, row.names = F)
 ```
 
 # subset simulations that are outside range of training data

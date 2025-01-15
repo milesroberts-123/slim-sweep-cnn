@@ -22,9 +22,10 @@ batch_size = 32
 epochs = 200
 patience = 20
 #slim_params = "../config/parameters.tsv"
-slim_params = "stratified_sample_18.tsv"
+slim_params = "stratified_sample_20.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
+outcome_variable = "tf"
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -68,6 +69,10 @@ val_params['ID'] = val_params["ID"].replace(to_replace = r"$", value = ".png", r
 train_params['tf'] = train_params['tf'].apply(np.log10)
 val_params['tf'] = val_params['tf'].apply(np.log10)
 test_params['tf'] = test_params['tf'].apply(np.log10)
+
+train_params['ta'] = train_params['ta'].apply(np.log10)
+val_params['ta'] = val_params['ta'].apply(np.log10)
+test_params['ta'] = test_params['ta'].apply(np.log10)
 
 # load fixation times
 #print("Loading fixation times...")
@@ -126,21 +131,21 @@ def build_model(hp):
   input_B = keras.layers.Input(shape = [128], name = "positions")
   conv1 = keras.layers.Conv2D(filters = hp.Int("conv1-filters", min_value=16, max_value=128, step=16), kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
   pool1 = keras.layers.MaxPooling2D(2)(conv1)
-  pool1 = keras.layers.Dropout(hp.Float(name = "pool1-dropout", min_value=0, max_value=1))(pool1)
+  pool1 = keras.layers.Dropout(hp.Float(name = "pool1-dropout", min_value=0, max_value=0.99))(pool1)
   conv2 = keras.layers.Conv2D(filters = hp.Int("conv2-filters", min_value=16, max_value=128, step=16), kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
   pool2 = keras.layers.MaxPooling2D(2)(conv2)
-  pool2 = keras.layers.Dropout(hp.Float(name = "pool2-dropout", min_value=0, max_value=1))(pool2)
+  pool2 = keras.layers.Dropout(hp.Float(name = "pool2-dropout", min_value=0, max_value=0.99))(pool2)
   conv3 = keras.layers.Conv2D(filters = hp.Int("conv3-filters", min_value=16, max_value=128, step=16), kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool2)
   pool3 = keras.layers.MaxPooling2D(2)(conv3)
-  pool3 = keras.layers.Dropout(hp.Float(name = "pool3-dropout", min_value=0, max_value=1))(pool3)
+  pool3 = keras.layers.Dropout(hp.Float(name = "pool3-dropout", min_value=0, max_value=0.99))(pool3)
   flat = keras.layers.Flatten()(pool3)
   dense_A = keras.layers.Dense(units=hp.Int("denseA-units", min_value=32, max_value=512, step=32), activation = "relu")(flat)
-  dense_A = keras.layers.Dropout(hp.Float(name = "denseA-dropout", min_value=0, max_value=1))(dense_A)
+  dense_A = keras.layers.Dropout(hp.Float(name = "denseA-dropout", min_value=0, max_value=0.99))(dense_A)
   dense_B = keras.layers.Dense(units=hp.Int("denseB-units", min_value=32, max_value=512, step=32), activation = "relu")(input_B)
-  dense_B = keras.layers.Dropout(hp.Float(name = "denseB-dropout", min_value=0, max_value=1))(dense_B)
+  dense_B = keras.layers.Dropout(hp.Float(name = "denseB-dropout", min_value=0, max_value=0.99))(dense_B)
   concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
   full = keras.layers.Dense(units=hp.Int("full-units", min_value=32, max_value=512, step=32), activation = "relu")(concat)
-  full = keras.layers.Dropout(hp.Float(name = "full-dropout", min_value=0, max_value=1))(full)
+  full = keras.layers.Dropout(hp.Float(name = "full-dropout", min_value=0, max_value=0.99))(full)
   output = keras.layers.Dense(1, name = "output")(full)
   model = keras.Model(inputs = [input_A, input_B], outputs = [output])
 
@@ -166,7 +171,7 @@ tuner.search_space_summary()
 
 # Seach hyperparameter space
 print("Starting search...")
-tuner.search((train_images, train_pos), train_params["tf"], epochs=2, validation_data=((val_images, val_pos), val_params["tf"]))
+tuner.search((train_images, train_pos), train_params[outcome_variable], epochs=2, validation_data=((val_images, val_pos), val_params[outcome_variable]))
 
 # Get the top 2 models.
 print("Extract best model...")
@@ -230,8 +235,8 @@ def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
 
 print("Test custom generator...")
 
-train_generator = createGenerator(train_params, train_pos, batch_size, "data/images/", "ID", "tf")
-val_generator = createGenerator(val_params, val_pos, batch_size, "data/images/", "ID", "tf")
+train_generator = createGenerator(train_params, train_pos, batch_size, "data/images/", "ID", outcome_variable)
+val_generator = createGenerator(val_params, val_pos, batch_size, "data/images/", "ID", outcome_variable)
 
 #train_generator = mydatagen.flow_from_dataframe(dataframe=train_params, directory="data/images/", 
 #                                              x_col="ID", y_col="tf", has_ext=True, 
@@ -253,19 +258,19 @@ print("Evaluating model on testing data...")
 test_pred = np.stack([model((test_images, test_pos), training = True) for sample in range(100)])
 test_pred_mean = test_pred.mean(axis=0)
 test_pred_std = test_pred.std(axis=0)
-np.savetxt('test_predicted_vs_actual.txt', np.c_[test_ids, test_params["tf"], test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('test_predicted_vs_actual.txt', np.c_[test_ids, test_params[outcome_variable], test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 print("Evaluating model on validation data...")
 val_pred = np.stack([model((val_images, val_pos), training = True) for sample in range(100)])
 val_pred_mean = val_pred.mean(axis=0)
 val_pred_std = val_pred.std(axis=0)
-np.savetxt('val_predicted_vs_actual.txt', np.c_[val_ids, val_params["tf"], val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('val_predicted_vs_actual.txt', np.c_[val_ids, val_params[outcome_variable], val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 print("Evaluating model on training data...")
 train_pred = np.stack([model((train_images, train_pos), training = True) for sample in range(100)])
 train_pred_mean = train_pred.mean(axis=0)
 train_pred_std = train_pred.std(axis=0)
-np.savetxt('train_predicted_vs_actual.txt', np.c_[train_ids, train_params["tf"], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('train_predicted_vs_actual.txt', np.c_[train_ids, train_params[outcome_variable], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 # test model
 #print("Testing model...")
