@@ -44,8 +44,9 @@ train_abc = function(train_sample, val_sample, outcomes, summary_stats, tol, met
     val_target = val_stats[i,]
     
     # run abc on validation sim
-    result = invisible(capture.output(abc(val_target, train_outcomes, train_stats, tol, method)))
-
+    result = suppressWarnings(suppressMessages(abc(val_target, train_outcomes, train_stats, tol, method)))
+    #msgs <- invisible(suppressWarnings(suppressMessages(capture.output(capture.output(result <- abc(val_target, train_outcomes, train_stats, tol, method), type = "message"), type="output"))))
+    
     #cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
     cred_int = round(c(summary(result)[[2]], summary(result)[[6]]))
     median_est = round(summary(result)[[3]])
@@ -554,8 +555,61 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 
 # approximate bayesian computation
 
+## tune abc hyperparameters
+```{r message=FALSE, warning=FALSE, include=FALSE}
+strat_sample = read.table("stratified_sample_20.tsv", sep = "\t", header = T)
+
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
+
+tols = c(0.01, 0.05, 0.1)
+
+meths = c("rejection", "loclinear", "ridge")
+
+# split data
+train_sample = strat_sample[(strat_sample$split == "train"),]
+
+val_sample = strat_sample[(strat_sample$split == "val"),]
+
+val_sample = val_sample[!is.na(val_sample$num_haplos),]
+
+test_sample = strat_sample[(strat_sample$split == "test"),]
+
+test_sample = test_sample[!is.na(test_sample$num_haplos),]
+
+# make predictions for validation data based on training data
+trained_mods = vector("list", length(tols)*length(meths))
+i = 1
+for(meth in meths){
+  for(tol in tols){
+    print(c(meth, tol))
+    trained_mod = train_abc(train_sample, val_sample, "tf", summary_stats, tol, meth)
+    trained_mods[[i]] = trained_mod
+    names(trained_mods)[[1]] = paste(meth, ", tol = ", tol, sep = "")
+  }
+}
+
+# plot abc performance
+for(trained_mod in trained_mods){
+  compare_predictions_truth_scatter(log10(trained_mod$pred_mean), log10(trained_mod$truth), paste(name(trained_mod), ", Mean", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  
+  compare_predictions_truth_scatter(log10(trained_mod$pred_median), log10(trained_mod$truth), paste(name(trained_mod), ", Median", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+
+compare_predictions_truth_scatter(log10(trained_mod$pred_mode), log10(trained_mod$truth), paste(name(trained_mod), ", Mode", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+}
+```
+
+## testing final abc model
+```{r message=FALSE, warning=FALSE, include=FALSE}
+# use best combination of hyperparameters and evaluate testing data
+best_abc = train_abc(train_sample, test_sample, "tf", summary_stats, 0.01, "rejection")
+
+compare_predictions_truth_scatter(log10(best_abc$pred_median), log10(best_abc$truth), "Rej., Median, tol = 0.01", "log10(True tf)", "log10(Predicted tf)")
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_median_tol001_", today, ".png", sep = ""), height = 7, width = 7)
+```
+
 ## cross-fold validation to choose a model
-```{r}
+```{r message=FALSE}
 # cross validation on simulated datasets to test accuracy of abc
 # methods = 3
 # tolerances = 3
@@ -563,6 +617,10 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 # total iterations = 3*3*3 = 27
 
 strat_sample = read.table("stratified_sample_20.tsv", sep = "\t", header = T)
+
+nval = 889
+tols = c(0.01, 0.05, 0.1)
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
 
 # 
 train_sample = strat_sample[(strat_sample$split == "train"),]
@@ -573,11 +631,9 @@ val_sample = val_sample[!is.na(val_sample$num_haplos),]
 
 # function to make predictions for validation data based on training data
 
-train_abc(train_sample, val_sample, "tf", summary_stats, 0.05, "rejection", "median")
+rej.med.tol005 = train_abc(train_sample, val_sample[1:5,], "tf", summary_stats, 0.05, "rejection")
 
-nval = 889
-tols = c(0.01, 0.05, 0.1)
-summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
+
 
 cv.res.rej.median <- cv4abc(data.frame(tf=abc_sample$tf), abc_sample[,summary_stats], nval=nval, tols=tols, method="rejection", statistic = "median")
 

@@ -58,32 +58,37 @@ initialize() {
 	defineGlobal("endBurn", 10*asInteger(N/Q));
 	catn(simID + ": "+ sim.cycle + " - BURN-IN WILL END AT: " + endBurn);
 
-	// Load in file specifying custom 1-population demography
-	lines = readFile("../config/demography.csv"); 
-	lines = lines[substr(lines, 0, 1) != "//"]; 
+	// choose whether to do a custom demography or a logistic map
+	if(demog == 1){
+		catn(simID + ": "+ sim.cycle + " - USING CUSTOM DEMOGRAPHY");
+		// Load in file specifying custom 1-population demography
+		lines = readFile("../config/demography.csv"); 
+		lines = lines[substr(lines, 0, 1) != "//"]; 
   
-	population_sizes = c();
-	time_steps = c();
+		population_sizes = c();
+		time_steps = c();
 
-	for (line in lines) { 
-		fields = strsplit(line, ","); 
-		population_size = asInteger(asInteger(fields[0])/Q); 
-		time_step = asInteger(asInteger(fields[1])/Q);
+		for (line in lines) { 
+			fields = strsplit(line, ","); 
+			population_size = asInteger(asInteger(fields[0])/Q); 
+			time_step = asInteger(asInteger(fields[1])/Q);
 
-		community.registerEarlyEvent(NULL, s5.source, time_step + endBurn, time_step + endBurn);
+			community.registerEarlyEvent(NULL, s5.source, time_step + endBurn, time_step + endBurn);
 		
-		population_sizes = c(population_sizes, population_size);
-		time_steps = c(time_steps, time_step);
+			population_sizes = c(population_sizes, population_size);
+			time_steps = c(time_steps, time_step);
+		}
+
+		catn(simID + ": "+ sim.cycle + " - GENERATIONS POST-BURN-IN TO CHANGE POPULATION SIZES: " + paste(time_steps));
+		catn(simID + ": "+ sim.cycle + " - CORRESPONDING POPULATION SIZES: " + paste(population_sizes));
+
+		defineGlobal("population_sizes", population_sizes);
+		defineGlobal("time_steps", time_steps);
+
+	} else {
+		catn(simID + ": "+ sim.cycle + " - USING LOGISTIC MAP DEMOGRAPHY AT " + endBurn);
+		community.rescheduleScriptBlock(s6, start=endBurn, end=endBurn + 100000000);
 	}
-
-	catn(simID + ": "+ sim.cycle + " - GENERATIONS POST-BURN-IN TO CHANGE POPULATION SIZES: " + paste(time_steps));
-	catn(simID + ": "+ sim.cycle + " - CORRESPONDING POPULATION SIZES: " + paste(population_sizes));
-
-	defineGlobal("population_sizes", population_sizes);
-	defineGlobal("time_steps", time_steps);
-
-	// vector to track harmonic mean of population sizes
-	//defineGlobal("nx", 0);
 
 	// generate schedule for beneficial mutations
 	gens = cumSum(rpois(asInteger(n), lambda/Q)); // make a vector of start gens
@@ -98,7 +103,7 @@ initialize() {
 	for (gen in gens) {
 		community.registerLateEvent(NULL, s1.source, gen, gen);
 	}
-
+	
 	// reschedule saving of simulation to be after burn-in, but before benefical mutation is introduced
 	community.rescheduleScriptBlock(s0, start=Y-1, end=Y-1);
 
@@ -131,13 +136,23 @@ s0 100000000 late(){
 	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
 }
 
-// Track reciprocal of population sizes
-// change population size
+// CUSTOM DEMOGRAPHY: change population size
 s5 100000000 early() {
 	catn(simID + ": " + sim.cycle + " - GENERATIONS POST-BURN-IN:" + paste(sim.cycle - endBurn));
 	newSize = population_sizes[which(time_steps == (sim.cycle - endBurn))];
 	p1.setSubpopulationSize(newSize);
         catn(simID + ": " + sim.cycle + " - POPULATION SIZE: " + newSize);
+}
+
+// LOGISTIC MAP DEMOGRAPHY: change population size
+s6 1000000 early() {
+	currentSize = p1.individualCount;
+	newSize = asInteger(r*(1 - currentSize/K)*currentSize + currentSize); 
+	p1.setSubpopulationSize(newSize);
+        catn(simID + ": " + sim.cycle + " - POPULATION SIZE: " + newSize);
+	if(newSize == currentSize){
+		community.rescheduleScriptBlock(self, 1000000, 1000000);
+	}
 }
 
 // introduce the sweep mutation in middle of simulated region
