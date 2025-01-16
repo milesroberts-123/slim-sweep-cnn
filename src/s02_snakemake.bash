@@ -40,14 +40,9 @@ snakemake --unlock --cores 1
 # Max job submit count is 1000, subtract 1 to account for scheduler
 echo Running snakemake...
 
-# command to use most of josephsnodes
-#snakemake --cluster "sbatch --time 7-00:00:00 --partition=josephsnodes --account=josephsnodes --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 900 --cores 900 --use-conda --rerun-incomplete --rerun-triggers mtime --retries 2
-
-# command to subset of josephsnodes
+# split snakemake workflow into batchs so that computing DAG is easier
 for num in {1..50}
 do
   snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=josephsnodes --account=josephsnodes" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going --batch all=$num/50
 done
 
-# command to use lots of scavenger nodes
-#snakemake --cluster "sbatch --time 3:59:00 --qos=scavenger --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu}" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 3 --keep-going

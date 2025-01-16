@@ -8,8 +8,10 @@ rule create_image:
 	log:
 		"logs/create_image/{ID}.log"
 	params:
-		distMethod="manhattan",
-		clustMethod="complete"
+		distMethod=config["distMethod"],
+		clustMethod=config["clustMethod"],
+		nidv=config["nidv"],
+		nloc=config["nloc"]
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000,
@@ -17,4 +19,4 @@ rule create_image:
 	conda:
 		"../envs/R.yml"
 	shell:
-		"Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} &> {log}"
+		"Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {params.nidv} {params.nloc} &> {log}"
