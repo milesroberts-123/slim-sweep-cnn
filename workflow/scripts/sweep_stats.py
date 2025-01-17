@@ -1,3 +1,4 @@
+import os
 import numpy
 import datetime
 import pandas
@@ -8,6 +9,10 @@ import tqdm
 import click
 import scipy
 
+# Make output directories
+os.makedirs("data/sweep_stats/", exist_ok=True)
+
+# function to load a VCF and make numpy array
 def load_vcf(vcf):
     # load vcf
     print(datetime.datetime.now(), "Loading " + vcf + "...")

@@ -80,37 +80,37 @@ print("Sampling r and K based on demography...")
 if(demography == "constant"){
   params$r = 0 
   params$K = params$N
-  params$custom_demography == 0
+  params$custom_demography = 0
 }
 
 if(demography == "growth"){
   params$r = runif(K, min = 0, max = 0.5)
   params$K = params$N*runif(K, min = 1.01, max = 1.5)
-  params$custom_demography == 0
+  params$custom_demography = 0
 }
 
 if(demography == "decay"){
   params$r = runif(K, min = 0, max = 0.5)
   params$K = params$N*runif(K, min = 0.5, max = 0.99)
-  params$custom_demography == 0
+  params$custom_demography = 0
 }
 
 if(demography == "cycle"){
   params$r = runif(K, min = 2, max = sqrt(6))
   params$K = params$N*runif(K, min = 0.8, max = 1.2) 
-  params$custom_demography == 0
+  params$custom_demography = 0
 }
 
 if(demography == "chaos"){
   params$r = runif(K, min = sqrt(6), max = 3)
   params$K = params$N*runif(K, min = 0.8, max = 1.2)
-  params$custom_demography == 0
+  params$custom_demography = 0
 }
 
 if(demography == "custom"){
   params$r = 0
   params$K = 0
-  params$custom_demography == 1
+  params$custom_demography = 1
 }
 
 # proportions of deleterious, beneficial, neutral mutations
