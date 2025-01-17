@@ -13,8 +13,8 @@ output_image = args[2]
 output_pos = args[3]
 distMethod = args[4]
 clustMethod = args[5]
-nidv = args[6]
-nloc = args[7]
+nidv = as.numeric(args[6])
+nloc = as.numeric(args[7])
 
 print(input)
 print(output_image)
