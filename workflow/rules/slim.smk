@@ -94,6 +94,14 @@ def get_fsimple(wildcards):
         fsimple = parameters.loc[parameters["ID"] == wildcards.ID, "fsimple"]
         return float(fsimple.iloc[0])
 
+def get_r(wildcards):
+        r = parameters.loc[parameters["ID"] == wildcards.ID, "r"]
+        return float(r.iloc[0])
+
+def get_K(wildcards):
+        K = parameters.loc[parameters["ID"] == wildcards.ID, "K"]
+        return float(K.iloc[0])
+
 def get_custom_demography(wildcards):
         custom_demography = parameters.loc[parameters["ID"] == wildcards.ID, "custom_demography"]
         return float(custom_demography.iloc[0])
@@ -131,6 +139,8 @@ rule slim:
 		ncf=get_ncf,
 		cl=get_cl,
 		fsimple=get_fsimple,
+		r=get_r,
+		K=get_K,
 		custom_demography=get_custom_demography
 	threads: 1
 	resources:
@@ -141,7 +151,7 @@ rule slim:
 	shell:
 		"""
 		# run simulation
-		slim -d ID={wildcards.ID} -d demog={params.custom_demography} -d Q={params.Q} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d kappa={params.kappa} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} scripts/simulation_custom_demography_any_age.slim &> {log}
+		slim -d ID={wildcards.ID} -d demog={params.custom_demography} -d Q={params.Q} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d kappa={params.kappa} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} -d r={params.r} -d K={params.K} scripts/simulation_custom_demography_any_age.slim &> {log}
 
 		# convert vcf to simple table
 		# remove hastag from CHROM
