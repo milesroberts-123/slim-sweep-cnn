@@ -28,10 +28,10 @@ params = data.frame(
   sigma = 0,
   #mu = 10^runif(K, min = -8, max = -7), # mutation rate
   #mu = runif(K, min = 6e-9, max = 8e-9),
-  mu = 10^runif(K, min = -9, max = -8),
+  mu = 10^runif(K, min = -8.5, max = -7.5),
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
   #R = runif(K, min = 7e-10, max = 9e-10),
-  R = 10^runif(K, min = -9, max = -8),
+  R = 10^runif(K, min = -9, max = -7),
   #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
   #tau = 1,
   tau = round(10^runif(K, min = 0, max = 4)),
@@ -57,6 +57,8 @@ sample_sel_coeff = function(x){
 }
 
 params$sweepS = unlist(lapply(params$N, FUN = sample_sel_coeff))
+
+all(params$sweepS > 1/params$N)
 
 # spacing between beneficial mutations
 print("Sampling lambda...")
