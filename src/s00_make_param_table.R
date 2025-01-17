@@ -9,6 +9,7 @@ yamlfile = yaml.load_file(yamlpath)
 
 # parse out individual parameters in yaml file
 K = yamlfile[["K"]]
+demography = yamlfile[["demography"]]
 
 # build table of paramters
 print("Building table of parameters...")
@@ -16,21 +17,21 @@ params = data.frame(
   ID = 1:K, # unique ID for each simulation
   #Q = runif(K, min = 10, max = 15), # scaling factor for simulation
   Q = 1,
-  #N = sample(1000:10000, size = K, replace = T), # initial population size
+  N = sample(1000:10000, size = K, replace = T), # initial population size
   #N = 124000,
-  N = 5000,
-  sweepS = 10^runif(K, min = log10(1/5000), max = 0), # effect of beneficial mutation
+  #N = 5000,
+  #sweepS = 10^runif(K, min = -4, max = 0), # effect of beneficial mutation
   h = runif(K, min = 0, max = 1), # dominance coefficient
   #h = 1,
   #sigma = runif(K, min = 0, max = 1), # rate of selfing
-  sigma = runif(K, min = 0.95, max = 1),
-  #sigma = 0,
+  #sigma = runif(K, min = 0.95, max = 1),
+  sigma = 0,
   #mu = 10^runif(K, min = -8, max = -7), # mutation rate
   #mu = runif(K, min = 6e-9, max = 8e-9),
-  mu = 1e-8,
+  mu = 10^runif(K, min = -9, max = -8),
   #R = 10^runif(K, min = -9, max = -6), # recombination rate
   #R = runif(K, min = 7e-10, max = 9e-10),
-  R = 1e-8,
+  R = 10^runif(K, min = -9, max = -8),
   #tau = sample(0:20000, size = K, replace = T), # time between fixation and observation
   #tau = 1,
   tau = round(10^runif(K, min = 0, max = 4)),
@@ -43,9 +44,19 @@ params = data.frame(
   #n = sample(c(rep(1, times = K/2), rep(2, times = K/2)), replace = F, size = K), # number of genomes to introduce beneficial mutations to after burn-in
   n = 1,
   #r = sample(c(rep(0, times = K/5), runif(2*K/5, min = 0, max = 0.5), runif(K/5, min = 2, max = sqrt(6)), runif(K/5, min = sqrt(6), max = 3)), size = K, replace = F), # growth rate
+  #r = 0,
   #ncf = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 1)), size = K, replace = F) # fraction of recombination events that are not cross overs
   ncf = 0
 )
+
+# selection coefficient of sweep
+print("Sampling sweep selection coefficient...")
+
+sample_sel_coeff = function(x){
+  10^runif(1, min = log10(1/x), max = 0)
+}
+
+params$sweepS = unlist(lapply(params$N, FUN = sample_sel_coeff))
 
 # spacing between beneficial mutations
 print("Sampling lambda...")
@@ -64,17 +75,42 @@ params$fsimple[(params$ncf > 0)] = runif(K/2, min = 0, max = 1)
   
 # carrying capacity
 # determine which samples will be shrinking, the growth rate for shrinking samples can't be too high, or else you'll get negative population sizes
-print("Sampling K...")
-params$K = params$N
+print("Sampling r and K based on demography...")
 
-if(any(params$r > 0)){
-  decID = sample(params$ID[( (params$r > 0) & (params$r < 0.5) )], size = K/5, replace = F)
+if(demography == "constant"){
+  params$r = 0 
+  params$K = params$N
+  params$custom_demography = 0
+}
 
-  params$K[(params$ID %in% decID)] = params$N[(params$ID %in% decID)]*runif(K/5, min = 0.5, max = 0.99)
-  params$K[!(params$ID %in% decID)]  = params$N[!(params$ID %in% decID)]*runif(K/5, min = 1.01, max = 1.5)
+if(demography == "growth"){
+  params$r = runif(K, min = 0, max = 0.5)
+  params$K = params$N*runif(K, min = 1.01, max = 1.5)
+  params$custom_demography = 0
+}
 
-  params$K[(params$r > 2 & params$r < sqrt(6))] = params$N[(params$r > 2 & params$r < sqrt(6))]*runif(K/5, min = 0.8, max = 1.2) # 2-cycling
-  params$K[(params$r > sqrt(6) & params$r < 3)] = params$N[(params$r > sqrt(6) & params$r < 3)]*runif(K/5, min = 0.8, max = 1.2) # >2-cycling
+if(demography == "decay"){
+  params$r = runif(K, min = 0, max = 0.5)
+  params$K = params$N*runif(K, min = 0.5, max = 0.99)
+  params$custom_demography = 0
+}
+
+if(demography == "cycle"){
+  params$r = runif(K, min = 2, max = sqrt(6))
+  params$K = params$N*runif(K, min = 0.8, max = 1.2) 
+  params$custom_demography = 0
+}
+
+if(demography == "chaos"){
+  params$r = runif(K, min = sqrt(6), max = 3)
+  params$K = params$N*runif(K, min = 0.8, max = 1.2)
+  params$custom_demography = 0
+}
+
+if(demography == "custom"){
+  params$r = 0
+  params$K = 0
+  params$custom_demography = 1
 }
 
 # proportions of deleterious, beneficial, neutral mutations

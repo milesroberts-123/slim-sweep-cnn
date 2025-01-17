@@ -24,3 +24,7 @@ distMethod: "manhattan"
 
 # method for clustering genomes based on genetic distance
 clustMethod: "complete"
+
+# demographic pattern if using logistic demography
+# options: constant, growth, decay, cycle, chaos, custom
+demography: "constant"

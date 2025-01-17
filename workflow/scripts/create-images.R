@@ -13,12 +13,16 @@ output_image = args[2]
 output_pos = args[3]
 distMethod = args[4]
 clustMethod = args[5]
+nidv = args[6]
+nloc = args[7]
 
 print(input)
 print(output_image)
 print(output_pos)
 print(distMethod)
 print(clustMethod)
+print(nidv)
+print(nloc)
 
 # load simulation output
 print("Reading in table...")
@@ -29,7 +33,7 @@ print("Number of variants:")
 varCount = nrow(simvar)
 print(varCount)
 
-if(varCount > 128){
+if(varCount > nloc){
  print("Subsampling table because there are too many variants...")
  
  # Find distance from center, where beneficial mutation was
@@ -38,45 +42,24 @@ if(varCount > 128){
  print(dist_from_center)
  
  print("Set of variants closest to beneficial mutation:")
- closest_variants = (sort(dist_from_center, index.return = TRUE)$ix)[1:128]
+ closest_variants = (sort(dist_from_center, index.return = TRUE)$ix)[1:nloc]
  
  print(closest_variants)
  print(simvar$POS[closest_variants])
- # get variant closest to site of beneficial mutation as the center
- #print("Mutation nearest to simulated region:")
- #row_nearest_center = which(dist_from_center == min(dist_from_center))
- #print(c(row_nearest_center,simvar$POS[row_nearest_center]))
- 
- # extract upstream and downstream variants
- #print("Indices for upstream and downstream variants:")
- #start = row_nearest_center - 64
- #stop = row_nearest_center + 63
- 
- #if(start < 1){
- #  start = 1
- #}
- 
- #if(stop > varCount){
- #  stop = varCount
- #}
- 
- #print(c(start,stop))
- 
- # subset table
+
  print("Dimmensions of subset table:")
  simvar = simvar[closest_variants,]
  dim(simvar)
- #simvar = simvar[sort(sample(1:varCount, 128, replace = F)),]
 }
 
 # Add zero-padds if needed
-if(varCount < 128){
+if(varCount < nloc){
  print("Zero-padding image because there are not enough variants...")
  lastVar = simvar[varCount,"POS"]
  print("Last variant position is:")
  print(lastVar)
- for(i in 1:(128 - varCount)){
-  simvar = rbind(simvar, c(1, lastVar + i, "MT=0;", rep(0, times = 128)))
+ for(i in 1:(nloc - varCount)){
+  simvar = rbind(simvar, c(1, lastVar + i, "MT=0;", rep(0, times = nidv)))
  }
 }
 
@@ -108,14 +91,9 @@ simvar = simvar[,c(1:3, 3 + simvar_clusters$order)] # keep first three columns u
 print("What genotype matrix looks like:")
 head(simvar[,1:6])
 
-# label syn and nonsyn sites
-#print("Labeling mutations by type...")
-#simvar$INFO[grepl("MT=0;", simvar$INFO)] = "s"
-#simvar$INFO[grepl("MT=4;|MT=5;", simvar$INFO)] = "n"
-
 # collapse monomorphic sites
 print("Collapsing monomorphic sites...")
-simvar$POS2 = 1:128
+simvar$POS2 = 1:nloc
 
 # melt sorted matrix to dataframe, so you can use ggplot
 print("Melting matrix to frame for plotting...")
@@ -126,20 +104,6 @@ head(simvar)
 
 print("Tail of frame:")
 tail(simvar)
-
-# create new position column where monomorphic sites are collapsed
-#print("Collapsing monomorphic sites...")
-#simvar$POS2 = NA
-#i = 1
-#for (j in sort(unique(simvar$POS))) {
-#	simvar$POS2[simvar$POS == j] = i
-#	i = i + 1
-#}
-
-# split variants by type, so that you can color them differently
-#print("Spliting data by variant type...")
-#svar = simvar[(simvar$INFO == "s"),]
-#nvar = simvar[(simvar$INFO == "n"),]
 
 # Convert variant sites into an image for CNN
 # using multiple color/fill scales in a single plot:
@@ -156,22 +120,10 @@ ggplot(mapping = aes(POS2, variable)) +
   scale_x_discrete(expand=c(0,0)) +
   scale_y_discrete(expand=c(0,0))
   
-#ggplot(mapping = aes(POS2, variable)) +
-#  geom_tile(data = svar, aes(x = POS2, y = variable, fill = as.numeric(value), width = 1)) +
-  #scale_fill_gradient(low = "black", high = "white") +
-#  scale_fill_gradient2(low = "black", mid = "grey", high = "white", midpoint = 0.5) +
-  # Important: define a colour/fill scale before calling a new_scale_* function
-#  new_scale_fill() +
-#  geom_tile(data = nvar, aes(x = POS2, y = variable, fill = as.numeric(value), width = 1)) +
-#  scale_fill_gradient2(low = "blue", mid = "cyan", high = "green", midpoint = 0.5) +
-#  theme_nothing() +
-#  labs(x = NULL, y = NULL) +
-#  scale_x_discrete(expand=c(0,0)) +
-#  scale_y_discrete(expand=c(0,0))
-
-print("Saving plot...")
 # low resolution plots for model training
-ggsave(output_image, width = 128, height = 128, units = "px", dpi = 600)
+print("Saving plot...")
+ggsave(output_image, width = nloc, height = nidv, units = "px", dpi = 600)
+
 # high resolution plots for presentations
 #ggsave(output, width = 1024, height = 1024, units = "px", dpi = 600)
 

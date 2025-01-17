@@ -94,13 +94,16 @@ def get_fsimple(wildcards):
         fsimple = parameters.loc[parameters["ID"] == wildcards.ID, "fsimple"]
         return float(fsimple.iloc[0])
 
+def get_custom_demography(wildcards):
+        custom_demography = parameters.loc[parameters["ID"] == wildcards.ID, "custom_demography"]
+        return float(custom_demography.iloc[0])
+
 rule slim:
 	input:
 		"../config/parameters.tsv"
 	output:
 		finalTable=temp("data/tables/slim_{ID}.table"),
 		tmpVCF = temp("slim_{ID}.vcf"),
-		#fixTime = "data/fix_times/fix_time_{ID}.txt"
 	log:
 		"logs/slim/{ID}.log"
 	params:
@@ -127,7 +130,8 @@ rule slim:
 		alpha=get_alpha,
 		ncf=get_ncf,
 		cl=get_cl,
-		fsimple=get_fsimple
+		fsimple=get_fsimple,
+		custom_demography=get_custom_demography
 	threads: 1
 	resources:
 		mem_mb_per_cpu=8000,
@@ -137,15 +141,7 @@ rule slim:
 	shell:
 		"""
 		# run simulation
-		slim -d ID={wildcards.ID} -d Q={params.Q} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d kappa={params.kappa} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} scripts/simulation_custom_demography_any_age.slim &> {log}
-
-		# move fix time to it's own directory
-		#mkdir -p data/fix_times
-		#mv fix_time_{wildcards.ID}.txt data/fix_times/
-
-		# move fails to it's own directory
-		#mkdir -p data/fails
-		#mv fails_{wildcards.ID}.txt data/fails/
+		slim -d ID={wildcards.ID} -d demog={params.custom_demography} -d Q={params.Q} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d kappa={params.kappa} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} scripts/simulation_custom_demography_any_age.slim &> {log}
 
 		# convert vcf to simple table
 		# remove hastag from CHROM
