@@ -1,7 +1,7 @@
 rule create_image:
 	input:
 		table="data/tables/slim_{ID}.table",
-                stats="slim_{ID}.tsv"
+                stats="data/sweep_stats/{ID}.tsv"
 	output:
 		image = "data/images/slim_{ID}.png",
 		pos = "data/positions/slim_{ID}.pos"
