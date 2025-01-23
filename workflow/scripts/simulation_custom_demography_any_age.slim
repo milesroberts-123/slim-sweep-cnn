@@ -39,6 +39,8 @@ initialize() {
 	catn(simID + ": "+ sim.cycle + " - PROPORTION OF RECOMBINATION EVENTS THAT AREN'T CROSS-OVERS: " + ncf);
 	catn(simID + ": "+ sim.cycle + " - MEAN LENGTH OF COPY IN GENE CONVERSION EVENT: " + cl);
 	catn(simID + ": "+ sim.cycle + " - PROPORTION OF COPY TRACTS THAT ARE SIMPLE: " + fsimple);
+	catn(simID + ": "+ sim.cycle + " - LOGISTIC GROWTH RATE: " + r);
+	catn(simID + ": "+ sim.cycle + " - LOGISTIC CARRYING CAPACITY: " + K);
 
 	// create subpopulation
 	catn(simID + ": "+ sim.cycle + " - CREATING POPULATION OF SIZE: " + asInteger(N/Q));
@@ -136,7 +138,7 @@ s0 100000000 late(){
 	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
 }
 
-// CUSTOM DEMOGRAPHY: change population size
+// CUSTOM DEMOGRAPHY: change population size according to custom file
 s5 100000000 early() {
 	catn(simID + ": " + sim.cycle + " - GENERATIONS POST-BURN-IN:" + paste(sim.cycle - endBurn));
 	newSize = population_sizes[which(time_steps == (sim.cycle - endBurn))];
