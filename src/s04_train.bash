@@ -21,4 +21,4 @@ mamba activate mycnn2
 
 # start model training script
 $CONDA_PREFIX/bin/python --version
-$CONDA_PREFIX/bin/python scripts/mycnn.py
+$CONDA_PREFIX/bin/python scripts/cnn_univariate.py
