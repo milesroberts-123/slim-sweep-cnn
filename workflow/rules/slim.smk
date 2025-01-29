@@ -111,7 +111,7 @@ rule slim:
 		"../config/parameters.tsv"
 	output:
 		finalTable=temp("data/tables/slim_{ID}.table"),
-		tmpVCF = temp("slim_{ID}.vcf"),
+		tmpVCF = "slim_{ID}.vcf",
 	log:
 		"logs/slim/{ID}.log"
 	params:

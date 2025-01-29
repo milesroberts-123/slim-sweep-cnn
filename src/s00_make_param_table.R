@@ -67,25 +67,25 @@ if(demography == "constant"){
 
 if(demography == "growth"){
   params$r = runif(K, min = 0, max = 0.5)
-  params$K = params$N*runif(K, min = 1.01, max = 2)
+  params$K = round(params$N*runif(K, min = 1.01, max = 2))
   params$custom_demography = 0
 }
 
 if(demography == "decay"){
   params$r = runif(K, min = 0, max = 0.5)
-  params$K = params$N*runif(K, min = 0.5, max = 0.99)
+  params$K = round(params$N*runif(K, min = 0.5, max = 0.99))
   params$custom_demography = 0
 }
 
 if(demography == "cycle"){
   params$r = runif(K, min = 2, max = sqrt(6))
-  params$K = params$N*runif(K, min = 0.8, max = 1.2) 
+  params$K = round(params$N*runif(K, min = 0.8, max = 1.2))
   params$custom_demography = 0
 }
 
 if(demography == "chaos"){
   params$r = runif(K, min = sqrt(6), max = 3)
-  params$K = params$N*runif(K, min = 0.8, max = 1.2)
+  params$K = round(params$N*runif(K, min = 0.8, max = 1.2))
   params$custom_demography = 0
 }
 

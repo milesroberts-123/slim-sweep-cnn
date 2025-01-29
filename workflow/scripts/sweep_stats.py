@@ -259,7 +259,7 @@ def kerns_gkl(gt):
 # average correlation between alleles
 def kellys_zns(gt):
     pair_cor = allel.rogers_huff_r(gt.to_n_alt(fill = -1))
-    mean_cor = numpy.mean(pair_cor**2)
+    mean_cor = numpy.nanmean(pair_cor**2)
     return(mean_cor)
 
 # kims omega, comparing LD within vs between sides of sweep
@@ -286,12 +286,12 @@ def kims_omega(gt):
     right_cor = allel.rogers_huff_r(right_snps)
 
     # convert to coefficient of variation
-    left_cor = numpy.mean(left_cor**2)
-    right_cor = numpy.mean(right_cor**2)
+    left_cor = numpy.nanmean(left_cor**2)
+    right_cor = numpy.nanmean(right_cor**2)
 
     # calculate correlations between variants across groups
     bw_cor = allel.rogers_huff_r_between(left_snps, right_snps)
-    bw_cor = numpy.mean(bw_cor.flatten()**2)
+    bw_cor = numpy.nanmean(bw_cor.flatten()**2)
 
     return((left_cor + right_cor)/bw_cor)
 

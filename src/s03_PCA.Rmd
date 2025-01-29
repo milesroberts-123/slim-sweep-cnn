@@ -18,6 +18,8 @@ library(abc)
 library(ggpubr)
 
 today = Sys.Date()
+
+my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth/selection-demography-cnn/"
 ```
 
 # plotting functions
@@ -104,21 +106,22 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
 
 # load data
 ```{r}
+
 # simulation parameters
-params = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/config/parameters.tsv", sep = "\t", header = T)
+params = read.table(paste(my_path, "config/parameters.tsv", sep = ""), sep = "\t", header = T)
 
 # merge in fixation times
-fix_times = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/fixation_times.txt", col.names = c("ID", "tf"))
+fix_times = read.table(paste(my_path, "workflow/fixation_times.txt", sep = ""), col.names = c("ID", "tf"))
 
 params = merge(params, fix_times, by = "ID")
 
 # merge in sweep ages
-sweep_ages = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/sweep_ages.txt", col.names = c("ID", "ta")) 
+sweep_ages = read.table(paste(my_path, "workflow/sweep_ages.txt", sep = ""), col.names = c("ID", "ta")) 
 
 params = merge(params, sweep_ages, by = "ID")
 
 # add in selective sweep statistics
-sweep_stats_files = list.files(path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/sweep_stats", pattern = "*.tsv", full.names = T)
+sweep_stats_files = list.files(path = paste(my_path, "workflow/data/sweep_stats", sep = ""), pattern = "*.tsv", full.names = T)
 
 sweep_stats = suppressWarnings(lapply(sweep_stats_files, read.table, header = F))
 
@@ -131,10 +134,10 @@ sweep_stats$ID = as.numeric(gsub(".tsv", "", gsub(".*sweep_stats/", "",sweep_sta
 params = merge(params, sweep_stats, by = "ID")
 
 # get simulation outputs
-mypics = list.files("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images", full.names = T)
+mypics = list.files(paste(my_path, "workflow/data/images", sep= ""), full.names = T)
 
 # get sim ids
-picids = as.integer(gsub(".png", "", gsub("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/data/images/slim_", "", mypics)))
+picids = as.integer(gsub(".png", "", gsub(paste(my_path, "workflow/data/images/slim_", sep = ""), "", mypics)))
 
 # only keep simulations that have images
 params = params[(params$ID %in% picids),]
@@ -173,30 +176,56 @@ ggplot(params, aes(x = log10(tf + ta), y = log10(pi))) +
   theme(text = element_text(size = 20)) +
   labs(x = "log10(fixation time + sweep age)", y = "Nucleotide diversity")
 
-ggplot(params, aes(x = log10(tf), y = log10(ta), color = log10(pi))) +
+ggplot(params, aes(x = log10(tf + ta), y = num_haplos)) +
   geom_point() +
   theme_classic()
 
-ggplot(params, aes(x = tf, y = ta, color = num_haplos)) +
+ggplot(params, aes(x = log10(tf + ta), y = omega)) +
   geom_point() +
   theme_classic()
 
-ggplot(params, aes(x = tf, y = ta, color = omega)) +
+ggplot(params, aes(x = log10(tf + ta), y = zns)) +
   geom_point() +
   theme_classic()
 
-ggplot(params, aes(x = tf, y = ta, color = zns)) +
+ggplot(params, aes(x = log10(tf + ta), y = gkl_var)) +
   geom_point() +
   theme_classic()
 
-ggplot(params, aes(x = tf, y = ta, color = gkl_var)) +
+ggplot(params, aes(x = log10(tf + ta), y = gkl_skew)) +
   geom_point() +
   theme_classic()
 
-ggplot(params, aes(x = tf, y = ta, color = h123)) +
+ggplot(params, aes(x = log10(tf + ta), y = gkl_kurt)) +
   geom_point() +
   theme_classic()
 
+ggplot(params, aes(x = log10(tf + ta), y = h1)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = log10(tf + ta), y = h2)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = log10(tf + ta), y = h12)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = log10(tf + ta), y = h123)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(params, aes(x = log10(tf + ta), y = h2h1)) +
+  geom_point() +
+  theme_classic()
+
+names(params)
+cor(params[,c("tf", "ta", "S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2",  "h12",  "h123", "h2h1", "gkl_var",  "gkl_skew", "gkl_kurt", "zns",  "omega", "hscan")], method = "spearman", use = "pairwise.complete.obs")
+```
+
+# DEPRECATED: PCA
+```{r}
 # get random sample of simulation outputs
 mypics_sub = sample(mypics[(picids %in% params$ID)], size = 1000, replace = F)
 
@@ -450,6 +479,8 @@ for(bin in unique(params$bin)){
     strat_sample = rbind(strat_sample, down_sampled_bin)
  }
 }
+
+table(strat_sample$bin)
 ```
 
 # DEPRECATED: 2D stratified random sampling, along tf and ta
