@@ -60,6 +60,32 @@ initialize() {
 	defineGlobal("endBurn", 10*asInteger(N/Q));
 	catn(simID + ": "+ sim.cycle + " - BURN-IN WILL END AT: " + endBurn);
 
+	// generate schedule for beneficial mutations
+	gens = cumSum(rpois(asInteger(n), lambda/Q)); // make a vector of start gens
+
+	gens = gens + (endBurn - min(gens)) + 1 + asInteger(kappa/Q); // align to start after burning, plus one to avoid weird ordering, plus kappa to alter timing of introduction relative to burn-in
+
+	catn(simID + ": "+ sim.cycle + " - GENERATIONS TO ADD SWEEPS: " + paste(gens));
+	defineConstant("Z", max(gens)); // remember the last gen, used to check for establishment
+	defineConstant("Y", min(gens)); // remember the first gen, used for calculating fixation time
+	catn(simID + ": "+ sim.cycle + " - GENERATION TO CHECK FOR ESTABLISHMENT: " + Z);
+
+	for (gen in gens) {
+		community.registerLateEvent(NULL, s1.source, gen, gen);
+	}
+	
+	// reschedule saving of simulation to be after burn-in, but before benefical mutation is introduced
+	community.rescheduleScriptBlock(s0, start=Y-1, end=Y-1);
+
+	// reschedule checking of establishment for soft sweep mutation
+	community.rescheduleScriptBlock(s2, start=Y, end=Y + 100000000);
+
+	// reschedule checking of threshold for partial sweep mutation
+	community.rescheduleScriptBlock(s3, start=Y, end=Y + 100000000);
+
+	// reschedule checking of fixation until after beneficial mutation is introduced
+	community.rescheduleScriptBlock(s4, start=Y, end=Y + 100000000);
+
 	// choose whether to do a custom demography or a logistic map
 	if(demog == 1){
 		catn(simID + ": "+ sim.cycle + " - USING CUSTOM DEMOGRAPHY");
@@ -89,34 +115,8 @@ initialize() {
 
 	} else {
 		catn(simID + ": "+ sim.cycle + " - USING LOGISTIC MAP DEMOGRAPHY AT " + endBurn);
-		community.rescheduleScriptBlock(s6, start=endBurn, end=endBurn + 100000000);
+		community.rescheduleScriptBlock(s6, start=Y, end=Y + 100000000);
 	}
-
-	// generate schedule for beneficial mutations
-	gens = cumSum(rpois(asInteger(n), lambda/Q)); // make a vector of start gens
-
-	gens = gens + (endBurn - min(gens)) + 1 + asInteger(kappa/Q); // align to start after burning, plus one to avoid weird ordering, plus kappa to alter timing of introduction relative to burn-in
-
-	catn(simID + ": "+ sim.cycle + " - GENERATIONS TO ADD SWEEPS: " + paste(gens));
-	defineConstant("Z", max(gens)); // remember the last gen, used to check for establishment
-	defineConstant("Y", min(gens)); // remember the first gen, used for calculating fixation time
-	catn(simID + ": "+ sim.cycle + " - GENERATION TO CHECK FOR ESTABLISHMENT: " + Z);
-
-	for (gen in gens) {
-		community.registerLateEvent(NULL, s1.source, gen, gen);
-	}
-	
-	// reschedule saving of simulation to be after burn-in, but before benefical mutation is introduced
-	community.rescheduleScriptBlock(s0, start=Y-1, end=Y-1);
-
-	// reschedule checking of establishment for soft sweep mutation
-	community.rescheduleScriptBlock(s2, start=Y, end=Y + 100000000);
-
-	// reschedule checking of threshold for partial sweep mutation
-	community.rescheduleScriptBlock(s3, start=Y, end=Y + 100000000);
-
-	// reschedule checking of fixation until after beneficial mutation is introduced
-	community.rescheduleScriptBlock(s4, start=Y, end=Y + 100000000);
 }
 
 // Every 1000 generations, output the heterozygosity and number of mutations in the population
@@ -259,6 +259,9 @@ s4 4000000 late() {
 				// re-register frequency checks for next cycle
 				community.rescheduleScriptBlock(s2, start=Y, end=Y + 100000000);
 				community.rescheduleScriptBlock(s3, start=Y, end=Y + 100000000);
+				if(demog != 1){
+					community.rescheduleScriptBlock(s6, start=Y, end=Y + 100000000);
+				}
 			}
 		}
 	}
