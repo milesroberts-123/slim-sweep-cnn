@@ -624,6 +624,8 @@ meths = c("rejection", "loclinear", "ridge")
 # split data
 train_sample = strat_sample[(strat_sample$split == "train"),]
 
+train_sample = train_sample[!is.na(train_sample$num_haplos),]
+
 val_sample = strat_sample[(strat_sample$split == "val"),]
 
 val_sample = val_sample[!is.na(val_sample$num_haplos),]
