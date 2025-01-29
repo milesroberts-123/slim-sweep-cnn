@@ -334,7 +334,7 @@ def hscan(gt, pos, focus):
                     dist_bw_mismatch_focus_below = numpy.min(dist_bw_mismatch_focus)
 
                 length_of_match = numpy.min(dist_bw_mismatch_focus_above) - numpy.max(dist_bw_mismatch_focus_below)
-                results.append( length_of_match/(numpy.max(pos) - numpy.min(pos)) )
+                results.append( length_of_match/(numpy.max(pos) - numpy.min(pos) + 1) )
     return(numpy.mean(results))
 
 # define click options
@@ -381,7 +381,7 @@ def main(vcf, window_length, focus, output_prefix):
     print("Ploidy level: " + str(p))
 
     # calculate window size in bp
-    window_bp = numpy.max(sweep_pos) - numpy.min(sweep_pos)
+    window_bp = numpy.max(sweep_pos) - numpy.min(sweep_pos) + 1
     print(datetime.datetime.now(),"Window size of sweep site in bp:", window_bp)
 
     # calculate statistics
