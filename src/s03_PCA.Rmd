@@ -19,7 +19,8 @@ library(ggpubr)
 
 today = Sys.Date()
 
-my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth/selection-demography-cnn/"
+#my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth/selection-demography-cnn/"
+my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_decay/selection-demography-cnn/"
 ```
 
 # plotting functions
@@ -42,6 +43,8 @@ train_abc = function(train_sample, val_sample, outcomes, summary_stats, tol, met
   
   # loop over validation data
   for(i in 1:nrow(val_stats)){
+    print(paste("Validation example: ", i, sep = ""))
+    
     # get one validation simulation
     val_target = val_stats[i,]
     
@@ -50,10 +53,11 @@ train_abc = function(train_sample, val_sample, outcomes, summary_stats, tol, met
     #msgs <- invisible(suppressWarnings(suppressMessages(capture.output(capture.output(result <- abc(val_target, train_outcomes, train_stats, tol, method), type = "message"), type="output"))))
     
     #cred_int = round(quantile(my_prediction$unadj.values, c(0.055, 0.945)))
-    cred_int = round(c(summary(result)[[2]], summary(result)[[6]]))
-    median_est = round(summary(result)[[3]])
-    mean_est = round(summary(result)[[4]])
-    mode_est = round(summary(result)[[5]])
+    result_summary = suppressWarnings(suppressMessages(summary(result)))
+    cred_int = round(c(result_summary[[2]], result_summary[[6]]))
+    median_est = round(result_summary[[3]])
+    mean_est = round(result_summary[[4]])
+    mode_est = round(result_summary[[5]])
     
     # save prediction
     lwr_results = c(lwr_results, cred_int[1])
@@ -607,14 +611,28 @@ write.table(strat_sample, "stratified_sample.tsv", sep = "\t", quote = F, row.na
 
 write.table(params, "unstratified_sample.tsv", sep = "\t", quote = F, row.names = F)
 ```
+# linear models
+```{r}
+# if strat_sample not already available, load from previous session
+#strat_sample = read.table(paste(my_path, "workflow/stratified_sample.tsv", sep = ""), sep = "\t", header = T)
+
+strat_sample = strat_sample[is.finite(strat_sample$pi),]
+
+mod = lm(log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + gkl_skew + gkl_kurt + hscan + zns + omega, data = strat_sample)
+
+mod = lm(log10(tf) ~ log10(pi), data = strat_sample)
+
+summary(mod)
+
+plot(mod)
+stepAIC(mod, direction = "backward")
+```
+
 
 # approximate bayesian computation
 
 ## tune abc hyperparameters
 ```{r message=FALSE, warning=FALSE, include=FALSE}
-# if strat_sample not already available, load from previous session
-#strat_sample = read.table("stratified_sample.tsv", sep = "\t", header = T)
-
 summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
 
 tols = c(0.01, 0.05, 0.1)
@@ -647,13 +665,32 @@ for(meth in meths){
 }
 
 # plot abc performance
-for(trained_mod in trained_mods){
-  compare_predictions_truth_scatter(log10(trained_mod$pred_mean), log10(trained_mod$truth), paste(name(trained_mod), ", Mean", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+for(i in 1:length(trained_mods)){
   
-  compare_predictions_truth_scatter(log10(trained_mod$pred_median), log10(trained_mod$truth), paste(name(trained_mod), ", Median", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  trained_mod = trained_mods[[i]]
+  
+  mod_name = names(trained_mods)[i]
+  
+  file_mod_name = gsub("[ =.,]", "", mod_name)
+  
+  print(file_mod_name)
+  
+  print("Plotting mean...")
+  compare_predictions_truth_scatter(log10(trained_mod$pred_mean), log10(trained_mod$truth), paste(mod_name, ", Mean", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  
+  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mean_", today, ".png", sep = ""), height = 7, width = 7)
+ 
+  print("Plotting median...") 
+  compare_predictions_truth_scatter(log10(trained_mod$pred_median), log10(trained_mod$truth), paste(mod_name, ", Median", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  
+  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_median_", today, ".png", sep = ""), height = 7, width = 7)
 
-compare_predictions_truth_scatter(log10(trained_mod$pred_mode), log10(trained_mod$truth), paste(name(trained_mod), ", Mode", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  print("Plotting mode...")
+  compare_predictions_truth_scatter(log10(trained_mod$pred_mode), log10(trained_mod$truth), paste(mod_name, ", Mode", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+
+    ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mode_", today, ".png", sep = ""), height = 7, width = 7)
 }
+
 ```
 
 ## testing final abc model
@@ -1013,11 +1050,11 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 ## compare predictions to actual values on testing dataset
 ```{r}
 #pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
-train_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/train_predicted_vs_actual.txt")
+train_pred_vs_act = read.table(paste(my_path,"workflow/train_predicted_vs_actual.txt", sep = ""))
 
-val_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/val_predicted_vs_actual.txt")
+val_pred_vs_act = read.table(paste(my_path,"workflow/val_predicted_vs_actual.txt", sep = ""))
 
-test_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual.txt")
+test_pred_vs_act = read.table(paste(my_path,"workflow/test_predicted_vs_actual.txt", sep = ""))
 
 # merge in sweep ages to see how predictions falter with older sweeps
 #names(params)[1] = "V1"
