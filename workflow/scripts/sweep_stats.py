@@ -416,7 +416,7 @@ def main(vcf, window_length, focus, output_prefix):
 
     # messer's hscan
     print(datetime.datetime.now(),"Calculating Messer's hscan...")
-    hscan_result = hscan(gt,pos,focus)
+    hscan_result = hscan(sweep_gt,sweep_pos,focus)
 
     # print results
     print(datetime.datetime.now(), "Saving results to: " + output_prefix + ".tsv")
