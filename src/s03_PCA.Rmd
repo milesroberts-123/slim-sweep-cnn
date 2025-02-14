@@ -20,7 +20,9 @@ library(ggpubr)
 today = Sys.Date()
 
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth/selection-demography-cnn/"
-my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_decay/selection-demography-cnn/"
+#my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_decay/selection-demography-cnn/"
+#my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_cycle/selection-demography-cnn/"
+my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_chaos/selection-demography-cnn/"
 ```
 
 # plotting functions
@@ -81,12 +83,29 @@ train_abc = function(train_sample, val_sample, outcomes, summary_stats, tol, met
 
 # compare predicted values to true values for a continuous variable as a scatterplot
 compare_predictions_truth_scatter = function(predictions, truth, model_labels, truthlab, predlab){
+  
+  # replace non-numbers with NA so that correlation still works
+  print("Omit non-numbers")
+  print(length(predictions))
+  print(length(truth))
+  
+  filter = !(is.nan(predictions) | is.nan(truth) | is.infinite(predictions) | is.infinite(truth))
+  
+  predictions = predictions[filter]
+  truth = truth[filter] 
+  
+  print(length(predictions))
+  print(length(truth))
+  
   # Calculate correlation between truth and results
+  # spearman correlation is invariant to log transforms
   my_cor_coeff = cor.test(predictions, truth, method = "pearson")
+  print(my_cor_coeff)
   cor_est = signif(my_cor_coeff$estimate, digits = 3)
   cor_lwb = signif(my_cor_coeff$conf.int[1], digits = 3)
   cor_upb = signif(my_cor_coeff$conf.int[2], digits = 3)
   cor_pvalue = signif(my_cor_coeff$p.value, digits = 3)
+  cor_n = length(truth)
   
   # plot data
   plotdata = data.frame(predictions = predictions, truth = truth)
@@ -99,7 +118,7 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
   theme(text = element_text(size = 18)) +
   labs(x = truthlab, 
        y = predlab,
-       title = paste(model_labels, "\nr = ", cor_est, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
+       title = paste(model_labels, "\nr = ", cor_est, ", n = " , cor_n, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
   
   return(p)
 }
@@ -110,7 +129,6 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
 
 # load data
 ```{r}
-
 # simulation parameters
 params = read.table(paste(my_path, "config/parameters.tsv", sep = ""), sep = "\t", header = T)
 
@@ -149,6 +167,9 @@ params = params[(params$ID %in% picids),]
 
 # Exploratory data analysis
 ```{r}
+# remove any sims where statistics are undefined
+params = params[complete.cases(params),]
+
 # what is the distribution of tf/ta?
 ggplot(params, aes(x = log10(tf))) +
   geom_density() +
@@ -226,6 +247,11 @@ ggplot(params, aes(x = log10(tf + ta), y = h2h1)) +
 
 names(params)
 cor(params[,c("tf", "ta", "S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2",  "h12",  "h123", "h2h1", "gkl_var",  "gkl_skew", "gkl_kurt", "zns",  "omega", "hscan")], method = "spearman", use = "pairwise.complete.obs")
+
+summary(params[,c("tf", "ta", "S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2",  "h12",  "h123", "h2h1", "gkl_var",  "gkl_skew", "gkl_kurt", "zns",  "omega", "hscan")])
+
+
+
 ```
 
 # DEPRECATED: PCA
@@ -465,7 +491,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 # Stratified sampling along time to fixation
 ```{r}
 width = 0.1
-max_bin_height = 600 # adjust so that observations at log10(20000) ~ 4.31 are included
+max_bin_height = 400 # adjust so that observations at log10(20000) ~ 4.31 are included
  
 breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
 
@@ -616,16 +642,26 @@ write.table(params, "unstratified_sample.tsv", sep = "\t", quote = F, row.names 
 # if strat_sample not already available, load from previous session
 #strat_sample = read.table(paste(my_path, "workflow/stratified_sample.tsv", sep = ""), sep = "\t", header = T)
 
-strat_sample = strat_sample[is.finite(strat_sample$pi),]
+#strat_sample = strat_sample[is.finite(strat_sample$pi),]
 
 mod = lm(log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + gkl_skew + gkl_kurt + hscan + zns + omega, data = strat_sample)
 
 mod = lm(log10(tf) ~ log10(pi), data = strat_sample)
 
+mod = lm(log10(tf) ~ hscan, data = strat_sample)
+
 summary(mod)
 
 plot(mod)
+
 stepAIC(mod, direction = "backward")
+
+back_mod = lm(formula = log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + 
+    tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + 
+    gkl_skew + hscan + zns + omega, data = strat_sample)
+
+summary(back_mod)
+
 ```
 
 
@@ -633,24 +669,24 @@ stepAIC(mod, direction = "backward")
 
 ## tune abc hyperparameters
 ```{r message=FALSE, warning=FALSE, include=FALSE}
-summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan")
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega")
 
-tols = c(0.01, 0.05, 0.1)
+tols = c(0.025, 0.05, 0.1, 0.15)
 
-meths = c("rejection", "loclinear", "ridge")
+meths = c("rejection", "loclinear", "ridge", "neuralnet")
 
 # split data
 train_sample = strat_sample[(strat_sample$split == "train"),]
 
-train_sample = train_sample[!is.na(train_sample$num_haplos),]
+#train_sample = train_sample[!is.na(train_sample$num_haplos),]
 
 val_sample = strat_sample[(strat_sample$split == "val"),]
 
-val_sample = val_sample[!is.na(val_sample$num_haplos),]
+#val_sample = val_sample[!is.na(val_sample$num_haplos),]
 
 test_sample = strat_sample[(strat_sample$split == "test"),]
 
-test_sample = test_sample[!is.na(test_sample$num_haplos),]
+#test_sample = test_sample[!is.na(test_sample$num_haplos),]
 
 # make predictions for validation data based on training data
 trained_mods = vector("list", length(tols)*length(meths))
@@ -660,7 +696,8 @@ for(meth in meths){
     print(c(meth, tol))
     trained_mod = train_abc(train_sample, val_sample, "tf", summary_stats, tol, meth)
     trained_mods[[i]] = trained_mod
-    names(trained_mods)[[1]] = paste(meth, ", tol = ", tol, sep = "")
+    names(trained_mods)[[i]] = paste(meth, ", tol = ", tol, sep = "")
+    i = i + 1
   }
 }
 
@@ -691,6 +728,7 @@ for(i in 1:length(trained_mods)){
     ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mode_", today, ".png", sep = ""), height = 7, width = 7)
 }
 
+# save comparisons of truth vs predictions
 ```
 
 ## testing final abc model

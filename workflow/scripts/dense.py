@@ -25,7 +25,7 @@ tune_trials = 60
 slim_params = "stratified_sample.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_dense.h5"
-summary_stats = ["ID", "S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan"]
+summary_stats = ["ID", "S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"]
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -115,7 +115,7 @@ print(test_stats.shape)
 # https://keras.io/guides/keras_tuner/getting_started/
 def build_model(hp):
   print("Creating model...")
-  input = keras.layers.Input(shape = [15], name = "summaries")
+  input = keras.layers.Input(shape = [17], name = "summaries")
   dense_A = keras.layers.Dense(units=hp.Int("denseA-units", min_value=16, max_value=512, step=8), activation = "relu")(input)
   dense_A = keras.layers.Dropout(hp.Float(name = "denseA-dropout", min_value=0, max_value=0.99))(dense_A)
   dense_B = keras.layers.Dense(units=hp.Int("denseB-units", min_value=16, max_value=512, step=8), activation = "relu")(dense_A)
