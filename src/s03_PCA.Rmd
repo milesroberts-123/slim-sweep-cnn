@@ -22,7 +22,8 @@ today = Sys.Date()
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth/selection-demography-cnn/"
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_decay/selection-demography-cnn/"
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_cycle/selection-demography-cnn/"
-my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_chaos/selection-demography-cnn/"
+#my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_chaos/selection-demography-cnn/"
+my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_constant_2/selection-demography-cnn/"
 ```
 
 # plotting functions
@@ -491,7 +492,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 # Stratified sampling along time to fixation
 ```{r}
 width = 0.1
-max_bin_height = 400 # adjust so that observations at log10(20000) ~ 4.31 are included
+max_bin_height = 600 # adjust so that observations at log10(20000) ~ 4.31 are included
  
 breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
 
@@ -637,6 +638,7 @@ write.table(strat_sample, "stratified_sample.tsv", sep = "\t", quote = F, row.na
 
 write.table(params, "unstratified_sample.tsv", sep = "\t", quote = F, row.names = F)
 ```
+
 # linear models
 ```{r}
 # if strat_sample not already available, load from previous session
@@ -1078,7 +1080,7 @@ names(all_predictions) = c("ID", "abc_lwr_ci", "abc_est", "abc_upr_ci")
 
 strat_sample_abc = merge(strat_sample, all_predictions, by = "ID")
 
-compare_predictions_truth(log10(strat_sample_abc$abc_est), log10(strat_sample_abc$tf), "ABC, ridge, tol = 0.05", "log10(true tf)", "log10(predicted tf)")
+compare_predictions_truth(log10(strat_sample_abc$abc_est), log10(strat_sample_abc$tf), "ABC, ridge, tol = 0.05", "log10(True tf)", "log10(Predicted tf)")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 ```
@@ -1149,17 +1151,17 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 # actual vs predicted values
 
 ##training set
-compare_predictions_truth_scatter(train_pred_vs_act$V3, train_pred_vs_act$V2, "CNN, training set", "log10(true tf)", "log10(predicted tf)")
+compare_predictions_truth_scatter(train_pred_vs_act$V3, train_pred_vs_act$V2, "CNN, training set", "log10(True tf)", "log10(Predicted tf)")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/train_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## validation set
-compare_predictions_truth_scatter(val_pred_vs_act$V3, val_pred_vs_act$V2, "CNN, validation set", "log10(true tf)", "log10(predicted tf)")
+compare_predictions_truth_scatter(val_pred_vs_act$V3, val_pred_vs_act$V2, "CNN, validation set", "log10(True tf)", "log10(Predicted tf)")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/val_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## test set
-compare_predictions_truth_scatter(test_pred_vs_act$V3, test_pred_vs_act$V2, "CNN, test set", "log10(true tf)", "log10(predicted tf)")
+compare_predictions_truth_scatter(test_pred_vs_act$V3, test_pred_vs_act$V2, "CNN, test set", "log10(True tf)", "log10(Predicted tf)")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
@@ -1257,11 +1259,11 @@ summary(error_mod)
 
 ```{r}
 # load data
-train_pred_vs_act_dense = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/train_predicted_vs_actual_dense.txt")
+train_pred_vs_act_dense = read.table(paste(my_path,"workflow/train_predicted_vs_actual_dense.txt", sep = ""))
 
-val_pred_vs_act_dense = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/val_predicted_vs_actual_dense.txt")
+val_pred_vs_act_dense = read.table(paste(my_path,"workflow/val_predicted_vs_actual_dense.txt", sep = ""))
 
-test_pred_vs_act_dense = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/test_predicted_vs_actual_dense.txt")
+test_pred_vs_act_dense = read.table(paste(my_path,"workflow/test_predicted_vs_actual_dense.txt", sep = ""))
 
 ## Distribution of fixation times
 test_pred_vs_act_dense_melt = melt(as.data.table(test_pred_vs_act_dense), id = c("V1", "V4"))
@@ -1278,7 +1280,7 @@ ggplot(test_pred_vs_act_dense_melt, aes(x = value, color = variable)) +
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_density_denseNet_", today, ".png", sep = ""), height = 7, width = 7)
 
 # scatterplot
-compare_predictions_truth_scatter(test_pred_vs_act_dense$V3, test_pred_vs_act_dense$V2, "Neural Net, test set", "log10(true tf)", "log10(predicted tf)")
+compare_predictions_truth_scatter(test_pred_vs_act_dense$V3, test_pred_vs_act_dense$V2, "Neural Net, test set", "log10(True tf)", "log10(Predicted tf)")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_denseNet_", today, ".png", sep = ""), height = 7, width = 7)
 ```
