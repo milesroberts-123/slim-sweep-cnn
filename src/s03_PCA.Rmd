@@ -23,7 +23,8 @@ today = Sys.Date()
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_decay/selection-demography-cnn/"
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_cycle/selection-demography-cnn/"
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_chaos/selection-demography-cnn/"
-my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_constant_2/selection-demography-cnn/"
+#my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_constant_2/selection-demography-cnn/"
+my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth_2/selection-demography-cnn/"
 ```
 
 # plotting functions
@@ -83,7 +84,7 @@ train_abc = function(train_sample, val_sample, outcomes, summary_stats, tol, met
 }
 
 # compare predicted values to true values for a continuous variable as a scatterplot
-compare_predictions_truth_scatter = function(predictions, truth, model_labels, truthlab, predlab){
+compare_predictions_truth_scatter = function(predictions, truth, model_labels, truthlab, predlab, colorvar, colorlab){
   
   # replace non-numbers with NA so that correlation still works
   print("Omit non-numbers")
@@ -111,15 +112,17 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
   # plot data
   plotdata = data.frame(predictions = predictions, truth = truth)
   
-  p = ggplot(aes(y = predictions, x = truth), data = plotdata) +
+  p = ggplot(aes(y = predictions, x = truth, color = colorvar), data = plotdata) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
+  scale_color_continuous(low = "#B200B2", high = "#FFFF66") +
   theme_classic() +
   theme(text = element_text(size = 18)) +
   labs(x = truthlab, 
        y = predlab,
-       title = paste(model_labels, "\nr = ", cor_est, ", n = " , cor_n, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""))
+       title = paste(model_labels, "\nr = ", cor_est, ", n = " , cor_n, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""),
+       color = colorlab)
   
   return(p)
 }
@@ -167,6 +170,7 @@ params = params[(params$ID %in% picids),]
 ```
 
 # Exploratory data analysis
+
 ```{r}
 # remove any sims where statistics are undefined
 params = params[complete.cases(params),]
@@ -181,10 +185,32 @@ ggplot(params, aes(x = log10(ta))) +
   theme_classic()
 
 # does short tf, long ta look similar to long tf, short ta
-ggplot(params, aes(x = log10(tf), y = log10(ta), color = hscan)) +
+ggplot(params[(log10(params$tf) < 4),], aes(x = log10(tf), y = log10(ta), color = hscan)) +
   geom_point() +
   theme_classic() +
   scale_colour_gradient(high = "#B200B2", low = "#FFFF66", name = "Messer's\nHscan") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time)", y = "log10(sweep age)")
+
+ggplot(params[(log10(params$tf) < 4),], aes(x = log10(tf), y = log10(ta))) +
+  #geom_point() +
+  theme_classic() +
+  stat_summary_2d(aes(x = log10(tf), y = log10(ta), z = hscan), fun = "mean") + 
+  scale_fill_gradient(high = "#B200B2", low = "#FFFF66", name = "Messer's\nHscan") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time)", y = "log10(sweep age)")
+
+ggplot(params, aes(x = log10(tf + ta), y = hscan)) +
+  theme_classic() +
+  stat_bin2d() + 
+  scale_fill_gradient(high = "#B200B2", low = "#FFFF66", name = "Count") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time + sweep age)", y = "Messer's Hscan")
+
+ggplot(params, aes(x = log10(tf), y = log10(ta), color = log10(pi))) +
+  geom_point() +
+  theme_classic() +
+  scale_color_gradient(high = "#B200B2", low = "#FFFF66", name = "Nucleotide\ndiversity") +
   theme(text = element_text(size = 20)) +
   labs(x = "log10(fixation time)", y = "log10(sweep age)")
 
@@ -251,9 +277,16 @@ cor(params[,c("tf", "ta", "S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incompl
 
 summary(params[,c("tf", "ta", "S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2",  "h12",  "h123", "h2h1", "gkl_var",  "gkl_skew", "gkl_kurt", "zns",  "omega", "hscan")])
 
+#
+tf_cutoff = quantile(params$tf, probs = 0.50)
 
+ta_cutoff = quantile(params$ta, probs = 0.50)
 
+log10(tf_cutoff)
+log10(ta_cutoff)
 ```
+
+
 
 # DEPRECATED: PCA
 ```{r}
@@ -640,23 +673,34 @@ write.table(params, "unstratified_sample.tsv", sep = "\t", quote = F, row.names 
 ```
 
 # linear models
+
 ```{r}
 # if strat_sample not already available, load from previous session
 #strat_sample = read.table(paste(my_path, "workflow/stratified_sample.tsv", sep = ""), sep = "\t", header = T)
 
 #strat_sample = strat_sample[is.finite(strat_sample$pi),]
 
-mod = lm(log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + gkl_skew + gkl_kurt + hscan + zns + omega, data = strat_sample)
+# calculate partial R-squared for pi
+mod_full = lm(log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + log10(tajd_var) + log10(num_haplos) + log10(h1) + log10(h2) + log10(h12) + log10(h123) + log10(h2h1) + log10(gkl_var) + log10(gkl_skew) + gkl_kurt + log10(hscan) + log10(zns) + log10(omega), data = strat_sample)
 
-mod = lm(log10(tf) ~ log10(pi), data = strat_sample)
+summary(mod_full)
 
-mod = lm(log10(tf) ~ hscan, data = strat_sample)
+plot(mod_full)
 
-summary(mod)
+mod_reduced = lm(log10(tf) ~ log10(pi) + log10(thetaw) + tajd, data = strat_sample)
 
-plot(mod)
+summary(mod_reduced)
 
-stepAIC(mod, direction = "backward")
+plot(mod_reduced)
+
+# calculate partial R-squared
+ssr_full = sum(mod_full$residuals^2)
+ssr_reduced = sum(mod_reduced$residuals^2)
+
+(ssr_reduced - ssr_full)/ssr_reduced
+
+#
+stepAIC(mod_full, direction = "backward")
 
 back_mod = lm(formula = log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + 
     tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + 
@@ -715,19 +759,19 @@ for(i in 1:length(trained_mods)){
   print(file_mod_name)
   
   print("Plotting mean...")
-  compare_predictions_truth_scatter(log10(trained_mod$pred_mean), log10(trained_mod$truth), paste(mod_name, ", Mean", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  compare_predictions_truth_scatter(log10(trained_mod$pred_mean), log10(trained_mod$truth), paste(mod_name, ", Mean", sep = ""), "log10(True tf)", "log10(Predicted tf)", log10(val_sample$ta), "log10(Sweep Age)")
   
-  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mean_", today, ".png", sep = ""), height = 7, width = 7)
+  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mean_", today, ".png", sep = ""), height = 7, width = 8.5)
  
   print("Plotting median...") 
-  compare_predictions_truth_scatter(log10(trained_mod$pred_median), log10(trained_mod$truth), paste(mod_name, ", Median", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  compare_predictions_truth_scatter(log10(trained_mod$pred_median), log10(trained_mod$truth), paste(mod_name, ", Median", sep = ""), "log10(True tf)", "log10(Predicted tf)", log10(val_sample$ta), "log10(Sweep Age)")
   
-  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_median_", today, ".png", sep = ""), height = 7, width = 7)
+  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_median_", today, ".png", sep = ""), height = 7, width = 8.5)
 
   print("Plotting mode...")
-  compare_predictions_truth_scatter(log10(trained_mod$pred_mode), log10(trained_mod$truth), paste(mod_name, ", Mode", sep = ""), "log10(True tf)", "log10(Predicted tf)")
+  compare_predictions_truth_scatter(log10(trained_mod$pred_mode), log10(trained_mod$truth), paste(mod_name, ", Mode", sep = ""), "log10(True tf)", "log10(Predicted tf)", log10(val_sample$ta), "log10(Sweep Age)")
 
-    ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mode_", today, ".png", sep = ""), height = 7, width = 7)
+    ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mode_", today, ".png", sep = ""), height = 7, width = 8.5)
 }
 
 # save comparisons of truth vs predictions
