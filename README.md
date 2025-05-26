@@ -42,9 +42,6 @@ The workflow parameters can be found in `config/config.yaml`. Each parameter is 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | K | number of simulations to run | 5000 |
-| train | Proportion of simulations to use for training | 0.8 |
-| test | Proportion of simulations to use for testing | 0.1 |
-| val | Proportion of simulations to use for validation | 0.1 |
 | nidv | Number of individual genomes to sample from each simulation | 128 |
 | nloc | Number of loci to sample from each simulation | 128 |
 | distMethod | Method for measuring genetic distance between loci | "manhattan" |
@@ -102,7 +99,7 @@ Depending on your parameter choices, you can simulate lots of different sweep ty
 | partial + recurrent | 0 | <1 | >1 |
 | soft + partial + recurrent | 0< | <1 | >1 |
 
-## 3. Specify demographic pattern 
+## 3. (Optional) Specify demographic pattern 
 
 For each simulation in `config/parameters.tsv` you need to define a switch called `demog`. If `demog != 1`, then slim will look for r and K values in to use a logistic growth/death model for the population. If `demog == 1`, then slim will look for `config/demography.csv`. This is a file specifying a cutom demographic pattern. It is a headerless csv file with two columns:
 
