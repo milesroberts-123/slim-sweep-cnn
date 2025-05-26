@@ -1,20 +1,39 @@
-This workflow trains a convolutional neural network using population genetics data simulated with SLiM. 
-
-Maximum number of simulations I can probably run at once is about 320,000
+This workflow trains a convolutional neural network using simulated selective sweeps with SLiM. The workflow was developed and tested using snakemake v 7.25.0 
 
 # Contents
 
+[Setup](#setup)
+
 [Inputs](#inputs)
 
-[Run workflow](#run-workflow)
+[Run workflow](#run-workflow-with-conda-on-a-slurm-cluster)
 
-[Outputs](#outputs)
+[Explore data](#explore-data)
 
-[To do](#to-do)
+[Train models](#train-models)
+
+# Setup
+
+1. Make sure you have [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html) installed. 
+
+2. Grab repository from github
+
+```
+git clone https://github.com/milesroberts-123/selection-demography-cnn.git
+```
+
+3. Install snakemake and the cnn software using the provided yaml files
+
+```
+mamba env create --name snakemake --file snakemake-env.yaml
+mamba env create --name cnn --file cnn-env.yaml
+```
+
+Now you can activate the enviornments with either snakemake or the CNN software with `mamba activate snakemake` or `mamba activate cnn`, respectively.
 
 # Inputs
 
-My workflow requires 3 files, a yaml file of workflow parameters (`config/config.yaml`), a tsv file of SLiM parameters (`config/parameters.tsv`), and a csv file describing a demographic pattern for the SLiM simulations (`config/demography.csv`). I describe each of these inputs below.
+The workflow requires 2 files, a yaml file of workflow parameters (`config/config.yaml`) and a tsv file of SLiM parameters (`config/parameters.tsv`). Optionally, if you want SLiM to simulate a custom demographic patter, then you must also provide another csv file (`config/demography.csv`). Each input is described below.
 
 ## 1. Configure workflow with `config/config.yaml`
 
@@ -23,9 +42,6 @@ The workflow parameters can be found in `config/config.yaml`. Each parameter is 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | K | number of simulations to run | 5000 |
-| train | Proportion of simulations to use for training | 0.8 |
-| test | Proportion of simulations to use for testing | 0.1 |
-| val | Proportion of simulations to use for validation | 0.1 |
 | nidv | Number of individual genomes to sample from each simulation | 128 |
 | nloc | Number of loci to sample from each simulation | 128 |
 | distMethod | Method for measuring genetic distance between loci | "manhattan" |
@@ -83,7 +99,7 @@ Depending on your parameter choices, you can simulate lots of different sweep ty
 | partial + recurrent | 0 | <1 | >1 |
 | soft + partial + recurrent | 0< | <1 | >1 |
 
-## 3. Specify demographic pattern 
+## 3. (Optional) Specify demographic pattern 
 
 For each simulation in `config/parameters.tsv` you need to define a switch called `demog`. If `demog != 1`, then slim will look for r and K values in to use a logistic growth/death model for the population. If `demog == 1`, then slim will look for `config/demography.csv`. This is a file specifying a cutom demographic pattern. It is a headerless csv file with two columns:
 
@@ -101,132 +117,39 @@ For example, a file like the following:
 
 means that 10 generations after burn-in the population size will change to 1000 (burn-in population size is defined by N), at 15 generations post-burn-in the population size will change to 2000, and at 20 generations post-burn-in the population size will change to 3000.
 
-# Run workflow
+# Run workflow with conda on a slurm cluster
 
-`sbatch s01_snakemake.bash`
+Example commands for running the snakemake workflow are in `src/s01_snakemake.bash`. Make sure to change `--partition`, `--account`, `--jobs`, and `--cores` to account for your cluster's computational limits. The command below includes retrying each job twice (i.e. a total of three attempts per job, `--retries 2`) and continuing even when jobs fail (`--keep-going`). This is necessary because you can expect that not all sweep simulations will complete successfully, depending what area of parameter space you're exploring.
 
-# Outputs
+## Run whole workflow at once on a slurm cluster
 
-* One image per SLiM simulation
-* One model `best_cnn.h5` trained on a stratified sample of SLiM simulations
-* Comparisons between predicted and true values for testing data
-* Comparisons between predicted and true values for training data
-* Comparisons between predicted and true values for validation data
+```
+snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=<YOUR PARTITION HERE> --account=<YOUR ACCOUNT HERE>" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 2 --keep-going
+```
 
-# To do
+## Run workflow in batches on a slurm cluster
 
-- [x] add rule for fitting neural network
+```
+# The number of batches you want to do.
+# Increase this value if you have fewer computational resources so that the workflow executes in smaller chunks
+numbatch=50
 
-- [x] perform hierarchical clustering of genotypes before image generation
+for curbatch in {1..$numbatch}
+do
+  snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=<YOUR PARTITION HERE> --account=<YOUR ACCOUNT HERE>" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 2 --keep-going --batch all=$curbatch/$numbatch
+done
+```
 
-- [x] add a burn-in period
+# Explore data
 
-- [x] remove multiallelic sites
+The workflow will output one image per slim simulation and one table of selective sweep summary statistics per slim simulation. Before training the models further, you should import the completed simulations into R and consider how to subset the data into training, testing, and validation. An example of how we did this step is in `src/s03_data_exploration.Rmd`
 
-- [x] Add config file to define workflow parameters
+# Train models
 
-- [x] Add rule for generating table of parameters?
+## Train ABC models
 
-- [x] Calculate heterozygosity periodically to see if population reaches an equilibrium
+After, at minimum, partitioning your data into training, validation, and testing, you can follow `src/s03_data_exploration.Rmd` for building and evaluting ABC models.
 
-- [x] Add simulation length as parameter
+## Train CNN models
 
-- [x] Add mutation rate as parameter
-
-- [x] Add recombination rate as parameter
-
-- [x] include polymorphism position information as another input to the network, output position table at the same time as image creation
-
-- [x] differentiate time of fixation from time of observation
-
-- [x] add soft sweeps
-
-- [x] add partial sweeps
-
-- [x] add recurrent mutation
-
-- [x] refine burn-in, calculate expected equilibrium diversity and stop once population gets within 1 % of the equilibrium
-
-- [x] add new types of demography
-
-- [x] draw parameters from log uniform distribution
-
-- [x] tweak growth rate, add shrinking populations
-
-- [x] subset data to have a more uniform distribution of fixation times, then train your model
-
-- [x] add linkage to deleterious mutations (model beneficial mutation in the center of a functional region under purifying selection)
-
-- [x] add hill-robertson interference
-
-- [x] track the number of sweeps lost (i.e. number of simulation restarts) before you get a simulation that ends in a fixed sweep
-
-- [x] add gene conversion
-
-- [x] add simulation id to prediction vs actual values output
-
-- [x] add monte carlo dropout
-
-- [x] re-do burn-in to stop once simulations reach equilibrium levels of diversity (within 5 % say of expected value), instead of 10N?
-
-- [x] output harmonic mean of population size
-
-- [x] decrease burn-in based on selfing rate
-
-- [x] add parameter to adjust when sweep is introduced relative to burn-in start
-
-- [x] add parameter Q for scaling demographic factors
-
-- [x] expand ranges of simulation parameters
- 
-- [x] include both neutral (s < 1/N) and selection (s > 1/N) scenarios
-
-- [x] modify slim rule to append output of failure count and fixation times into single files
-
-- [x] investigate recombination rate * selfing rate interaction
-
-- [x] add rule to extract outputs of simulations from log files, so that I don't have to make lots of intermediate files?
-
-- [x] add R script to do stratified sampling of simulations
-
-- [x] modify simulation to continue until the present day, restart if sweep is not fixed by present day (add parameter G for Generations post-burn in to run simulation)
-
-- [x] add table of sweep types
-
-- [x] calculate sweep statistics for ABC: pi, theta_w, tajima's D, tajima's D variance, omega, zns, gkl kurtosis, gkl var, gkl skew, G123, G12, G1, G2/G3, number of multilocus genotypes, hscan
-
-- [x] calculate fixation time error from scaled and non-scaled simulations, 100 replicates
-
-- [x] my simulations continue forever if I introduce a sweep mutation at the very end of the simulation, add condition to catch this
-
-- [x] test workflow on southern sweden, subpopulation needs at least 128 individuals for my idea to work
-
-- [x] add script to tune hyperparameters
-
-- [x] add in RISE algorithm
-
-- [x] modify fitting script to use best hyperparameters found during tuning. Hyperparameters: dropout rate (0 - 0.8), number of convolution + pooling layers, number of neurons for dense layers
-
-- [x] re-write neural network as a function with hyperparameters
-
-- [x] train model to infer both tf and ta
-
-- [x] add ML model that uses only summary stats for inference
-
-- [ ] add method to calculate saliency maps from backpropagation gradients
-
-- [ ] add error checking (tau should be less than kappa for example)
-
-- [ ] add creation of parameter table to workflow
-
-- [ ] add clonal reproduction?
-
-- [ ] include polyploidy?
-
-- [ ] include population structure? (track time for mutation to fix when it needs to migrate to another population first)
-
-- [ ] use gpu instead of cpu for training model
-
-- [ ] add a table of hyperparameters combinations to test for neural network
-
-
+An example of how to start training the CNN is in `src/s04_train.sh`.

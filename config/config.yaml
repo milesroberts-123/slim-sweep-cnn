@@ -3,15 +3,6 @@
 # number of simulations to run
 K: 50000
 
-# Proportion of data to use for training
-train: 0.8
-
-# Proportion of data to use for testing
-test: 0.1
-
-# Proporition of data to use for validation
-val: 0.1
-
 # Dimmension of images will be nidv*nloc*3
 # Number of individual genomes to sample
 nidv: 128
@@ -27,4 +18,4 @@ clustMethod: "complete"
 
 # demographic pattern if using logistic demography
 # options: constant, growth, decay, cycle, chaos, custom
-demography: "chaos"
+demography: "custom"
