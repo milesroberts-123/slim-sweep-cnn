@@ -5,7 +5,6 @@ output:
     df_print: paged
 ---
 
-
 # load packages
 ```{r}
 rm(list = ls())
@@ -16,6 +15,7 @@ library(scico)
 library(png)
 library(abc)
 library(ggpubr)
+library(ggcorrplot)
 
 today = Sys.Date()
 
@@ -24,7 +24,15 @@ today = Sys.Date()
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_cycle/selection-demography-cnn/"
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_chaos/selection-demography-cnn/"
 #my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_constant_2/selection-demography-cnn/"
-my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth_2/selection-demography-cnn/"
+#my_path = "/mnt/scratch/robe1195/Josephs_Lab_Projects/outcrossing_growth_2/selection-demography-cnn/"
+
+my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript/outcrossing_constant_2/"
+#my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript/outcrossing_growth_2/"
+#my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript/outcrossing_decay/"
+#my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript/outcrossing_cycle/"
+#my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript/outcrossing_chaos/"
+
+output_path = paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", "constant/",sep = "")
 ```
 
 # plotting functions
@@ -90,15 +98,18 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
   print("Omit non-numbers")
   print(length(predictions))
   print(length(truth))
+  print(length(colorvar))
   
   filter = !(is.nan(predictions) | is.nan(truth) | is.infinite(predictions) | is.infinite(truth))
   
   predictions = predictions[filter]
   truth = truth[filter] 
+  colorvar = colorvar[filter]
   
   print(length(predictions))
   print(length(truth))
-  
+  print(length(colorvar))
+   
   # Calculate correlation between truth and results
   # spearman correlation is invariant to log transforms
   my_cor_coeff = cor.test(predictions, truth, method = "pearson")
@@ -110,15 +121,15 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
   cor_n = length(truth)
   
   # plot data
-  plotdata = data.frame(predictions = predictions, truth = truth)
+  plotdata = data.frame(predictions = predictions, truth = truth, colorvar = colorvar)
   
   p = ggplot(aes(y = predictions, x = truth, color = colorvar), data = plotdata) +
   geom_point() +
   geom_abline(slope = 1, intercept = 0, color = "#8C0172", linewidth = 2) +
   geom_smooth(method = "lm", color = "#9B951B", linewidth = 2) +
-  scale_color_continuous(low = "#B200B2", high = "#FFFF66") +
+  scale_color_continuous(low = "#04050A", high = "#F9CCF9") +
   theme_classic() +
-  theme(text = element_text(size = 18)) +
+  theme(text = element_text(size = 16)) +
   labs(x = truthlab, 
        y = predlab,
        title = paste(model_labels, "\nr = ", cor_est, ", n = " , cor_n, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""),
@@ -172,6 +183,9 @@ params = params[(params$ID %in% picids),]
 # Exploratory data analysis
 
 ```{r}
+# optionally load previously cached statistics
+#params = read.table(paste(my_path, "unstratified_sample.tsv", sep = ""), header = T, sep = "\t")
+
 # remove any sims where statistics are undefined
 params = params[complete.cases(params),]
 
@@ -184,7 +198,30 @@ ggplot(params, aes(x = log10(ta))) +
   geom_density() +
   theme_classic()
 
+#
+ggplot(params, aes(x = log10(tf), y = log10(ta), color = log10(pi))) +
+  geom_point() +
+  theme_classic() +
+  scale_color_gradient(high = "#B200B2", low = "#FFFF66", name = "Nucleotide\ndiversity") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time)", y = "log10(sweep age)")
+
 # does short tf, long ta look similar to long tf, short ta
+ggplot(params, aes(x = log10(tf), y = log10(ta), color = log10(pi))) +
+  geom_point() +
+  theme_classic() +
+  scale_color_gradient(high = "#B200B2", low = "#FFFF66", name = "Nucleotide\ndiversity") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time)", y = "log10(sweep age)")
+
+ggplot(params, aes(x = log10(tf + ta), y = log10(pi))) +
+  geom_point() +
+  theme_classic() +
+  scale_color_gradient(high = "#B200B2", low = "#FFFF66", name = "Nucleotide\ndiversity") +
+  theme(text = element_text(size = 20)) +
+  labs(x = "log10(fixation time)", y = "log10(sweep age)")
+
+
 ggplot(params[(log10(params$tf) < 4),], aes(x = log10(tf), y = log10(ta), color = hscan)) +
   geom_point() +
   theme_classic() +
@@ -192,7 +229,7 @@ ggplot(params[(log10(params$tf) < 4),], aes(x = log10(tf), y = log10(ta), color 
   theme(text = element_text(size = 20)) +
   labs(x = "log10(fixation time)", y = "log10(sweep age)")
 
-ggplot(params[(log10(params$tf) < 4),], aes(x = log10(tf), y = log10(ta))) +
+ggplot(params, aes(x = log10(tf), y = log10(ta))) +
   #geom_point() +
   theme_classic() +
   stat_summary_2d(aes(x = log10(tf), y = log10(ta), z = hscan), fun = "mean") + 
@@ -525,7 +562,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 # Stratified sampling along time to fixation
 ```{r}
 width = 0.1
-max_bin_height = 600 # adjust so that observations at log10(20000) ~ 4.31 are included
+max_bin_height = 600 # adjust so that observations at log10(50) ~ 1.70 and log10(20000) ~ 4.31 are included
  
 breaks = seq(from = min(log10(params$tf)) - width, to = max(log10(params$tf)) + width, by = width)
 
@@ -594,6 +631,12 @@ table(strat_sample$bin_tf, strat_sample$bin_ta)
 ggplot(strat_sample, aes(x=bin_tf, y=bin_ta) ) + 
    geom_bin2d() +
    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+# TEST: sample low tf, high ta and high tf, low ta simulations
+```{r}
+
 
 ```
 
@@ -674,40 +717,63 @@ write.table(params, "unstratified_sample.tsv", sep = "\t", quote = F, row.names 
 
 # linear models
 
+How much additional variation do statistics besides pi explain?
+
 ```{r}
-# if strat_sample not already available, load from previous session
-#strat_sample = read.table(paste(my_path, "workflow/stratified_sample.tsv", sep = ""), sep = "\t", header = T)
 
-#strat_sample = strat_sample[is.finite(strat_sample$pi),]
+results_files = list.files(path = "/mnt/ufs18/home-010/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript", recursive = T, full.names = T)
 
-# calculate partial R-squared for pi
-mod_full = lm(log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + log10(tajd_var) + log10(num_haplos) + log10(h1) + log10(h2) + log10(h12) + log10(h123) + log10(h2h1) + log10(gkl_var) + log10(gkl_skew) + gkl_kurt + log10(hscan) + log10(zns) + log10(omega), data = strat_sample)
+results_files = results_files[grepl("/stratified_sample.tsv", results_files)]
 
-summary(mod_full)
+results_files = results_files[c(1,2,4,5,6)]
 
-plot(mod_full)
+partial_R_squareds = NULL
+# loop over each table of summary stats, calculate partial R-squared for diversity statistics
+for(results_file in results_files){
+  # load from previous session
+  sum_stats_table = read.table(results_file, sep = "\t", header = T)
 
-mod_reduced = lm(log10(tf) ~ log10(pi) + log10(thetaw) + tajd, data = strat_sample)
+  # calculate partial R-squared for pi
+  mod_full = lm(log10(tf + ta) ~ S + log10(pi) + log10(thetaw) + tajd + tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + gkl_skew + gkl_kurt + hscan + zns + log10(omega), data = sum_stats_table)
 
-summary(mod_reduced)
+  #summary(mod_full)
 
-plot(mod_reduced)
+  #plot(mod_full)
 
-# calculate partial R-squared
-ssr_full = sum(mod_full$residuals^2)
-ssr_reduced = sum(mod_reduced$residuals^2)
+  # reduced model with only diversity statistics
+  mod_reduced = lm(log10(tf + ta) ~ S + log10(pi) + log10(thetaw) + tajd + tajd_var + num_haplos, data = sum_stats_table)
 
-(ssr_reduced - ssr_full)/ssr_reduced
+  #summary(mod_reduced)
+
+  #plot(mod_reduced)
+
+  # calculate partial R-squared
+  ssr_full = sum(mod_full$residuals^2)
+  ssr_reduced = sum(mod_reduced$residuals^2)
+
+  partial_R_squared = (ssr_reduced - ssr_full)/ssr_reduced
+  
+  partial_R_squareds = rbind(partial_R_squareds, data.frame(demography = results_file, partrsq = partial_R_squared))
+}
+
 
 #
-stepAIC(mod_full, direction = "backward")
+# stepAIC(mod_full, direction = "backward")
+# 
+# back_mod = lm(formula = log10(tf) ~ pi + thetaw + tajd + tajd_var + num_haplos + 
+#     h1 + h2 + h12 + h2h1 + gkl_var + gkl_skew + gkl_kurt + hscan + 
+#     zns + h, data = strat_sample)
+# 
+# summary(back_mod)
+# 
+# plot(back_mod)
 
-back_mod = lm(formula = log10(tf) ~ S + log10(pi) + log10(thetaw) + tajd + 
-    tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + 
-    gkl_skew + hscan + zns + omega, data = strat_sample)
-
-summary(back_mod)
-
+#
+# mod_test = lm(log10(ta + tf) ~ log10(pi), data = strat_sample)
+# 
+# summary(mod_test)
+# 
+# plot(mod_test)
 ```
 
 
@@ -715,9 +781,12 @@ summary(back_mod)
 
 ## tune abc hyperparameters
 ```{r message=FALSE, warning=FALSE, include=FALSE}
+
+strat_sample = read.table(paste(my_path, "stratified_sample.tsv", sep = ""), header = T, sep = "\t")
+
 summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega")
 
-tols = c(0.025, 0.05, 0.1, 0.15)
+tols = c(0.025, 0.05, 0.1, 0.15, 0.2)
 
 meths = c("rejection", "loclinear", "ridge", "neuralnet")
 
@@ -761,17 +830,17 @@ for(i in 1:length(trained_mods)){
   print("Plotting mean...")
   compare_predictions_truth_scatter(log10(trained_mod$pred_mean), log10(trained_mod$truth), paste(mod_name, ", Mean", sep = ""), "log10(True tf)", "log10(Predicted tf)", log10(val_sample$ta), "log10(Sweep Age)")
   
-  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mean_", today, ".png", sep = ""), height = 7, width = 8.5)
+  ggsave(paste(output_path, "/", file_mod_name, "_mean_", today, ".png", sep = ""), height = 7, width = 8.5)
  
   print("Plotting median...") 
   compare_predictions_truth_scatter(log10(trained_mod$pred_median), log10(trained_mod$truth), paste(mod_name, ", Median", sep = ""), "log10(True tf)", "log10(Predicted tf)", log10(val_sample$ta), "log10(Sweep Age)")
   
-  ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_median_", today, ".png", sep = ""), height = 7, width = 8.5)
+  ggsave(paste(output_path, "/", file_mod_name, "_median_", today, ".png", sep = ""), height = 7, width = 8.5)
 
   print("Plotting mode...")
   compare_predictions_truth_scatter(log10(trained_mod$pred_mode), log10(trained_mod$truth), paste(mod_name, ", Mode", sep = ""), "log10(True tf)", "log10(Predicted tf)", log10(val_sample$ta), "log10(Sweep Age)")
 
-    ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", file_mod_name, "_mode_", today, ".png", sep = ""), height = 7, width = 8.5)
+    ggsave(paste(output_path, "/", file_mod_name, "_mode_", today, ".png", sep = ""), height = 7, width = 8.5)
 }
 
 # save comparisons of truth vs predictions
@@ -780,11 +849,17 @@ for(i in 1:length(trained_mods)){
 ## testing final abc model
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 # use best combination of hyperparameters and evaluate testing data
-best_abc = train_abc(train_sample, test_sample, "tf", summary_stats, 0.01, "rejection")
+best_abc = train_abc(train_sample, test_sample, "tf", summary_stats, 0.2, "neuralnet")
 
-compare_predictions_truth_scatter(log10(best_abc$pred_median), log10(best_abc$truth), "Rej., Median, tol = 0.01", "log10(True tf)", "log10(Predicted tf)")
+plot_best_abc = compare_predictions_truth_scatter(log10(best_abc$pred_median), log10(best_abc$truth), "ABC, NN, Med., tol = 0.2", "log10(True tf)", "log10(Predicted tf)", log10(test_sample$ta),"log10\nsweep\nage")
 
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_rejection_median_tol001_", today, ".png", sep = ""), height = 7, width = 7)
+plot_best_cnn = compare_predictions_truth_scatter(test_pred_vs_act$tf_mean, test_pred_vs_act$tf, "CNN, test set", "log10(True tf)", "log10(Predicted tf)", log10(test_sample$ta),"log10\nsweep\nage")
+
+plot_best_dnn = compare_predictions_truth_scatter(test_pred_vs_act_dense$tf_mean, test_pred_vs_act_dense$tf, "DNN, test set", "log10(True tf)", "log10(Predicted tf)", log10(test_sample$ta), "log10\nsweep\nage")
+
+ggarrange(plot_best_cnn, plot_best_dnn, plot_best_abc, nrow = 1, ncol = 3, labels = c("A", "B", "C"), common.legend = T, legend = "right", font.label = list(size = 16))
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/best_models_", today, ".png", sep = ""), height = 5, width = 14, dpi = 300)
 ```
 
 ## DEPRECATED: cross-fold validation to choose a model
@@ -1134,15 +1209,18 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 ## compare predictions to actual values on testing dataset
 ```{r}
 #pred_vs_act = read.table("../workflow/predicted_vs_actual.txt")
-train_pred_vs_act = read.table(paste(my_path,"workflow/train_predicted_vs_actual.txt", sep = ""))
+train_pred_vs_act = read.table(paste(my_path,"workflow/train_predicted_vs_actual.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
 
-val_pred_vs_act = read.table(paste(my_path,"workflow/val_predicted_vs_actual.txt", sep = ""))
+val_pred_vs_act = read.table(paste(my_path,"workflow/val_predicted_vs_actual.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
 
-test_pred_vs_act = read.table(paste(my_path,"workflow/test_predicted_vs_actual.txt", sep = ""))
+test_pred_vs_act = read.table(paste(my_path,"test_predicted_vs_actual.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
 
 # merge in sweep ages to see how predictions falter with older sweeps
-#names(params)[1] = "V1"
-#test_pred_vs_act = merge(params[,c("V1", "ta")], test_pred_vs_act, by = "V1")
+train_pred_vs_act = merge(params[,c("ID", "ta")], train_pred_vs_act, by = "ID")
+
+val_pred_vs_act = merge(params[,c("ID", "ta")], val_pred_vs_act, by = "ID")
+
+test_pred_vs_act = merge(params[,c("ID", "ta")], test_pred_vs_act, by = "ID")
 
 # subset data to remove outliers
 #pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= 5000),]
@@ -1195,17 +1273,17 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 # actual vs predicted values
 
 ##training set
-compare_predictions_truth_scatter(train_pred_vs_act$V3, train_pred_vs_act$V2, "CNN, training set", "log10(True tf)", "log10(Predicted tf)")
+compare_predictions_truth_scatter(train_pred_vs_act$tf_mean, train_pred_vs_act$tf, "CNN, training set", "log10(True tf)", "log10(Predicted tf)", log10(train_pred_vs_act$ta), "sweep age")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/train_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## validation set
-compare_predictions_truth_scatter(val_pred_vs_act$V3, val_pred_vs_act$V2, "CNN, validation set", "log10(True tf)", "log10(Predicted tf)")
+compare_predictions_truth_scatter(val_pred_vs_act$tf_mean, val_pred_vs_act$tf, "CNN, validation set", "log10(True tf)", "log10(Predicted tf)", log10(val_pred_vs_act$ta), "sweep age")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/val_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
 ## test set
-compare_predictions_truth_scatter(test_pred_vs_act$V3, test_pred_vs_act$V2, "CNN, test set", "log10(True tf)", "log10(Predicted tf)")
+compare_predictions_truth_scatter(test_pred_vs_act$tf_mean, test_pred_vs_act$tf, "CNN, test set", "log10(True tf)", "log10(Predicted tf)", log10(test_pred_vs_act$ta), "sweep age")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 
@@ -1307,7 +1385,10 @@ train_pred_vs_act_dense = read.table(paste(my_path,"workflow/train_predicted_vs_
 
 val_pred_vs_act_dense = read.table(paste(my_path,"workflow/val_predicted_vs_actual_dense.txt", sep = ""))
 
-test_pred_vs_act_dense = read.table(paste(my_path,"workflow/test_predicted_vs_actual_dense.txt", sep = ""))
+test_pred_vs_act_dense = read.table(paste(my_path,"test_predicted_vs_actual_dense.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
+
+# Add in sweep age
+test_pred_vs_act_dense = merge(params[,c("ID", "ta")], test_pred_vs_act_dense, by = "ID")
 
 ## Distribution of fixation times
 test_pred_vs_act_dense_melt = melt(as.data.table(test_pred_vs_act_dense), id = c("V1", "V4"))
@@ -1324,12 +1405,261 @@ ggplot(test_pred_vs_act_dense_melt, aes(x = value, color = variable)) +
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_density_denseNet_", today, ".png", sep = ""), height = 7, width = 7)
 
 # scatterplot
-compare_predictions_truth_scatter(test_pred_vs_act_dense$V3, test_pred_vs_act_dense$V2, "Neural Net, test set", "log10(True tf)", "log10(Predicted tf)")
+compare_predictions_truth_scatter(test_pred_vs_act_dense$tf_mean, test_pred_vs_act_dense$tf, "Neural Net, test set", "log10(True tf)", "log10(Predicted tf)", log10(test_pred_vs_act_dense$ta), "Sweep age")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_denseNet_", today, ".png", sep = ""), height = 7, width = 7)
 ```
 
-## multivariate models
+# Final figures
+
+## tf vs ta definition
+```{r}
+# functions from: https://si.biostat.washington.edu/sites/default/files/modules/Day2_AM_part1.pdf
+fitfreq = function(q, h, s){
+  p=1-q;
+  return((q^2*(1+s) + p*q*(1+h*s))/( 1 + s*q*(2*h*p+q)))
+}
+
+WF.sel=function(N, q, h, s, G){
+  t=array(,dim=G)
+  t[1] = N*q
+  for(i in 2:G){
+    t[i] = rbinom(1,N,fitfreq(t[i-1]/N, h, s))
+  }
+  return(t)
+}
+
+gen = 100
+N = 1000
+h = 0.5
+s = 0.5
+q0 = 1/N
+
+my_pal = rev(scico(3, palette = "vanimo"))
+
+good = WF.sel(N, q0, h, s, gen)
+
+plotdata = data.frame(
+  gen = 0:(gen-1),
+  good = good
+)
+
+plotdata = melt(plotdata, id = "gen")
+
+time_to_fixation = min(plotdata$gen[(plotdata$value == N)])
+
+linewidth = 1.5
+
+annot_size = 5
+
+plot_tf_ta_def = ggplot(plotdata, aes(x = gen, y = value/N)) +
+  geom_line(lwd = linewidth, color ="#1A1412" ) +
+  geom_segment(aes(x = 1, y = 1.01, xend = time_to_fixation, yend = 1.01), color = "#BEFDA5", lwd = linewidth) +
+  geom_segment(aes(x = time_to_fixation, y = 1.01, xend = max(gen), yend = 1.01), color = "#FFCCFD", lwd = linewidth) +
+  annotate("text", x=time_to_fixation/2, y=1.05, label= "Time to fixation (tf)", size = annot_size) + 
+  annotate("text", x=(time_to_fixation + max(gen))/2, y=1.05, label= "Sweep age (ta)", size = annot_size) + 
+  geom_vline(xintercept = time_to_fixation, lty = 2, lwd = linewidth) +
+  geom_vline(xintercept = max(gen), lty = 2, lwd = linewidth) + 
+  annotate("text", x=time_to_fixation-10, y=.5, label= "Sweep\nfixes", size = annot_size) + 
+  annotate("text", x=max(gen)-14, y=.75, label= "Population\nsampled", size = annot_size) + 
+  geom_vline(xintercept = 0, lty = 2, lwd = linewidth) +
+  annotate("text", x=9, y=.25, label= "Sweep\narises", size = annot_size) + 
+  theme_classic() +
+  theme(text = element_text(size=16)) +
+  labs(y = "Sweep allele frequency", x = "time (generations)")
+
+#ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/definitions.png", sep = ""), height = 7, width = 8, dpi = 700)
+
+```
+
+##
+
+```{r}
+N = 1000
+q0 = 0.25
+gen = 100
+
+good = WF.sel(N, q0, 0.5, 0.5, gen)
+bad = WF.sel(N, q0, 0.5, -0.5, gen)
+neutral = WF.sel(N, q0, 0.5, 0, gen)
+
+
+plotdata = data.frame(
+  gen = 0:(gen-1),
+  good = good,
+  neutral = neutral,
+  bad = bad
+)
+
+plotdata = melt(plotdata, id = "gen")
+
+# bad
+ggplot(plotdata[(plotdata$variable == "bad"),], aes(x = gen, y = value/N)) +
+  geom_line(lwd = 1.5, color = "pink") +
+  theme_classic() +
+  theme(
+    axis.line = element_line(colour = 'black', size = 1.5), 
+    axis.ticks = element_line(colour = "black", size = 1.5),
+    text = element_text(size = 16)) +
+  #coord_cartesian(ylim = c(0, 1)) +
+  coord_fixed(ratio = gen, ylim = c(0,1)) +
+  labs(x = "Time (generations)", y = "Mutation frequency")
+
+ggsave("/mnt/home/robe1195/tmp/bad.png", dpi = 350, width = 5, height = 5, unit = "in")
+
+
+# good
+ggplot(plotdata[(plotdata$variable == "good"),], aes(x = gen, y = value/N)) +
+  geom_line(lwd = 1.5, color = "darkgreen") +
+  theme_classic() +
+  theme(
+    axis.line = element_line(colour = 'black', size = 1.5), 
+    axis.ticks = element_line(colour = "black", size = 1.5),
+    text = element_text(size = 16)) +
+  #coord_cartesian(ylim = c(0, 1)) +
+  coord_fixed(ratio = gen, ylim = c(0,1)) +
+  labs(x = "Time (generations)", y = "Mutation frequency")
+
+ggsave("/mnt/home/robe1195/tmp/good.png", dpi = 350, width = 5, height = 5, unit = "in")
+
+# neutral
+ggplot(plotdata[(plotdata$variable == "neutral"),], aes(x = gen, y = value/N)) +
+  geom_line(lwd = 1.5) +
+  theme_classic() +
+  theme(
+    axis.line = element_line(colour = 'black', size = 1.5), 
+    axis.ticks = element_line(colour = "black", size = 1.5),
+    text = element_text(size = 16)) +
+  #coord_cartesian(ylim = c(0, 1)) +
+  coord_fixed(ratio = gen, ylim = c(0,1)) +
+  labs(x = "Time (generations)", y = "Mutation frequency")
+
+ggsave("/mnt/home/robe1195/tmp/neutral.png", dpi = 350, width = 5, height = 5, unit = "in")
+
+
+```
+
+## Identifiability
+```{r}
+ident_data = read.table(paste(my_path,"unstratified_sample.tsv", sep = ""), sep = "\t", header = T)
+
+tf_plus_ta = ggplot(ident_data, aes(x = log10(tf + ta), y = log10(pi))) +
+  theme_classic() +
+  stat_bin2d() + 
+  scale_fill_gradient(high = "#B200B2", low = "#FFFF66", name = "Count") +
+  theme(text = element_text(size = 16)) +
+  labs(x = "log10(fixation time + sweep age)", y = "log10(nucleotide diversity)")
+
+split_tf_ta = ggplot(ident_data, aes(x = log10(tf), y = log10(ta))) +
+  theme_classic() +
+  stat_summary_2d(aes(x = log10(tf), y = log10(ta), z = log10(pi)), fun = "mean") + 
+  scale_fill_gradientn(colors = scico(10, palette = "imola"), name = "mean\nlog10\nnucleotide\ndiversity") +
+  theme(text = element_text(size = 16)) +
+  labs(x = "log10(fixation time)", y = "log10(sweep age)")
+
+ggarrange(plot_tf_ta_def,tf_plus_ta, split_tf_ta, ncol = 3, nrow = 1, labels = c("A", "B", "C"), font.label = list(size = 18))
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/identifiability_constant_", today, ".png", sep = ""), height = 4, width = 16, dpi = 900)
+
+# supplemental figure showing tf ta split for other statistics
+split_tf_ta_func = function(data,tf,ta,stat_values,statname,tflab,talab){
+  ggplot(data,aes(x = log10(tf), y = log10(ta))) +
+  theme_classic() +
+  stat_summary_2d(aes(x = log10(tf), y = log10(ta), z = stat_values), fun = "mean") + 
+  scale_fill_gradientn(colors = scico(10, palette = "imola"), name = statname) +
+  theme(text = element_text(size = 16)) +
+  labs(x = tflab, y = talab)
+}
+
+split_tf_ta_thetaw = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$thetaw, "Watterson's\ntheta", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_tajima = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$tajd, "Tajima's D", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_tajima_var = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$tajd_var, "Tajima's D\nvariance", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_num_haplos = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$num_haplos, "Number of\ngenotypes", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_h1 = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$h1, "unphased\nH1", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_h2 = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$h2, "unphased\nH2", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_h12 = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$h12, "unphased\nH12", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_h123 = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$h123, "unphased\nH123", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_h2h1 = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$h2h1, "unphased\nH2H1", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_gkl_var = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$gkl_var, "Kern's gkl\nvar.", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_gkl_skew = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$gkl_skew, "Kern's gkl\nskew", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_gkl_kurt = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$gkl_kurt, "Kern's gkl\nkurtosis", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_zns = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$zns, "Roggers'\nR^2", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_omega = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$omega, "unphased\nKim's omega", "log10(fixation time)", "log10(sweep age)")
+
+split_tf_ta_hscan = split_tf_ta_func(ident_data,log10(ident_data$tf), log10(ident_data$ta), ident_data$hscan, "unphased\nMesser's\nHscan", "log10(fixation time)", "log10(sweep age)")
+
+ggarrange(split_tf_ta_thetaw, split_tf_ta_tajima, split_tf_ta_tajima_var, split_tf_ta_num_haplos, nrow = 2, ncol= 2, labels = c("A", "B", "C", "D"), font.label = list(size = 16))
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/split_tf_ta_sfs_", today, ".png", sep = ""), height = 8, width = 13, dpi = 900)
+
+ggarrange(split_tf_ta_h1, split_tf_ta_h2, split_tf_ta_h12, split_tf_ta_h123, split_tf_ta_h2h1, split_tf_ta_hscan, nrow = 2, ncol= 3, labels = c("A", "B", "C", "D", "E", "F"), font.label = list(size = 16))
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/split_tf_ta_hstats_", today, ".png", sep = ""), height = 8, width = 16, dpi = 900)
+
+ggarrange(split_tf_ta_gkl_var, split_tf_ta_gkl_skew, split_tf_ta_gkl_kurt, nrow = 1, ncol= 3, labels = c("A", "B", "C"), font.label = list(size = 16))
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/split_tf_ta_gkl_", today, ".png", sep = ""), height = 4, width = 17, dpi = 900)
+
+ggarrange(split_tf_ta_zns, split_tf_ta_omega, nrow = 1, ncol= 2, labels = c("A", "B"), font.label = list(size = 16))
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/split_tf_ta_ld_", today, ".png", sep = ""), height = 4, width = 11, dpi = 900)
+
+
+```
+
+## Performance of pi vs other statistics
+```{r}
+# Pairwise partial correlation
+mycorr = cor(strat_sample[,summary_stats], method = "spearman")
+
+rownames(mycorr) = c("S", "Nei's pi", "Watterson's theta", "Tajima's D", "Tajima's D var", "Number diplotypes", "h1", "h2", "h12", "h123", "h2h1", "Kern's gkl var", "Kern's gkl skew", "Kern's gkl kurtosis", "Messer's hscan", "Roggers' r2", "Kim's omega")
+
+colnames(mycorr) = c("S", "Nei's pi", "Watterson's theta", "Tajima's D", "Tajima's D var", "Number diplotypes", "h1", "h2", "h12", "h123", "h2h1", "Kern's gkl var", "Kern's gkl skew", "Kern's gkl kurtosis", "Messer's hscan", "Roggers' r2", "Kim's omega")
+
+plot_corpairs = ggcorrplot(mycorr, hc.order = TRUE, type = "lower",
+   outline.col = "white",
+   ggtheme = ggplot2::theme_linedraw(),
+   colors = c("#FFCE66", "#572948", "#80E6FF"), legend.title = "Spearman\nCorrelation") +
+  theme(text = element_text(size = 16))
+
+# Partial R-squared of diversity statistics
+partial_R_squareds$demography = gsub(".*manuscript/", "", partial_R_squareds$demography)
+
+partial_R_squareds$demography = gsub("/stratified_sample.tsv", "", partial_R_squareds$demography)
+
+partial_R_squareds$demography = gsub("outcrossing_", "", partial_R_squareds$demography)
+
+partial_R_squareds$demography = gsub("_2", "", partial_R_squareds$demography)
+
+plot_partrsq = ggplot(data=partial_R_squareds, aes(x=demography, y=partrsq)) +
+  geom_bar(stat="identity", color = "black") +
+  geom_text(aes(label=round(partrsq, 2)),vjust=2, color = "white", size = 8)+
+  theme_classic() +
+  theme(text = element_text(size = 16)) + 
+  labs(x = "Demography", y = "Partial R-squared of SFS statistics")
+
+ggarrange(plot_corpairs, plot_partrsq, ncol = 2, nrow = 1, labels = c("A", "B"), font.label = list(size = 16))
+
+ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/partial_r_squared_", today, ".png", sep = ""), height = 7, width = 16, dpi = 900)
+
+```
+
+## Compare performance of best CNN, neural network, and ABC models
+
+# DEPRECATED: multivariate models
 
 ```{r}
 val_pred_vs_act = read.table("/mnt/scratch/robe1195/Josephs_Lab_Projects/selection-demography-cnn/workflow/val_predicted_vs_actual.txt")
@@ -1357,7 +1687,7 @@ ggplot(val_pred_vs_act, aes(x = V3, y = V5)) +
   theme_classic()
 ```
 
-# Adjust model predictions so that they have a 1:1 relationship with simulations
+# DEPRECATED: Adjust model predictions so that they have a 1:1 relationship with simulations
 ```{r}
 
 mod_pred_vs_act = lm(V3 ~ V2, data = test_pred_vs_act)

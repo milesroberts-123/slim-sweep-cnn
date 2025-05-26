@@ -16,7 +16,7 @@ print("Building table of parameters...")
 params = data.frame(
   ID = 1:K, # unique ID for each simulation
   Q = 1,
-  N = sample(1000:10000, size = K, replace = T), # initial population size
+  N = sample(5000:20000, size = K, replace = T), # initial population size
   h = runif(K, min = 0, max = 1), # dominance coefficient
   sigma = 0,
   mu = 10^runif(K, min = -8.5, max = -7.5),
@@ -92,6 +92,7 @@ if(demography == "chaos"){
 if(demography == "custom"){
   params$r = 0
   params$K = 0
+  params$Q = runif(K, min = 10, max = 20)
   params$custom_demography = 1
 }
 
