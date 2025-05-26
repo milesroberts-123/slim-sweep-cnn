@@ -119,11 +119,9 @@ means that 10 generations after burn-in the population size will change to 1000 
 
 # Run workflow with conda on a slurm cluster
 
-Example commands for running the snakemake workflow are in `src/s01_snakemake.bash`
+Example commands for running the snakemake workflow are in `src/s01_snakemake.bash`. Make sure to change `--partition`, `--account`, `--jobs`, and `--cores` to account for your cluster's computational limits. The command below includes retrying each job twice (i.e. a total of three attempts per job, `--retries 2`) and continuing even when jobs fail (`--keep-going`). This is necessary because you can expect that not all sweep simulations will complete successfully, depending what area of parameter space you're exploring.
 
 ## Run whole workflow at once on a slurm cluster
-
-# split snakemake workflow into batches so that computing DAG is easier
 
 ```
 snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=<YOUR PARTITION HERE> --account=<YOUR ACCOUNT HERE>" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 2 --keep-going
