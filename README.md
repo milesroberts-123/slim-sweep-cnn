@@ -8,9 +8,9 @@ This workflow trains a convolutional neural network using simulated selective sw
 
 [Run workflow](#run-workflow-with-conda-on-a-slurm-cluster)
 
-[Outputs](#outputs)
+[Explore data](#explore-data)
 
-[To do](#to-do)
+[Train models](#train-models)
 
 # Setup
 
@@ -144,17 +144,12 @@ done
 
 The workflow will output one image per slim simulation and one table of selective sweep summary statistics per slim simulation. Before training the models further, you should import the completed simulations into R and consider how to subset the data into training, testing, and validation. An example of how we did this step is in `src/s03_data_exploration.Rmd`
 
-# Train ABC models
+# Train models
+
+## Train ABC models
 
 After, at minimum, partitioning your data into training, validation, and testing, you can follow `src/s03_data_exploration.Rmd` for building and evaluting ABC models.
 
-# Train CNN models
+## Train CNN models
 
 An example of how to start training the CNN is in `src/s04_train.sh`.
-
-# Outputs
-
-* One model `best_cnn.h5` trained on a stratified sample of SLiM simulations
-* Comparisons between predicted and true values for testing data
-* Comparisons between predicted and true values for training data
-* Comparisons between predicted and true values for validation data
