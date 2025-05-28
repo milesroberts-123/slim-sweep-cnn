@@ -2,6 +2,9 @@
 import pandas as pd
 import re
 
+# container version of workflow
+containerized: "docker://milesroberts/slim-sweep-cnn"
+
 # load config file
 configfile: "../config/config.yaml"
 

@@ -19,7 +19,7 @@ This workflow trains a convolutional neural network using simulated selective sw
 2. Grab repository from github
 
 ```
-git clone https://github.com/milesroberts-123/selection-demography-cnn.git
+git clone https://github.com/milesroberts-123/slim-sweep-cnn.git
 ```
 
 3. Install snakemake and the cnn software using the provided yaml files

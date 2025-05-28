@@ -1,7 +1,4 @@
 usage:
-  mandatory-flags:
-    desc: # describe your flags here in a few sentences
-    flags: # put your flags here
   software-stack-deployment:
     conda: true # whether pipeline works with '--sdm conda'
     apptainer: false # whether pipeline works with '--sdm apptainer/singularity'
