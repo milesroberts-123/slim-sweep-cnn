@@ -1,4 +1,4 @@
-This workflow trains a convolutional neural network using simulated selective sweeps with SLiM. The workflow was developed and tested using snakemake v 7.25.0 
+This workflow trains a convolutional neural network using simulated selective sweeps with SLiM. The workflow was developed and tested using snakemake v 9.33.0 
 
 # Contents
 
