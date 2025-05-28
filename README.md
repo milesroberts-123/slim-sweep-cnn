@@ -6,7 +6,7 @@ This workflow trains a convolutional neural network using simulated selective sw
 
 [Inputs](#inputs)
 
-[Run workflow](#run-workflow-with-conda-on-a-slurm-cluster)
+[Usage](#usage)
 
 [Explore data](#explore-data)
 
@@ -35,11 +35,11 @@ Now you can activate the enviornments with either snakemake or the CNN software 
 
 See `config/README.md` for full details. In short, the workflow requires 2 files, a yaml file of parameters that are fixed across all simulations (`config/config.yaml`) and a tsv file of SLiM parameters (`config/parameters.tsv`). Optionally, if you want SLiM to simulate a custom demographic pattern, then you must also provide another csv file (`config/demography.csv`). 
 
-# Run workflow with conda on a slurm cluster
+# Usage
 
 Example commands for running the snakemake workflow are in `src/s01_snakemake.bash`. Make sure to change `--partition`, `--account`, `--jobs`, and `--cores` to account for your cluster's computational limits. The command below includes retrying each job twice (i.e. a total of three attempts per job, `--retries 2`) and continuing even when jobs fail (`--keep-going`). This is necessary because you can expect that not all sweep simulations will complete successfully, depending what area of parameter space you're exploring.
 
-## Run whole workflow at once on a slurm cluster
+## Run whole workflow at once with conda on a slurm cluster
 
 ```
 snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=<YOUR PARTITION HERE> --account=<YOUR ACCOUNT HERE>" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 2 --keep-going
