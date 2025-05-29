@@ -2,19 +2,32 @@
 import pandas as pd
 import re
 
+# container version of workflow
+containerized: "docker://milesroberts/slim-sweep-cnn"
+
 # load config file
 configfile: "../config/config.yaml"
-print(config)
 
 # load samples
 parameters = pd.read_table("../config/parameters.tsv", sep="\t", dtype={"ID": str}).set_index(["ID"], drop=False)
 
+# execute very simple rules on local machine
+localrules: all, all_per_sim
+
 # gather all images for training CNN
 rule all:
-	input:
-		expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID")),
-		"fixation_times.txt",
-		"sweep_ages.txt"
+    input:
+        #expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID")),
+        expand("{ID}.done", ID=parameters.index.get_level_values("ID")),
+        "fixation_times.txt",
+        "sweep_ages.txt"
+
+rule all_per_sim:
+    input:
+        "data/images/slim_{ID}.png",
+        "data/sweep_stats/{ID}.tsv"
+    output:
+        touch("{ID}.done")
 
 include: "rules/slim.smk"
 include: "rules/create_image.smk"

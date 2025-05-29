@@ -1,0 +1,253 @@
+FROM condaforge/miniforge3:latest
+LABEL io.github.snakemake.containerized="true"
+LABEL io.github.snakemake.conda_env_hash="975da5dc416f316568457693a1ad0e194fdfd33e75ae6028c3848c49351050f2"
+
+# Step 2: Retrieve conda environments
+
+# Conda environment:
+#   source: envs/R.yml
+#   prefix: /conda-envs/9f2007628f19c9d2ca42b86c60fb5ac1
+#   name: R
+#   
+#   dependencies:
+#    - r-base=4.2.3
+#    - r-ggplot2=3.4.1
+#    - r-ggnewscale=0.4.8
+#    - r-cowplot=1.1.1
+#    - r-reshape2=1.4.4
+#    - r-stringi=1.7.12
+RUN mkdir -p /conda-envs/9f2007628f19c9d2ca42b86c60fb5ac1
+COPY envs/R.yml /conda-envs/9f2007628f19c9d2ca42b86c60fb5ac1/environment.yaml
+
+# Conda environment:
+#   source: envs/slim.yml
+#   prefix: /conda-envs/8c774af3837c68e0ebdc1a1834cebc4d
+#   name: slim
+#   
+#   dependencies:
+#    - slim=4.0.1
+RUN mkdir -p /conda-envs/8c774af3837c68e0ebdc1a1834cebc4d
+COPY envs/slim.yml /conda-envs/8c774af3837c68e0ebdc1a1834cebc4d/environment.yaml
+
+# Conda environment:
+#   source: envs/sweeps.yml
+#   prefix: /conda-envs/92a4bc690e24f39816926b839778ad70
+#   name: sweeps
+#   channels:
+#     - conda-forge
+#     - bioconda
+#     - defaults
+#   dependencies:
+#     - _libgcc_mutex=0.1=conda_forge
+#     - _openmp_mutex=4.5=2_gnu
+#     - apricot-select=0.6.1=pyhd8ed1ab_0
+#     - asciitree=0.3.3=py_2
+#     - aws-c-auth=0.7.22=hbd3ac97_10
+#     - aws-c-cal=0.7.1=h87b94db_1
+#     - aws-c-common=0.9.23=h4ab18f5_0
+#     - aws-c-compression=0.2.18=he027950_7
+#     - aws-c-event-stream=0.4.2=h7671281_15
+#     - aws-c-http=0.8.2=he17ee6b_6
+#     - aws-c-io=0.14.10=h826b7d6_1
+#     - aws-c-mqtt=0.10.4=hcd6a914_8
+#     - aws-c-s3=0.6.0=h365ddd8_2
+#     - aws-c-sdkutils=0.1.16=he027950_3
+#     - aws-checksums=0.1.18=he027950_7
+#     - aws-crt-cpp=0.27.3=hda66527_2
+#     - aws-sdk-cpp=1.11.329=h46c3b66_9
+#     - azure-core-cpp=1.13.0=h935415a_0
+#     - azure-identity-cpp=1.8.0=hd126650_2
+#     - azure-storage-blobs-cpp=12.12.0=hd2e3451_0
+#     - azure-storage-common-cpp=12.7.0=h10ac4d7_1
+#     - azure-storage-files-datalake-cpp=12.11.0=h325d260_1
+#     - bokeh=3.5.1=pyhd8ed1ab_0
+#     - brotli-bin=1.1.0=hd590300_1
+#     - brotli-python=1.1.0=py312h30efb56_1
+#     - bzip2=1.0.8=h4bc722e_7
+#     - c-ares=1.32.3=h4bc722e_0
+#     - ca-certificates=2024.7.4=hbcca054_0
+#     - cached-property=1.5.2=hd8ed1ab_1
+#     - cached_property=1.5.2=pyha770c72_1
+#     - certifi=2024.7.4=pyhd8ed1ab_0
+#     - click=8.1.7=unix_pyh707e725_0
+#     - cloudpickle=3.0.0=pyhd8ed1ab_0
+#     - colorama=0.4.6=pyhd8ed1ab_0
+#     - cycler=0.12.1=pyhd8ed1ab_0
+#     - dask=2024.7.1=pyhd8ed1ab_0
+#     - dask-core=2024.7.1=pyhd8ed1ab_0
+#     - dask-expr=1.1.9=pyhd8ed1ab_0
+#     - distributed=2024.7.1=pyhd8ed1ab_0
+#     - fasteners=0.17.3=pyhd8ed1ab_0
+#     - filelock=3.15.4=pyhd8ed1ab_0
+#     - freetype=2.12.1=h267a509_2
+#     - fsspec=2024.6.1=pyhff2d567_0
+#     - gflags=2.2.2=he1b5a44_1004
+#     - glog=0.7.1=hbabe93e_0
+#     - gmp=6.3.0=hac33072_2
+#     - h2=4.1.0=pyhd8ed1ab_0
+#     - hdf5=1.14.3=nompi_hdf9ad27_105
+#     - hpack=4.0.0=pyh9f0ad1d_0
+#     - hyperframe=6.0.1=pyhd8ed1ab_0
+#     - icu=75.1=he02047a_0
+#     - importlib-metadata=8.2.0=pyha770c72_0
+#     - importlib_metadata=8.2.0=hd8ed1ab_0
+#     - jinja2=3.1.4=pyhd8ed1ab_0
+#     - joblib=1.4.2=pyhd8ed1ab_0
+#     - keyutils=1.6.1=h166bdaf_0
+#     - krb5=1.21.3=h659f571_0
+#     - lcms2=2.16=hb7c19ff_0
+#     - ld_impl_linux-64=2.40=hf3520f5_7
+#     - lerc=4.0.0=h27087fc_0
+#     - libabseil=20240116.2=cxx17_he02047a_1
+#     - libaec=1.1.3=h59595ed_0
+#     - libarrow=17.0.0=h4b47046_3_cpu
+#     - libarrow-acero=17.0.0=he02047a_3_cpu
+#     - libarrow-dataset=17.0.0=he02047a_3_cpu
+#     - libarrow-substrait=17.0.0=hc9a23c6_3_cpu
+#     - libblas=3.9.0=23_linux64_openblas
+#     - libbrotlicommon=1.1.0=hd590300_1
+#     - libbrotlidec=1.1.0=hd590300_1
+#     - libbrotlienc=1.1.0=hd590300_1
+#     - libcblas=3.9.0=23_linux64_openblas
+#     - libcrc32c=1.1.2=h9c3ff4c_0
+#     - libcurl=8.9.1=hdb1bdb2_0
+#     - libdeflate=1.21=h4bc722e_0
+#     - libedit=3.1.20191231=he28a2e2_2
+#     - libev=4.33=hd590300_2
+#     - libevent=2.1.12=hf998b51_1
+#     - libexpat=2.6.2=h59595ed_0
+#     - libffi=3.4.2=h7f98852_5
+#     - libgcc-ng=14.1.0=h77fa898_0
+#     - libgfortran-ng=14.1.0=h69a702a_0
+#     - libgfortran5=14.1.0=hc5f4f2c_0
+#     - libgomp=14.1.0=h77fa898_0
+#     - libgoogle-cloud=2.26.0=h26d7fe4_0
+#     - libgoogle-cloud-storage=2.26.0=ha262f82_0
+#     - libgrpc=1.62.2=h15f2491_0
+#     - libiconv=1.17=hd590300_2
+#     - libjpeg-turbo=3.0.0=hd590300_1
+#     - liblapack=3.9.0=23_linux64_openblas
+#     - libllvm14=14.0.6=hcd5def8_4
+#     - libnghttp2=1.58.0=h47da74e_1
+#     - libnsl=2.0.1=hd590300_0
+#     - libopenblas=0.3.27=pthreads_hac2b453_1
+#     - libparquet=17.0.0=h9e5060d_3_cpu
+#     - libpng=1.6.43=h2797004_0
+#     - libprotobuf=4.25.3=h08a7969_0
+#     - libre2-11=2023.09.01=h5a48ba9_2
+#     - libsqlite=3.46.0=hde9e2c9_0
+#     - libssh2=1.11.0=h0841786_0
+#     - libstdcxx-ng=14.1.0=hc0a3c3a_0
+#     - libthrift=0.19.0=hb90f79a_1
+#     - libtiff=4.6.0=h46a8edc_4
+#     - libtorch=2.3.1=cpu_generic_h970db74_0
+#     - libutf8proc=2.8.0=h166bdaf_0
+#     - libuuid=2.38.1=h0b41bf4_0
+#     - libuv=1.48.0=hd590300_0
+#     - libwebp-base=1.4.0=hd590300_0
+#     - libxcb=1.16=hd590300_0
+#     - libxcrypt=4.4.36=hd590300_1
+#     - libxml2=2.12.7=he7c6b58_4
+#     - libzlib=1.3.1=h4ab18f5_1
+#     - locket=1.0.0=pyhd8ed1ab_0
+#     - lz4-c=1.9.4=hcb278e6_0
+#     - matplotlib-base=3.9.1=py312h854627b_2
+#     - mpc=1.3.1=hfe3b2da_0
+#     - mpfr=4.2.1=h38ae2d0_2
+#     - mpmath=1.3.0=pyhd8ed1ab_0
+#     - msgpack-python=1.0.8=py312h2492b07_0
+#     - munkres=1.1.4=pyh9f0ad1d_0
+#     - ncurses=6.5=h59595ed_0
+#     - networkx=3.3=pyhd8ed1ab_1
+#     - nomkl=1.0=h5ca1d4c_0
+#     - nose=1.3.7=py_1006
+#     - openjpeg=2.5.2=h488ebb8_0
+#     - openssl=3.3.1=h4bc722e_2
+#     - orc=2.0.1=h17fec99_1
+#     - packaging=24.1=pyhd8ed1ab_0
+#     - partd=1.4.2=pyhd8ed1ab_0
+#     - patsy=0.5.6=pyhd8ed1ab_0
+#     - pip=24.2=pyhd8ed1ab_0
+#     - pomegranate=1.0.0=pyhd8ed1ab_1
+#     - pthread-stubs=0.4=h36c2ea0_1001
+#     - pyarrow-core=17.0.0=py312h9cafe31_1_cpu
+#     - pyarrow-hotfix=0.6=pyhd8ed1ab_0
+#     - pycparser=2.22=pyhd8ed1ab_0
+#     - pyparsing=3.1.2=pyhd8ed1ab_0
+#     - pysocks=1.7.1=pyha2e5f31_6
+#     - python=3.12.4=h194c7f8_0_cpython
+#     - python-dateutil=2.9.0=pyhd8ed1ab_0
+#     - python-tzdata=2024.1=pyhd8ed1ab_0
+#     - python_abi=3.12=4_cp312
+#     - pytorch=2.3.1=cpu_generic_py312h2f1fc2b_0
+#     - pytz=2024.1=pyhd8ed1ab_0
+#     - qhull=2020.2=h434a139_5
+#     - re2=2023.09.01=h7f4b329_2
+#     - readline=8.2=h8228510_1
+#     - s2n=1.4.17=he19d79f_0
+#     - seaborn=0.13.2=hd8ed1ab_2
+#     - seaborn-base=0.13.2=pyhd8ed1ab_2
+#     - setuptools=72.1.0=pyhd8ed1ab_0
+#     - six=1.16.0=pyh6c4a22f_0
+#     - sleef=3.6.1=h3400bea_1
+#     - snappy=1.2.1=ha2e4443_0
+#     - sortedcontainers=2.4.0=pyhd8ed1ab_0
+#     - sympy=1.13.0=pypyh2585a3b_103
+#     - tblib=3.0.0=pyhd8ed1ab_0
+#     - threadpoolctl=3.5.0=pyhc1e730c_0
+#     - tk=8.6.13=noxft_h4845f30_101
+#     - toolz=0.12.1=pyhd8ed1ab_0
+#     - tqdm=4.66.5=pyhd8ed1ab_0
+#     - typing_extensions=4.12.2=pyha770c72_0
+#     - tzdata=2024a=h0c530f3_0
+#     - urllib3=2.2.2=pyhd8ed1ab_1
+#     - wheel=0.44.0=pyhd8ed1ab_0
+#     - xorg-libxau=1.0.11=hd590300_0
+#     - xorg-libxdmcp=1.1.3=h7f98852_0
+#     - xyzservices=2024.6.0=pyhd8ed1ab_0
+#     - xz=5.2.6=h166bdaf_0
+#     - yaml=0.2.5=h7f98852_2
+#     - zarr=2.18.2=pyhd8ed1ab_0
+#     - zict=3.0.0=pyhd8ed1ab_0
+#     - zipp=3.19.2=pyhd8ed1ab_0
+#     - zstd=1.5.6=ha6fb4c9_0
+#     - pip:
+#       - brotli==1.1.0
+#       - cffi==1.16.0
+#       - contourpy==1.2.1
+#       - cytoolz==0.12.3
+#       - fonttools==4.53.1
+#       - gmpy2==2.1.5
+#       - h5py==3.11.0
+#       - kiwisolver==1.4.5
+#       - llvmlite==0.43.0
+#       - lz4==4.3.3
+#       - markupsafe==2.1.5
+#       - matplotlib==3.9.1
+#       - msgpack==1.0.8
+#       - numba==0.60.0
+#       - numcodecs==0.12.1
+#       - numexpr==2.10.0
+#       - numpy==1.26.4
+#       - pandas==2.2.2
+#       - pillow==10.4.0
+#       - psutil==6.0.0
+#       - pyarrow==17.0.0
+#       - pyyaml==6.0.1
+#       - scikit-allel==1.3.8
+#       - scikit-learn==1.5.1
+#       - scipy==1.14.0
+#       - statsmodels==0.14.2
+#       - torch==2.3.1
+#       - tornado==6.4.1
+#       - zstandard==0.23.0
+#   prefix: /mnt/home/robe1195/anaconda3/envs/sweeps
+RUN mkdir -p /conda-envs/92a4bc690e24f39816926b839778ad70
+COPY envs/sweeps.yml /conda-envs/92a4bc690e24f39816926b839778ad70/environment.yaml
+
+# Step 3: Generate conda environments
+
+RUN conda env create --prefix /conda-envs/9f2007628f19c9d2ca42b86c60fb5ac1 --file /conda-envs/9f2007628f19c9d2ca42b86c60fb5ac1/environment.yaml && \
+    conda env create --prefix /conda-envs/8c774af3837c68e0ebdc1a1834cebc4d --file /conda-envs/8c774af3837c68e0ebdc1a1834cebc4d/environment.yaml && \
+    conda env create --prefix /conda-envs/92a4bc690e24f39816926b839778ad70 --file /conda-envs/92a4bc690e24f39816926b839778ad70/environment.yaml && \
+    conda clean --all -y
