@@ -39,24 +39,45 @@ See `config/README.md` for full details. In short, the workflow requires 2 files
 
 Example commands for running the snakemake workflow are in `src/s01_snakemake.bash`. Make sure to change `--partition`, `--account`, `--jobs`, and `--cores` to account for your cluster's computational limits. The command below includes retrying each job twice (i.e. a total of three attempts per job, `--retries 2`) and continuing even when jobs fail (`--keep-going`). This is necessary because you can expect that not all sweep simulations will complete successfully, depending what area of parameter space you're exploring.
 
-## Run whole workflow at once with conda on a slurm cluster
+### Run whole workflow with conda envs on slurm cluster
+
+`snakemake --sdm conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 1 --keep-going`
+
+### Run workflow in batches with conda envs on slurm cluster
+
+If you're doing lots of simulations, the DAG can be large and take awhile to compute. To calculate the DAG in small batches use `--batch`. The `all` rule is the best rule to use for batching. To do 50 batches, for example, you would do this for loop:
 
 ```
-snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=<YOUR PARTITION HERE> --account=<YOUR ACCOUNT HERE>" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 2 --keep-going
-```
-
-## Run workflow in batches on a slurm cluster
-
-```
-# The number of batches you want to do.
-# Increase this value if you have fewer computational resources so that the workflow executes in smaller chunks
-numbatch=50
-
-for curbatch in {1..$numbatch}
+for num in {1..50}
 do
-  snakemake --cluster "sbatch --time={resources.time} --cpus-per-task={threads} --mem-per-cpu={resources.mem_mb_per_cpu} --partition=<YOUR PARTITION HERE> --account=<YOUR ACCOUNT HERE>" --jobs 950 --cores 950 --use-conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 2 --keep-going --batch all=$curbatch/$numbatch
+  snakemake --sdm conda --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 1 --keep-going --batch all=$num/50
 done
 ```
+
+### Run workflow whole workflow at once with singularity on slurm cluster
+
+Instead of downloading and building all of the conda environments, you can just download a container with all of the conda environments pre-installed.
+
+Need to pass `--use-singularity` to snakemake and also your snakemake working directory with `--singularity-args "--bind <SNAKEMAKE_WORKING_DIRECTORY>"`. For example, if you pulled the repo to your root directory, the command will look like:
+
+```
+snakemake --sdm conda apptainer --singularity-args "--bind ~/slim-sweep-cnn/workflow" --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 1 --keep-going
+```
+
+### Run workflow in batches with singularity on slurm cluster
+
+To combine batching with sigularity/apptainer, you can do:
+
+```
+for num in {1..50}
+do
+  snakemake --sdm conda apptainer --singularity-args "--bind ~/poolseq-kmers/workflow" --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 1 --keep-going --batch all=$num/50
+done
+```
+
+### Run workflow on local machine
+
+The default snakemake profile is to run on a slurm cluster, but you can take any of the above commands and run snakemake on your local machine by adding `--profile profiles/local` to your snakemake command. Make sure to edit `workflow/profiles/local/config.yaml` to reflect the hardware limits of your local machine.
 
 # Explore data
 
