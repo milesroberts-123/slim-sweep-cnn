@@ -36,7 +36,7 @@ mamba env create --name cnn --file cnn-env.yaml
 
 Now you can activate the enviornments with either snakemake or the CNN software with `mamba activate snakemake` or `mamba activate cnn`, respectively.
 
-*Note: The snakemake yaml file will also install the snakemake slurm executor so that you can launch snakemake on a slurm cluster. If you want to run snakemake on a different system (i.e. kubernetes, aws, another cluster type, etc.) then you should expore the*[snakemake plugin catalog](https://snakemake.github.io/snakemake-plugin-catalog/)
+**Note: The snakemake yaml file will also install the snakemake slurm executor so that you can launch snakemake on a slurm cluster. If you want to run snakemake on a different system (i.e. kubernetes, aws, another cluster type, etc.) then you should expore the** [snakemake plugin catalog](https://snakemake.github.io/snakemake-plugin-catalog/)
 
 # Inputs
 
