@@ -3,7 +3,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Snakemake](https://img.shields.io/badge/snakemake-≥9.6.0-brightgreen.svg)](https://snakemake.github.io)
 
-This workflow trains simulates selective sweeps in SLiM and then calculates many sweep summary statistics and converts the sweep region into images. These outputs can be used to train convolutional neural networks or perform approximate bayesian computation. The workflow was developed and tested using snakemake v 9.6.0 
+This workflow simulates selective sweeps in SLiM. For the sweeps that succeed, it then calculates many sweep summary statistics and converts the sweep region into images. These outputs can be used to train convolutional neural networks or perform approximate bayesian computation. The workflow should work with snakemake v 9.6.0. 
 
 # Contents
 
@@ -35,6 +35,8 @@ mamba env create --name cnn --file cnn-env.yaml
 ```
 
 Now you can activate the enviornments with either snakemake or the CNN software with `mamba activate snakemake` or `mamba activate cnn`, respectively.
+
+*Note: The snakemake yaml file will also install the snakemake slurm executor so that you can launch snakemake on a slurm cluster. If you want to run snakemake on a different system (i.e. kubernetes, aws, another cluster type, etc.) then you should expore the*[snakemake plugin catalog](https://snakemake.github.io/snakemake-plugin-catalog/)
 
 # Inputs
 
