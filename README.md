@@ -1,4 +1,9 @@
-This workflow trains a convolutional neural network using simulated selective sweeps with SLiM. The workflow was developed and tested using snakemake v 9.33.0 
+# slim-sweep-cnn
+
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Snakemake](https://img.shields.io/badge/snakemake-≥9.6.0-brightgreen.svg)](https://snakemake.github.io)
+
+This workflow trains simulates selective sweeps in SLiM and then calculates many sweep summary statistics and converts the sweep region into images. These outputs can be used to train convolutional neural networks or perform approximate bayesian computation. The workflow was developed and tested using snakemake v 9.6.0 
 
 # Contents
 
@@ -58,7 +63,7 @@ done
 
 Instead of downloading and building all of the conda environments, you can just download a container with all of the conda environments pre-installed.
 
-Need to pass `--use-singularity` to snakemake and also your snakemake working directory with `--singularity-args "--bind <SNAKEMAKE_WORKING_DIRECTORY>"`. For example, if you pulled the repo to your root directory, the command will look like:
+To do this, you need to pass `--sdm conda apptainer` to your snakemake command and also your snakemake working directory with `--singularity-args "--bind <SNAKEMAKE_WORKING_DIRECTORY>"`. For example, if you pulled the repo to your home directory, the command will look like:
 
 ```
 snakemake --sdm conda apptainer --singularity-args "--bind ~/slim-sweep-cnn/workflow" --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 1 --keep-going
@@ -71,7 +76,7 @@ To combine batching with sigularity/apptainer, you can do:
 ```
 for num in {1..50}
 do
-  snakemake --sdm conda apptainer --singularity-args "--bind ~/poolseq-kmers/workflow" --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 1 --keep-going --batch all=$num/50
+  snakemake --sdm conda apptainer --singularity-args "--bind ~/slim-sweep-cnn/workflow" --rerun-incomplete --rerun-triggers mtime --scheduler greedy --retries 1 --keep-going --batch all=$num/50
 done
 ```
 

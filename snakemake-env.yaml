@@ -1,8 +1,4 @@
 name: snakemake
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
@@ -254,4 +250,3 @@ dependencies:
       - wcwidth==0.2.6
       - wheel==0.40.0
       - zipp==3.15.0
-prefix: /mnt/home/robe1195/anaconda3/envs/snakemake

@@ -1,8 +1,4 @@
 name: sweeps
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
@@ -207,4 +203,3 @@ dependencies:
     - torch==2.3.1
     - tornado==6.4.1
     - zstandard==0.23.0
-prefix: /mnt/home/robe1195/anaconda3/envs/sweeps
