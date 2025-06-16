@@ -1,8 +1,4 @@
-name: mycnn2
-channels:
-  - conda-forge
-  - bioconda
-  - defaults
+name: mycnn
 dependencies:
   - _libgcc_mutex=0.1=conda_forge
   - _openmp_mutex=4.5=2_gnu
@@ -167,4 +163,3 @@ dependencies:
       - werkzeug==3.0.1
       - wheel==0.42.0
       - zipp==3.17.0
-prefix: /mnt/home/robe1195/anaconda3/envs/mycnn2
