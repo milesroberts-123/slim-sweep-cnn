@@ -1,8 +1,10 @@
+print("Loading packages...")
 import sgkit as sg
 import click
 import xarray as xr
 import numpy as np
 
+print("Defining functions...")
 def wattersons_theta(ds):
     """
     Wattersons theta
@@ -118,21 +120,62 @@ def fay_wu_h(ds):
     
     return(ds)
     
-#def zengs_e(ds):
+def zengs_e(ds):
+    """
+    Reference: https://doi.org/10.1534/genetics.106.061432
+    """
+    # get diversity values per window
+    n = ds.variant_allele_total.values[0]
+    #print(n)
+    
+    s = ds.window_stop.values - ds.window_start.values
+    #print(s)
+    
+    theta_pi = ds.stat_diversity.values.flatten()
+    #print(theta_pi)
+    
+    theta_l = ds.Theta_L.values
+    #print(theta_l)
+    
+    theta = ds.Wattersons_Theta.values
+    #print(theta)
+    
+    a_n = np.sum(1/np.arange(1, n))
+    
+    b_n = np.sum( 1/(np.arange(1, n)**2) )
+    
+    theta_2 = s*(s-1)/(a_n**2+b_n)
+    
+    # calculate variance per window
+    a = ( n/(2*(n-1)) - (1/a_n) )*theta
+    
+    b = ( b_n/(a_n**2) + 2*( (n/(n-1))**2 )*b_n - (2*(n*b_n - n + 1))/((n-1)*a_n) - (3*n + 1)/(n-1) )*theta_2
+    
+    var_theta_l_minus_theta_w = a + b
+    
+    # final calculation
+    ds["Zengs_E"] = (theta_l - theta)/np.sqrt(var_theta_l_minus_theta_w)
 
+    return(ds)
+    
+# kelly's zns
+# def kellys_zns
+
+# kim's omega
+# def kims_omega
 
 # define click options
 @click.command(context_settings={'show_default': True})
 @click.option("-v", "--vcz-file", default=None, help="Path to VCZ file", multiple=False)
 @click.option("-w","--window-length", default=129, help="number of snps to include in window", type = click.INT)
 @click.option("-s","--skip-length", default=1, help="number of snps to skip between windows", type = click.INT)
-@click.option("-o", "--output-prefix", default="sweep_stats", help="Prefix for output files")
+@click.option("-o", "--output", default="sweeps.txt", help="Prefix for output files")
 
 # Main function that combines all other functions
-def main(vcz_file, window_length, skip_length, output_prefix):
+def main(vcz_file, window_length, skip_length, output):
 
     print("Loading vcz...")
-    #ds = sg.simulate_genotype_call_dataset(n_variant=250, n_sample=25, n_contig=1)
+    #ds = sg.simulate_genotype_call_dataset(n_variant=150, n_sample=25, n_contig=1)
     ds = sg.load_dataset(vcz_file)
 
     # define single cohort for all samples
@@ -180,19 +223,29 @@ def main(vcz_file, window_length, skip_length, output_prefix):
     
     print("Calculating Normalized Fay and Wu's H...")
     ds = fay_wu_h(ds)
+    
+    print("Calculating Zeng's E...")
+    ds = zengs_e(ds)
 
-#    print("Calculating LD...")
-#    ld_by_win = sg.ld_matrix(ds, threshold = 0.05)
-
-#    print(div_by_win["window_stop"].values)
-    #print(div_by_win["stat_diversity"].values)
-    #print(D_by_win["stat_Tajimas_D"].values)
-    #print(H_by_win["stat_Garud_h1"].values)
+    print("Calculating LD...")
+    #print(ds.data_vars)
+    #print(ds.variant_allele_count.values)
+    #print(ds.variant_allele_count.values[:, 1])
+    #print(sg.count_call_alleles(ds)["call_allele_count"].values)
+    #print(sg.count_call_alleles(ds)["call_allele_count"].values[:, :, 1])
+    #ds["call_dosage"] = (["variants", "samples"], sg.count_call_alleles(ds, merge = False)["call_allele_count"].values[:, :, 1])
+    # Calculate dosage
+    ds["call_dosage"] = ds["call_genotype"].sum(dim="ploidy")
+    
+    ld_by_win = sg.ld_matrix(ds, dosage = 'call_dosage', threshold = 0)
+    #print(ld_by_win)
+    #print(ld_by_win["i"])
+    
     print("Column binding statistics...")
-    final_table = np.column_stack((ds.window_contig.values,ds.window_start.values, ds.window_stop.values, ds.window_pos_start.values, ds.window_pos_stop.values, ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values))
+    final_table = np.column_stack((ds.window_contig.values,ds.window_start.values, ds.window_stop.values, ds.window_pos_start.values, ds.window_pos_stop.values, ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.Zengs_E.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values))
     
     print("Saving table...")
-    np.savetxt(output_prefix + ".csv", final_table, delimiter='\t', header="Contig\tVar_Start\tVar_Stop\tPos_Start\tPos_Stop\tTheta_Pi\tTheta_W\tTheta_L\tTajimas_D\tFay_Wus_H\tGarud_H1\tGarud_H12\tGarud_H123\tGarud_H2_H1", comments="")
+    np.savetxt(output, final_table, delimiter='\t', header="Contig\tVar_Start\tVar_Stop\tPos_Start\tPos_Stop\tTheta_Pi\tTheta_W\tTheta_L\tTajimas_D\tFay_Wus_H\tZengs_E\tGarud_H1\tGarud_H12\tGarud_H123\tGarud_H2_H1", comments="")
     print("Done! :D")
 
 if __name__ == '__main__':
