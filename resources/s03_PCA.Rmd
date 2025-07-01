@@ -152,12 +152,12 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
 
 # Have tf and ta as two axes and then summary statistic as color in grid
 # Will be useful to summarize how summary statistics relate to tf and ta
-split_tf_ta_func_binned = function(data,tf,ta,stat_values,statname,tflab,talab){
+split_tf_ta_func_binned = function(data,tf,ta,stat_values,statname,tflab,talab,textsize){
   ggplot(data,aes(x = log10(tf), y = log10(ta))) +
   theme_classic() +
   stat_summary_2d(aes(x = log10(tf), y = log10(ta), z = stat_values), fun = "mean") + 
   scale_fill_gradientn(colors = scico(10, palette = "imola"), name = statname) +
-  theme(text = element_text(size = 16)) +
+  theme(text = element_text(size = textsize)) +
   labs(x = tflab, y = talab)
 }
 
@@ -170,6 +170,54 @@ split_tf_ta_func_points = function(data,tf,ta,stat_values,statname,tflab,talab){
   scale_color_gradientn(colors = scico(10, palette = "imola"), name = statname) +
   theme(text = element_text(size = 16)) +
   labs(x = tflab, y = talab)
+}
+
+# pairwise correlations between variables
+pairwise_correlation_matrix = function(data, columns, meth, column_names, legend_title, text_size, legend_size){
+
+  mycorr = cor(data[,columns], method = meth)
+
+  rownames(mycorr) = column_names
+
+  colnames(mycorr) = column_names
+
+  ggcorrplot(mycorr, hc.order = TRUE, type = "lower",
+   outline.col = "white",
+   ggtheme = ggplot2::theme_linedraw(),
+   colors = c("#FFCE66", "#572948", "#80E6FF"), 
+   legend.title = legend_title) +
+  theme(text = element_text(size = text_size),
+        legend.text=element_text(size=legend_size),
+        legend.title=element_text(size=legend_size))  
+}
+
+# partial R^2 per statistic
+partial_r2_per_stat = function(data, text_size){
+    mod_full = lm(log10(tf + ta) ~ S + log10(pi) + log10(thetaw) + tajd + tajd_var + num_haplos + h1 + h2 + h12 + h123 + h2h1 + gkl_var + gkl_skew + gkl_kurt + hscan + zns + log10(omega), data)
+    
+    drop_stats = drop1(mod_full)
+    
+    rss_full = drop_stats$RSS[1]
+    
+    rss_red = drop_stats$RSS[-1]
+    
+    partrsq = (rss_red - rss_full)/rss_red
+    
+    stat_names = attributes(drop_stats)$row.names[-1]
+    
+    plotdata = data.frame(
+      stat = stat_names,
+      partrsq = partrsq
+    )
+    
+  # Ordered bar plot
+  ggplot(plotdata, aes(x = reorder(stat, -partrsq), y = partrsq)) +
+    geom_bar(stat = "identity", fill = "skyblue") +
+    theme_classic() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      text = element_text(size=text_size)) +
+    labs(x = "Statistic", y = "Parital R squared\nfor log10(tf+ta)")
 }
 
 ```
@@ -781,25 +829,6 @@ for(results_file in results_files){
   
   partial_R_squareds = rbind(partial_R_squareds, data.frame(demography = results_file, partrsq = partial_R_squared))
 }
-
-
-#
-# stepAIC(mod_full, direction = "backward")
-# 
-# back_mod = lm(formula = log10(tf) ~ pi + thetaw + tajd + tajd_var + num_haplos + 
-#     h1 + h2 + h12 + h2h1 + gkl_var + gkl_skew + gkl_kurt + hscan + 
-#     zns + h, data = strat_sample)
-# 
-# summary(back_mod)
-# 
-# plot(back_mod)
-
-#
-# mod_test = lm(log10(ta + tf) ~ log10(pi), data = strat_sample)
-# 
-# summary(mod_test)
-# 
-# plot(mod_test)
 ```
 
 
@@ -1517,6 +1546,51 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 ggarrange(split_tf_ta_zns, split_tf_ta_omega, nrow = 1, ncol= 2, labels = c("A", "B"), font.label = list(size = 16))
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/split_tf_ta_ld_", today, ".png", sep = ""), height = 4, width = 11, dpi = 900)
+
+
+```
+
+## overview of all data
+
+```{r}
+
+strat_sample_1 = read.table("/mnt/home/robe1195/Josephs_Lab_Projects/slim-sweep-cnn/results/manuscript/outcrossing_constant_2/stratified_sample.tsv", header = T, sep = "\t")
+
+strat_sample_2 = read.table("/mnt/home/robe1195/Josephs_Lab_Projects/slim-sweep-cnn/results/manuscript/outcrossing_growth_2/stratified_sample.tsv", header = T, sep = "\t")
+
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega")
+
+p0 = pairwise_correlation_matrix(strat_sample_1, 
+                            summary_stats, 
+                            "spearman", 
+                            c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"),
+                            "Spearman\ncorrelation",
+                            6,
+                            12)
+
+p1 = partial_r2_per_stat(strat_sample_1, 14)
+
+#p1 = split_tf_ta_func_binned(strat_sample_1, strat_sample_1$tf, strat_sample_1$ta, strat_sample_1$hscan, "Messer's\nhscan", "log10(Fixation time)", "log10(Sweep age)", 16)
+
+p2 = pairwise_correlation_matrix(strat_sample_2, 
+                            summary_stats, 
+                            "spearman", 
+                            c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"),
+                            "Spearman\ncorrelation",
+                            6,
+                            12)
+
+#p3 = split_tf_ta_func_binned(strat_sample_2, strat_sample_2$tf, strat_sample_2$ta, strat_sample_2$hscan, "Messer's\nhscan", "log10(Fixation time)", "log10(Sweep age)", 16)
+
+p3 = partial_r2_per_stat(strat_sample_2, 14)
+
+p02 =  ggarrange(p0, p2, nrow = 1, ncol = 2, common.legend = T, legend = "right", labels = c("A", "B"), font.label = list(size = 16))
+
+p13 = ggarrange(p1, p3, nrow = 1, ncol = 2, common.legend = T, legend = "right", labels = c("C", "D"), font.label = list(size = 16))
+
+ggarrange(p02, p13, nrow = 2, ncol = 1)
+
+ggsave(paste("../results/", today, "/overview.png", sep = ""), dpi = 400, width = 11, height = 9)
 
 
 ```
