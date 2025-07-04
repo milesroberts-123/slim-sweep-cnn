@@ -1416,7 +1416,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 
 # Final figures
 
-## tf vs ta definition
+## main figure: tf vs ta definition
 ```{r}
 # functions from: https://si.biostat.washington.edu/sites/default/files/modules/Day2_AM_part1.pdf
 fitfreq = function(q, h, s){
@@ -1476,7 +1476,7 @@ plot_tf_ta_def = ggplot(plotdata, aes(x = gen, y = value/N)) +
 
 ```
 
-## Identifiability
+## main figure: Identifiability
 ```{r}
 ident_data = read.table(paste(my_path,"unstratified_sample.tsv", sep = ""), sep = "\t", header = T)
 
@@ -1550,7 +1550,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 
 ```
 
-## overview of all data
+## main figure: overview of all data
 
 ```{r}
 
@@ -1593,6 +1593,64 @@ ggarrange(p02, p13, nrow = 2, ncol = 1)
 ggsave(paste("../results/", today, "/overview.png", sep = ""), dpi = 400, width = 11, height = 9)
 
 
+```
+
+## supplemental figure: pairwise correlations and partial r2 of statistics
+
+```{r}
+strat_sample_decay = read.table("/mnt/home/robe1195/Josephs_Lab_Projects/slim-sweep-cnn/results/manuscript/outcrossing_decay/stratified_sample.tsv", header = T, sep = "\t")
+
+strat_sample_cycle = read.table("/mnt/home/robe1195/Josephs_Lab_Projects/slim-sweep-cnn/results/manuscript/outcrossing_cycle/stratified_sample.tsv", header = T, sep = "\t")
+
+strat_sample_chaos = read.table("/mnt/home/robe1195/Josephs_Lab_Projects/slim-sweep-cnn/results/manuscript/outcrossing_chaos/stratified_sample.tsv", header = T, sep = "\t")
+
+summary_stats = c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega")
+
+## decay
+
+p_cm_decay = pairwise_correlation_matrix(strat_sample_decay, 
+                            summary_stats, 
+                            "spearman", 
+                            c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"),
+                            "Spearman\ncorrelation",
+                            1,
+                            10)
+
+p_r2_decay = partial_r2_per_stat(strat_sample_decay, 14)
+
+## cycle
+
+p_cm_cycle = pairwise_correlation_matrix(strat_sample_cycle, 
+                            summary_stats, 
+                            "spearman", 
+                            c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"),
+                            "Spearman\ncorrelation",
+                            1,
+                            10)
+
+p_r2_cycle = partial_r2_per_stat(strat_sample_cycle, 14)
+
+## chaos
+
+p_cm_chaos = pairwise_correlation_matrix(strat_sample_chaos, 
+                            summary_stats, 
+                            "spearman", 
+                            c("S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"),
+                            "Spearman\ncorrelation",
+                            1,
+                            10)
+
+p_r2_chaos = partial_r2_per_stat(strat_sample_chaos, 14)
+
+## final image
+
+p_cm = ggarrange(p_cm_decay, p_cm_cycle, p_cm_chaos, common.legend = T, labels = c("A", "B", "C"), nrow = 1, ncol = 3, font.label = list(size = 16), legend = "right")
+
+p_r2 = ggarrange(p_r2_decay, p_r2_cycle, p_r2_chaos, nrow = 1, ncol = 3, labels = c("D", "E", "F"), font.label = list(size = 16))
+
+ggarrange(p_cm, p_r2, nrow = 2, ncol = 1)
+
+ggsave(paste("../results/", today, "/correlations_partrsq_decay_cycle_chaos.png", sep = ""), dpi = 400, width = 13, height = 7)
 ```
 
 ## Performance of pi vs other statistics

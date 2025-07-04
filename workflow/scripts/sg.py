@@ -176,7 +176,48 @@ def kellys_zns(ld_by_win, starts, stops):
     return(np.array(results))
 
 # kim's omega
-# def kims_omega(ld_by_win, starts, stops):
+def kims_omega(ld_by_win, starts, stops):
+    # empty list to save results
+    results = []
+
+    for start, stop in zip(starts, stops):
+
+        # calculate midpt of window
+        midpt = np.ceil( (stop + start)/2 )
+        #print(f"Window is from {start} to {stop} with middle at {midpt}")
+
+        # subset ld calculations
+        left_set = ld_by_win.loc[(ld_by_win["i"] >= start) & (ld_by_win["i"] < midpt) & (ld_by_win["j"] >= start) & (ld_by_win["j"] < midpt)]
+
+        right_set = ld_by_win.loc[(ld_by_win["i"] >= (midpt + 1) ) & (ld_by_win["i"] < stop) & (ld_by_win["j"] >= (midpt + 1) ) & (ld_by_win["j"] < stop)]
+
+        cross_set = ld_by_win.loc[(ld_by_win["i"] >= start) & (ld_by_win["i"] < midpt) & (ld_by_win["j"] >= (midpt + 1) ) & (ld_by_win["j"] < stop)]
+
+        # get values for each set
+        left_set = left_set.compute()
+
+        right_set = right_set.compute()
+
+        cross_set = cross_set.compute()
+
+        #print(left_set)
+        #print(right_set)
+        #print(cross_set)
+
+        # calculate means for each set
+        left_values = left_set.loc[:, 'value']
+
+        right_values = right_set.loc[:, 'value']
+
+        cross_mean = cross_set.loc[:, 'value'].mean()
+
+        # final calculation
+        result = np.mean( np.concatenate( (left_values, right_values) ) )/cross_mean
+
+        results.append(result)
+
+    return(np.array(results))
+
 
 # messer's hscan
 # def hscan():
@@ -267,12 +308,15 @@ def main(vcz_file, test, window_length, skip_length, output):
 
     print("Averaging LD by window...")
     ds["kellys_zns"] = kellys_zns(ld_by_win, ds.window_start.values, ds.window_stop.values)
-    
+
+    print("Calculating Kim's omega...")
+    ds["kims_omega"] = kims_omega(ld_by_win, ds.window_start.values, ds.window_stop.values)
+
     print("Column binding statistics...")
-    final_table = np.column_stack((ds.window_contig.values,ds.window_start.values, ds.window_stop.values, ds.window_pos_start.values, ds.window_pos_stop.values, ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.Zengs_E.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values, ds.kellys_zns.values))
-    
+    final_table = np.column_stack((ds.window_contig.values,ds.window_start.values, ds.window_stop.values, ds.window_pos_start.values, ds.window_pos_stop.values, ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.Zengs_E.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values, ds.kellys_zns.values, ds.kims_omega.values))
+
     print("Saving table...")
-    np.savetxt(output, final_table, delimiter='\t', header="Contig\tVar_Start\tVar_Stop\tPos_Start\tPos_Stop\tTheta_Pi\tTheta_W\tTheta_L\tTajimas_D\tFay_Wus_H\tZengs_E\tGarud_H1\tGarud_H12\tGarud_H123\tGarud_H2_H1\tKellys_Zns", comments="")
+    np.savetxt(output, final_table, delimiter='\t', header="Contig\tVar_Start\tVar_Stop\tPos_Start\tPos_Stop\tTheta_Pi\tTheta_W\tTheta_L\tTajimas_D\tFay_Wus_H\tZengs_E\tGarud_H1\tGarud_H12\tGarud_H123\tGarud_H2_H1\tKellys_Zns\tKims_Omega", comments="")
     print("Done! :D")
 
 if __name__ == '__main__':
