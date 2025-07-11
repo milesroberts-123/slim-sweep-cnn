@@ -3,6 +3,11 @@ import sgkit as sg
 import click
 import xarray as xr
 import numpy as np
+from tqdm import tqdm
+import dask
+from dask.diagnostics import ProgressBar
+#from numba import njit, prange
+from sgkit.window import window_statistic
 
 print("Defining functions...")
 def wattersons_theta(ds):
@@ -159,64 +164,185 @@ def zengs_e(ds):
     return(ds)
     
 # kelly's zns
-def kellys_zns(ld_by_win, starts, stops):
+#def mean_by_part(df):
+#    return np.mean(df.value)
+    
+#def kellys_zns(ld_by_win):
+#@njit(parallel=True)
+#def kellys_zns(ld_by_win, starts, stops):
+#
+#    results = []
+#
+#    for i in prange(len(starts)):
+#        start = starts[i]
+#        stop = stops[i]
+#        
+#        print(f"Window is from {start} to {stop}")
+#
+#        ld_sub = ld_by_win.loc[(ld_by_win["i"] >= start) & (ld_by_win["i"] < stop) & (ld_by_win["j"] >= start) & (ld_by_win["j"] < stop)]
+#
+#        ld_sub = ld_sub.compute()
+#
+#        result = ld_sub.loc[:, 'value'].mean()
+#        
+#        results.append(result.compute())
+#
+#    return(np.array(results))
 
-    results = []
-
-    for start, stop in zip(starts, stops):
-
-        ld_sub = ld_by_win.loc[(ld_by_win["i"] >= start) & (ld_by_win["i"] < stop) & (ld_by_win["j"] >= start) & (ld_by_win["j"] < stop)]
-
-        ld_sub = ld_sub.compute()
-
-        result = ld_sub.loc[:, 'value'].mean()
+def kellys_zns_1(ld_by_win, starts, stops):
+    print("Creating collection of tasks...")
+    delayed_results = []
+    for start, stop in tqdm(zip(starts, stops), total = len(starts)):
+        #print(f"Window is from {start} to {stop}")
         
+        # Filter is lazy and will only be executed on compute
+        ld_sub = ld_by_win[(ld_by_win["i"] >= start) & 
+                           (ld_by_win["i"] < stop) & 
+                           (ld_by_win["j"] >= start) & 
+                           (ld_by_win["j"] < stop)]
+        
+        # Add delayed mean
+        delayed_result = ld_sub['value'].mean()
+        delayed_results.append(delayed_result)
+
+    # Compute all means in parallel
+    print("Evaluating task graph...")
+    with ProgressBar():
+        results = dask.compute(*delayed_results)
+
+    return np.array(results)
+
+
+# attempt two
+# only build task graph with for loop
+def filter_to_window(df, start, stop):
+    filtered = df.loc[(df["i"] >= start) & 
+                  (df["i"] < stop) & 
+                  (df["j"] >= start) & 
+                  (df["j"] < stop), 'value']
+    return filtered
+    
+def mean_by_window(filt_column):
+    return filt_column.mean()
+
+def kellys_zns_2(ld_by_win, starts, stops):
+    print("Building task graph...")
+    delayed_results = []
+    for start, stop in tqdm(zip(starts, stops), total = len(starts)):
+        filt_win = filter_to_window(ld_by_win, start, stop)
+        
+        mean_win = mean_by_window(filt_win)
+        
+        delayed_results.append(mean_win)
+
+    print("Evaluating tasks...")
+    results = dask.compute(*delayed_results)
+    return np.array(results)
+
+# attempt3
+def chunks(lst, n):
+    """
+    Yield successive n-sized chunks from lst.
+    Reference: https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
+    """
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+        
+def batch(ld_by_win, starts, stops):
+    sub_results = []
+    print("Building task graph...")    
+    for start, stop in zip(starts, stops):
+        filtered = ld_by_win.loc[(ld_by_win["i"] >= start) & 
+                  (ld_by_win["i"] < stop) & 
+                  (ld_by_win["j"] >= start) & 
+                  (ld_by_win["j"] < stop), 'value']
+        
+        sub_results.append( filtered.mean() )
+        # Compute all means in parallel
+    print("Evaluating task graph...")
+    with ProgressBar():
+        sub_results = dask.compute(*sub_results)
+        
+    return sub_results
+
+def kellys_zns_3(ld_by_win, starts, stops, batch_size):
+    print("Creating collection of tasks...")
+    batches = []
+    for i in range(0, len(starts), batch_size):
+        print(f"Batch {i} to {i + batch_size}")
+        result_batch = batch(ld_by_win, starts[i:i + batch_size], stops[i:i + batch_size])
+        batches.extend(result_batch)
+        #print(batches)
+
+    return np.array(results)
+    
+# attempt 4
+def kellys_zns(ld_by_win, starts, stops):
+    print("Loading matrix into memory...")
+    ld_by_win = ld_by_win.compute()
+
+    print("Looping over windows...")
+    results = []
+    for start, stop in tqdm(zip(starts, stops), total = len(starts)):
+        #print(f"Window is from {start} to {stop}")
+
+        # Filter is lazy and will only be executed on compute
+        ld_sub = ld_by_win[(ld_by_win["i"] >= start) & 
+                           (ld_by_win["i"] < stop) & 
+                           (ld_by_win["j"] >= start) & 
+                           (ld_by_win["j"] < stop)]
+
+        # Add delayed mean
+        result = ld_sub['value'].mean()
         results.append(result)
 
-    return(np.array(results))
+    return np.array(results)
 
 # kim's omega
 def kims_omega(ld_by_win, starts, stops):
     # empty list to save results
-    results = []
+    delayed_results = []
 
-    for start, stop in zip(starts, stops):
+    for start, stop in tqdm(zip(starts, stops), total = len(starts)):
 
         # calculate midpt of window
         midpt = np.ceil( (stop + start)/2 )
         #print(f"Window is from {start} to {stop} with middle at {midpt}")
 
         # subset ld calculations
-        left_set = ld_by_win.loc[(ld_by_win["i"] >= start) & (ld_by_win["i"] < midpt) & (ld_by_win["j"] >= start) & (ld_by_win["j"] < midpt)]
+        left_set = ld_by_win[(ld_by_win["i"] >= start) & (ld_by_win["i"] < midpt) & (ld_by_win["j"] >= start) & (ld_by_win["j"] < midpt)]
 
-        right_set = ld_by_win.loc[(ld_by_win["i"] >= (midpt + 1) ) & (ld_by_win["i"] < stop) & (ld_by_win["j"] >= (midpt + 1) ) & (ld_by_win["j"] < stop)]
+        right_set = ld_by_win[(ld_by_win["i"] >= (midpt + 1) ) & (ld_by_win["i"] < stop) & (ld_by_win["j"] >= (midpt + 1) ) & (ld_by_win["j"] < stop)]
 
-        cross_set = ld_by_win.loc[(ld_by_win["i"] >= start) & (ld_by_win["i"] < midpt) & (ld_by_win["j"] >= (midpt + 1) ) & (ld_by_win["j"] < stop)]
+        cross_set = ld_by_win[(ld_by_win["i"] >= start) & (ld_by_win["i"] < midpt) & (ld_by_win["j"] >= (midpt + 1) ) & (ld_by_win["j"] < stop)]
 
         # get values for each set
-        left_set = left_set.compute()
-
-        right_set = right_set.compute()
-
-        cross_set = cross_set.compute()
+#        left_set = left_set.compute()
+#
+#        right_set = right_set.compute()
+#
+#        cross_set = cross_set.compute()
 
         #print(left_set)
         #print(right_set)
         #print(cross_set)
 
         # calculate means for each set
-        left_values = left_set.loc[:, 'value']
+        left_values = left_set['value']
 
-        right_values = right_set.loc[:, 'value']
+        right_values = right_set['value']
 
-        cross_mean = cross_set.loc[:, 'value'].mean()
+        cross_mean = cross_set['value'].mean()
 
         # final calculation
         result = np.mean( np.concatenate( (left_values, right_values) ) )/cross_mean
 
-        results.append(result)
+        delayed_results.append(result)
+        
+    # Compute all means in parallel
+    results = dask.compute(*delayed_results)
 
-    return(np.array(results))
+    return np.array(results)
 
 
 # messer's hscan
@@ -308,12 +434,13 @@ def main(vcz_file, test, window_length, skip_length, output):
 
     print("Averaging LD by window...")
     ds["kellys_zns"] = kellys_zns(ld_by_win, ds.window_start.values, ds.window_stop.values)
+    #ds["kellys_zns"] = kellys_zns(ld_by_win)
 
     print("Calculating Kim's omega...")
     ds["kims_omega"] = kims_omega(ld_by_win, ds.window_start.values, ds.window_stop.values)
 
     print("Column binding statistics...")
-    final_table = np.column_stack((ds.window_contig.values,ds.window_start.values, ds.window_stop.values, ds.window_pos_start.values, ds.window_pos_stop.values, ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.Zengs_E.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values, ds.kellys_zns.values, ds.kims_omega.values))
+    final_table = np.column_stack((ds.window_contig.values, ds.window_start.values, ds.window_stop.values, ds.window_pos_start.values, ds.window_pos_stop.values, ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.Zengs_E.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values, ds.kellys_zns.values, ds.kims_omega.values))
 
     print("Saving table...")
     np.savetxt(output, final_table, delimiter='\t', header="Contig\tVar_Start\tVar_Stop\tPos_Start\tPos_Stop\tTheta_Pi\tTheta_W\tTheta_L\tTajimas_D\tFay_Wus_H\tZengs_E\tGarud_H1\tGarud_H12\tGarud_H123\tGarud_H2_H1\tKellys_Zns\tKims_Omega", comments="")
