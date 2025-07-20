@@ -300,8 +300,11 @@ def kellys_zns(ld_by_win, starts, stops):
 
 # kim's omega
 def kims_omega(ld_by_win, starts, stops):
+    print("Loading matrix into memory...")
+    ld_by_win = ld_by_win.compute()
+
     # empty list to save results
-    delayed_results = []
+    results = []
 
     for start, stop in tqdm(zip(starts, stops), total = len(starts)):
 
@@ -316,17 +319,6 @@ def kims_omega(ld_by_win, starts, stops):
 
         cross_set = ld_by_win[(ld_by_win["i"] >= start) & (ld_by_win["i"] < midpt) & (ld_by_win["j"] >= (midpt + 1) ) & (ld_by_win["j"] < stop)]
 
-        # get values for each set
-#        left_set = left_set.compute()
-#
-#        right_set = right_set.compute()
-#
-#        cross_set = cross_set.compute()
-
-        #print(left_set)
-        #print(right_set)
-        #print(cross_set)
-
         # calculate means for each set
         left_values = left_set['value']
 
@@ -337,16 +329,71 @@ def kims_omega(ld_by_win, starts, stops):
         # final calculation
         result = np.mean( np.concatenate( (left_values, right_values) ) )/cross_mean
 
-        delayed_results.append(result)
-        
+        results.append(result)
+
     # Compute all means in parallel
-    results = dask.compute(*delayed_results)
+    #results = dask.compute(*delayed_results)
 
     return np.array(results)
 
-
 # messer's hscan
-# def hscan():
+def hscan(ds):
+    print("Convert calls to matrix...")
+    gt = ds["call_genotype"].values
+
+    gt = gt.reshape(len(gt),-1)
+
+    # for unphased data
+    #gt = sg.convert_call_to_index(ds, merge=False)["call_genotype_index"].values
+    s,n = np.shape(gt)
+
+    print("Get vector of positions...")
+    pos = ds["variant_position"].compute()
+
+    print("Loop over windows...")
+    # loop over each window
+    win_results = []
+    for start, stop in tqdm(zip(ds.window_start.values, ds.window_stop.values),total = len(ds.window_start.values)):
+
+        gt_win = gt[start:stop,:]
+
+        pos_win = pos[start:stop]
+
+        focus = (pos_win[0] + pos_win[-1])/2
+
+        # Loop over each pair of haplotypes
+        results = []
+        for i in range(n-1):
+            for j in range(i, n):
+                # Look at mismatches in the neighborhood of the site
+                gti = gt_win[:,i]
+                gtj = gt_win[:,j]
+                mismatches = (gti != gtj)
+                if np.all(mismatches == False):
+                    results.append(1)
+                else:
+                    # find first mismatch above and below focal site
+                    mismatch_pos = pos_win[mismatches]
+                    dist_bw_mismatch_focus = focus - mismatch_pos
+
+                    dist_bw_mismatch_focus_above = dist_bw_mismatch_focus[(dist_bw_mismatch_focus > 0)]
+                    dist_bw_mismatch_focus_below = dist_bw_mismatch_focus[(dist_bw_mismatch_focus < 0)]
+
+                    if len(dist_bw_mismatch_focus_above) == 0:
+                        dist_bw_mismatch_focus_above = np.max(dist_bw_mismatch_focus)
+
+                    if len(dist_bw_mismatch_focus_below) == 0:
+                        dist_bw_mismatch_focus_below = np.min(dist_bw_mismatch_focus)
+
+                    length_of_match = np.min(dist_bw_mismatch_focus_above) - np.max(dist_bw_mismatch_focus_below)
+                    results.append( length_of_match/(np.max(pos_win) - np.min(pos_win) + 1) )
+        # average match lengths
+        win_results.append(np.mean(results))
+
+    # save final calculation
+    ds["messers_hscan"] = win_results
+
+    return(ds)
 
 # define click options
 @click.command(context_settings={'show_default': True})
@@ -361,7 +408,7 @@ def main(vcz_file, test, window_length, skip_length, output):
 
     if test:
         print("Generating test dataset...")
-        ds = sg.simulate_genotype_call_dataset(n_variant=150, n_sample=25, n_contig=1)
+        ds = sg.simulate_genotype_call_dataset(n_variant=150, n_sample=10, n_contig=1)
     else:
         print("Loading vcz...")
         ds = sg.load_dataset(vcz_file)
@@ -377,8 +424,8 @@ def main(vcz_file, test, window_length, skip_length, output):
     #print(ds.window_stop.values)
     
     # get window bounds in terms of bp instead of variant index
-    ds["window_pos_start"] = ds.variant_position[ds.window_start.values]
-    ds["window_pos_stop"] = ds.variant_position[(ds.window_stop.values - 1)]
+    window_pos_start = ds.variant_position[ds.window_start.values]
+    window_pos_stop = ds.variant_position[(ds.window_stop.values - 1)]
 
     # The diversity statistic is now computed for every window
     print("Calculate variant stats...")
@@ -416,6 +463,9 @@ def main(vcz_file, test, window_length, skip_length, output):
     print("Calculating Zeng's E...")
     ds = zengs_e(ds)
 
+    print("Calculating Messer's Hscan...")
+    ds = hscan(ds)
+
     #print(ds.data_vars)
     #print(ds.variant_allele_count.values)
     #print(ds.variant_allele_count.values[:, 1])
@@ -440,10 +490,10 @@ def main(vcz_file, test, window_length, skip_length, output):
     ds["kims_omega"] = kims_omega(ld_by_win, ds.window_start.values, ds.window_stop.values)
 
     print("Column binding statistics...")
-    final_table = np.column_stack((ds.window_contig.values, ds.window_start.values, ds.window_stop.values, ds.window_pos_start.values, ds.window_pos_stop.values, ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.Zengs_E.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values, ds.kellys_zns.values, ds.kims_omega.values))
+    final_table = np.column_stack((ds.window_contig.values, ds.window_start.values, ds.window_stop.values, window_pos_start, window_pos_stop ,ds.stat_diversity.values, ds.Wattersons_Theta.values, ds.Theta_L.values, ds.stat_Tajimas_D.values, ds.Fay_Wu_H_Normalized.values, ds.Zengs_E.values, ds.stat_Garud_h1.values, ds.stat_Garud_h12.values, ds.stat_Garud_h123.values, ds.stat_Garud_h2_h1.values, ds.kellys_zns.values, ds.kims_omega.values, ds.messers_hscan.values))
 
     print("Saving table...")
-    np.savetxt(output, final_table, delimiter='\t', header="Contig\tVar_Start\tVar_Stop\tPos_Start\tPos_Stop\tTheta_Pi\tTheta_W\tTheta_L\tTajimas_D\tFay_Wus_H\tZengs_E\tGarud_H1\tGarud_H12\tGarud_H123\tGarud_H2_H1\tKellys_Zns\tKims_Omega", comments="")
+    np.savetxt(output, final_table, delimiter='\t', header="Contig\tVar_Start\tVar_Stop\tPos_Start\tPos_Stop\tTheta_Pi\tTheta_W\tTheta_L\tTajimas_D\tFay_Wus_H\tZengs_E\tGarud_H1\tGarud_H12\tGarud_H123\tGarud_H2_H1\tKellys_Zns\tKims_Omega\tMessers_Hscan", comments="")
     print("Done! :D")
 
 if __name__ == '__main__':
