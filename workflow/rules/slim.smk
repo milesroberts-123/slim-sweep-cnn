@@ -136,21 +136,20 @@ def get_custom_demography(wildcards):
 
 
 rule slim:
-    input:
-        "../config/parameters.tsv",
+    group: "simulation"
     output:
-        finalTable=temp("data/tables/slim_{ID}.table"),
-        tmpVCF="slim_{ID}.vcf",
+        tmpVCF="slim_results/{ID}.trees",
     log:
         "logs/slim/{ID}.log",
     params:
+        mu=lookup(query="ID == '{ID}'", within=parameters, cols="mu"),
+        R=lookup(query="ID == '{ID}'", within=parameters, cols="R"),
+        N=lookup(query="ID == '{ID}'", within=parameters, cols="N"),
+        L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
         sweepS=get_sweepS,
         sigma=get_sigma,
         h=get_h,
-        N=get_N,
         Q=get_Q,
-        mu=get_mu,
-        R=get_R,
         tau=get_tau,
         kappa=get_kappa,
         f0=get_f0,
@@ -172,15 +171,75 @@ rule slim:
         K=get_K,
         custom_demography=get_custom_demography,
     conda:
-        "../envs/slim.yml"
+        "../envs/msprime.yml"
     shell:
         """
         # run simulation
         slim -d ID={wildcards.ID} -d demog={params.custom_demography} -d Q={params.Q} -d sweepS={params.sweepS} -d sigma={params.sigma} -d h={params.h} -d N={params.N} -d mu={params.mu} -d R={params.R} -d tau={params.tau} -d kappa={params.kappa} -d f0={params.f0} -d f1={params.f1} -d n={params.n} -d lambda={params.lamb} -d M={params.M} -d U={params.U} -d B={params.B} -d hU={params.hU} -d hB={params.hB} -d bBar={params.bBar} -d uBar={params.uBar} -d alpha={params.alpha} -d ncf={params.ncf} -d cl={params.cl} -d fsimple={params.fsimple} -d r={params.r} -d K={params.K} scripts/simulation_custom_demography_any_age.slim &> {log}
+        """
 
-        # convert vcf to simple table
-        # remove hastag from CHROM
-        # remove multiallelic sites, because most studies focus on just bialleleic SNPs
-        # convert genotypes to 0s and 1s
-        grep -v ^## {output.tmpVCF} | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > {output.finalTable}
+rule msprime:
+    group: "simulation"
+    input:
+        "slim_fst_results/{ID}.trees"
+    output:
+        "msprime_results/{ID}.vcf"
+    conda:
+        "../envs/msprime.yaml"
+    params:
+        mu=lookup(query="ID == '{ID}'", within=parameters, cols="mu"),
+        R=lookup(query="ID == '{ID}'", within=parameters, cols="R"),
+        N=lookup(query="ID == '{ID}'", within=parameters, cols="N"),
+        L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
+    shell:
+        """
+        python scripts/burnin.py --mu {params.mu} --tau {params.tau} -N {params.N} -L {params.L} -R {params.R} --ID {wildcards.ID}
+        """
+
+rule vcf_to_table:
+    group: "simulation"
+    input:
+        "msprime_results/{ID}.vcf"
+    output:
+        "tables/{ID}.txt"
+    shell:
+        """
+        # convert vcf to simple table                                                                                               # remove hastag from CHROM                                                                                                  # remove multiallelic sites, because most studies focus on just bialleleic SNPs                                             # convert genotypes to 0s and 1s                                                                                            grep -v ^## {output.tmpVCF} | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > {output.finalTable}
+        """
+
+rule create_image:
+    group: "simulation"
+    input:
+        table="tables/{ID}.txt",
+    output:
+        image="images/{ID}.png",
+        pos="positions/{ID}.pos",
+    log:
+        "logs/create_image/{ID}.log",
+    params:
+        distMethod=config["distMethod"],
+        clustMethod=config["clustMethod"],
+        nidv=config["nidv"],
+        nloc=config["nloc"],
+    conda:
+        "../envs/R.yml"
+    shell:
+        "Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {params.nidv} {params.nloc} &> {log}"
+
+rule sweep_stats:
+    input:
+        "msprime_results/{ID}.vcf",
+    output:
+        "sweep_stats/{ID}.tsv",
+    params:
+        prefix="sweep_stats/{ID}",
+        nloc=config["nloc"],
+        L=lookup(query="ID == '{ID}'", within=parameters, cols="L")
+    conda:
+        "../envs/sweeps.yml"
+    log:
+        "logs/sweeps_stats/{ID}.log",
+    shell:
+        """
+        python3 scripts/sweep_stats.py --vcf {input} --window-length {params.nloc} --focus 50001 --output-prefix {params.prefix} &> {log}
         """

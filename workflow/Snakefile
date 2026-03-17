@@ -24,12 +24,12 @@ rule all:
 
 rule all_per_sim:
     input:
-        "data/images/slim_{ID}.png",
-        "data/sweep_stats/{ID}.tsv"
+        "images/slim_{ID}.png",
+        "sweep_stats/{ID}.tsv"
     output:
         touch("{ID}.done")
 
 include: "rules/slim.smk"
-include: "rules/create_image.smk"
-include: "rules/sweep_stats.smk"
+#include: "rules/create_image.smk"
+#include: "rules/sweep_stats.smk"
 include: "rules/extract_log_data.smk"
