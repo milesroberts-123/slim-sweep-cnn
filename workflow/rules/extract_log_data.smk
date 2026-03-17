@@ -1,9 +1,6 @@
 rule extract_log_data:
     input:
-        images=[
-            "data/images/slim_{ID}.png".format(ID=ID)
-            for ID in range(1, config["K"] + 1)
-        ],
+        expand("images/{ID}.png", ID = parameters["ID"]),
     output:
         "fixation_times.txt",
         "sweep_ages.txt",

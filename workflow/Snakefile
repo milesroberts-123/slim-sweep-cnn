@@ -14,6 +14,9 @@ parameters = pd.read_table("../config/parameters.tsv", sep="\t", dtype={"ID": st
 # execute very simple rules on local machine
 localrules: all, all_per_sim
 
+wildcard_constraints:
+    ID="[a-zA-Z0-9]+"
+
 # gather all images for training CNN
 rule all:
     input:
@@ -24,7 +27,7 @@ rule all:
 
 rule all_per_sim:
     input:
-        "images/slim_{ID}.png",
+        "images/{ID}.png",
         "sweep_stats/{ID}.tsv"
     output:
         touch("{ID}.done")

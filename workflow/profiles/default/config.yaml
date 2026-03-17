@@ -1,14 +1,22 @@
+# snakemake arguments
 executor: slurm
-jobs: 975
-cores: 975
+jobs: unlimited
+cores: all
+max-jobs-per-timespan: 1000/1s
+scheduler-subsample: 100000
+
+# rules to execute locally, because they're too fast to bother with cluster submission
+# localrules: all_one_pops, all_two_pops, all
 
 # use sensible defaults for your cluster
 default-resources:
-    slurm_account: "josephsnodes"
-    slurm_partition: "josephsnodes"
-    mem_mb_per_cpu: 8000
+    slurm_account: "co_moilab"
+    slurm_partition: "savio3_htc"
+    slurm_qos: "savio_lowprio"
+    ntasks: 1
     cpus_per_task: 1
-    runtime: "239m"
+    runtime: "15m"
+    mem_mb: 0
 
 # here only rules, which require different (more) resources:
 #set-resources:

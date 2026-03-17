@@ -138,7 +138,7 @@ def get_custom_demography(wildcards):
 rule slim:
     group: "simulation"
     output:
-        tmpVCF="slim_results/{ID}.trees",
+        temp("slim_results/{ID}.trees"),
     log:
         "logs/slim/{ID}.log",
     params:
@@ -171,7 +171,7 @@ rule slim:
         K=get_K,
         custom_demography=get_custom_demography,
     conda:
-        "../envs/msprime.yml"
+        "../envs/msprime.yaml"
     shell:
         """
         # run simulation
@@ -181,9 +181,9 @@ rule slim:
 rule msprime:
     group: "simulation"
     input:
-        "slim_fst_results/{ID}.trees"
+        "slim_results/{ID}.trees"
     output:
-        "msprime_results/{ID}.vcf"
+        temp("msprime_results/{ID}.vcf")
     conda:
         "../envs/msprime.yaml"
     params:
@@ -191,9 +191,10 @@ rule msprime:
         R=lookup(query="ID == '{ID}'", within=parameters, cols="R"),
         N=lookup(query="ID == '{ID}'", within=parameters, cols="N"),
         L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
+        n=lookup(query="ID == '{ID}'", within=parameters, cols="n")
     shell:
         """
-        python scripts/burnin.py --mu {params.mu} --tau {params.tau} -N {params.N} -L {params.L} -R {params.R} --ID {wildcards.ID}
+        python scripts/burnin.py --mu {params.mu} -n {params.n} -N {params.N} -L {params.L} -R {params.R} --ID {wildcards.ID}
         """
 
 rule vcf_to_table:
@@ -201,10 +202,14 @@ rule vcf_to_table:
     input:
         "msprime_results/{ID}.vcf"
     output:
-        "tables/{ID}.txt"
+        temp("tables/{ID}.txt")
     shell:
         """
-        # convert vcf to simple table                                                                                               # remove hastag from CHROM                                                                                                  # remove multiallelic sites, because most studies focus on just bialleleic SNPs                                             # convert genotypes to 0s and 1s                                                                                            grep -v ^## {output.tmpVCF} | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > {output.finalTable}
+        # convert vcf to simple table
+        # remove hastag from CHROM
+        # remove multiallelic sites, because most studies focus on just bialleleic SNPs
+        # convert genotypes to 0s and 1s
+        grep -v ^## {input} | grep -v "MULTIALLELIC" | cut -f1,2,8,10- | sed 's/^#//g' | sed 's/0|0/0/g' | sed 's/1|0/0.5/g' | sed 's/0|1/0.5/g' | sed 's/1|1/1/g' > {output}
         """
 
 rule create_image:
@@ -227,6 +232,7 @@ rule create_image:
         "Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {params.nidv} {params.nloc} &> {log}"
 
 rule sweep_stats:
+    group: "simulation"
     input:
         "msprime_results/{ID}.vcf",
     output:
