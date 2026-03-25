@@ -88,7 +88,7 @@ mts = msprime.sim_mutations(
 
 # output vcf
 print("Output vcf...")
-with open('msprime_results/' + args.ID + ".txt", "w") as vcf_file:
+with open('msprime_results/' + args.ID + ".vcf", "w") as vcf_file:
     mts.write_vcf(vcf_file)
 
 print("Done! :)")

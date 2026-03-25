@@ -4,8 +4,9 @@ initialize() {
 	initializeMutationType("m1", 0.5, "f", 0.0); // neutral mutation
 	initializeMutationType("m2", h, "f", sweepS); // introduced mutation
 	initializeGenomicElementType("g1", m1, 1.0);
-	initializeGenomicElement(g1, 0, L-1);
+	initializeGenomicElement(g1, 0, asInteger(L)-1);
 	initializeRecombinationRate(R*Q);
+        //m2.convertToSubstitution = F; // keep full trajectory
 }
 
 1 early() {
@@ -20,6 +21,11 @@ initialize() {
 	catn(ID + ": "+ sim.cycle + " - SWEEP AGE: " + tau + " SCALED: " + asInteger(tau/Q));
 	catn(ID + ": "+ sim.cycle + " - LOGISTIC GROWTH RATE: " + r);
 	catn(ID + ": "+ sim.cycle + " - LOGISTIC CARRYING CAPACITY: " + K);
+        // create log file
+        log = community.createLogFile("slim_results/" + ID + ".log", logInterval=1);
+        log.addCycle();
+        log.addCustomColumn("p", "muts = sim.mutationsOfType(m2); if (size(muts)==0) return 0.0; return mean(sim.mutationFrequencies(NULL, muts));");
+        log.addCustomColumn("attempt", "return fails;");
 	// create subpopulation
 	catn(ID + ": "+ sim.cycle + " - CREATING POPULATION OF SIZE: " + asInteger(N/Q));
 	sim.addSubpop("p1", asInteger(N/Q));

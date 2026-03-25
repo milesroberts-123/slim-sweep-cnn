@@ -21,14 +21,14 @@ wildcard_constraints:
 rule all:
     input:
         #expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID")),
-        expand("{ID}.done", ID=parameters.index.get_level_values("ID")),
+        expand("{ID}_{L}.done", ID=parameters.index.get_level_values("ID"), L = config["L"]),
         "fixation_times.txt",
         "sweep_ages.txt"
 
 rule all_per_sim:
     input:
-        "images/{ID}.png",
-        "sweep_stats/{ID}.tsv"
+        expand("images/{{ID}}_{L}.png", L = config["L"]) 
+        expand("sweep_stats/{{ID}}_{L}.tsv", L = config["L"])
     output:
         touch("{ID}.done")
 

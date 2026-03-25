@@ -3,6 +3,9 @@
 # number of simulations to run
 K: 50000
 
+# maximum number of sweep failures to tolerate before giving up
+failmax: 10000
+
 # Dimmension of images will be nidv*nloc*3
 # Number of individual genomes to sample
 nidv: 128
@@ -18,4 +21,4 @@ clustMethod: "complete"
 
 # demographic pattern if using logistic demography
 # options: constant, growth, decay, cycle, chaos, custom
-demography: "custom"
+demography: "constant"

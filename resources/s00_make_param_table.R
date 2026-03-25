@@ -1,4 +1,5 @@
 library(yaml)
+library(dplyr)
 
 # parse out yaml path
 args = commandArgs(trailingOnly=TRUE)
@@ -13,22 +14,36 @@ demography = yamlfile[["demography"]]
 
 # build table of paramters
 print("Building table of parameters...")
-params = data.frame(
-  ID = 1:K, # unique ID for each simulation
+#params = data.frame(
+#  ID = 1:K, # unique ID for each simulation
+#  Q = 1,
+#  N = sample(5000:20000, size = K, replace = T), # initial population size
+#  h = runif(K, min = 0, max = 1), # dominance coefficient
+#  mu = 10^runif(K, min = -8.5, max = -7.5),
+#  R = 10^runif(K, min = -9, max = -7),
+#  tau = round(10^runif(K, min = 0, max = 2)), # sweep ages
+#  L = sample(c(1e6, 5e6), size = K, replace = T),
+#  m = sample(c(51, 121, 241), size = K, replace = T),
+#  n = sample(c(51, 121, 241), size = K, replace = T),
+#  kappa = 10
+#)
+
+params <- expand.grid(
   Q = 1,
-  N = sample(5000:20000, size = K, replace = T), # initial population size
-  h = runif(K, min = 0, max = 1), # dominance coefficient
-  sigma = 0,
-  mu = 10^runif(K, min = -8.5, max = -7.5),
-  R = 10^runif(K, min = -9, max = -7),
-  tau = round(10^runif(K, min = 0, max = 4)),
-  L = 5e6,
+  L = c(1e6, 5e6),
+  m = c(51, 121, 241),
+  n = c(51, 121, 241),
   kappa = 10,
-  f0 = 0,
-  f1 = 1,
-  n = 1,
-  ncf = 0
+  rep = 1:2700
 )
+
+K <- nrow(params)
+
+params$N <- sample(5000:20000, size = K, replace = T), # initial population size
+params$h <- runif(K, min = 0, max = 1), # dominance coefficient
+params$mu <- 10^runif(K, min = -8.5, max = -7.5)
+params$R <- 10^runif(K, min = -9, max = -7)
+params$tau <- round(10^runif(K, min = 0, max = 2)), # sweep ages
 
 # selection coefficient of sweep
 print("Sampling sweep selection coefficient...")
@@ -41,23 +56,6 @@ params$sweepS = unlist(lapply(params$N, FUN = sample_sel_coeff))
 
 all(params$sweepS > 1/params$N)
 
-# spacing between beneficial mutations
-print("Sampling lambda...")
-params$lambda[(params$n == 1)] = 999999999 # use 9999 instead of NA
-params$lambda[(params$n > 1)] = runif(sum(params$n > 1), min = 0, max = 10000) # average waiting time between beneficial mutations
-
-# mean length of copies in cross over events
-print("Sampling cl...")
-params$cl[(params$ncf == 0)] = 99
-params$cl[(params$ncf > 0)] = sample(100:1000, size = K/2, replace = T)
-
-# fraction of tracts that are "simple" as opposed to complex
-print("Sampling fsimple...")
-params$fsimple[(params$ncf == 0)] = 0.999999999
-params$fsimple[(params$ncf > 0)] = runif(K/2, min = 0, max = 1) 
-  
-# carrying capacity
-# determine which samples will be shrinking, the growth rate for shrinking samples can't be too high, or else you'll get negative population sizes
 print("Sampling r and K based on demography...")
 
 if(demography == "constant"){
@@ -96,43 +94,6 @@ if(demography == "custom"){
   params$Q = runif(K, min = 10, max = 20)
   params$custom_demography = 1
 }
-
-# proportions of deleterious, beneficial, neutral mutations
-# neutral mutation > deleterious mutation > beneficial mutation
-print("Sampling B, U, and M...")
-#params$B = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # beneficial mutations
-params$B = 0
-#params$U = sample(c(rep(0, times = K/2), runif(K/2, min = 0, max = 0.03)), size = K, replace = F) # deleterious mutations
-params$U = 0
-params$M = 1 - params$B - params$U # neutral mutations
-
-# dominance for deleterious mutations
-print("Sampling DFE parameters...")
-params$hU[(params$U > 0)] = runif(K/2)
-params$hU[(params$U == 0)] = 0.999999999
-
-# dominance for beneficial mutations
-params$hB[(params$B > 0)] = runif(K/2)
-params$hB[(params$B == 0)] = 0.999999999
-
-# average effect of beneficial mutation
-params$bBar[(params$B > 0)] = 10^runif(K/2, min = -7, max = -5)
-params$bBar[(params$B == 0)] = 0.999999999
-
-# average effect of linked deleterious mutation
-params$uBar[(params$U > 0)] = (10^runif(K/2, min = -7, max = -5))*(-1)
-params$uBar[(params$U == 0)] = -0.999999999
-
-# shape parameter for deleterious DFE
-params$alpha[(params$U > 0)] = runif(K/2, min = 0, max = 5) 
-params$alpha[(params$U == 0)] = 0.999999999
-
-# check that all proportions add to one
-print("Checking that all proportions add to one...")
-all.equal(rep(1, times = nrow(params)),c(params$M + params$U + params$B))
-
-# show distributions of parameters
-summary(params)
 
 # If there are multiple parameters, make sure they're not correlated by chance
 print("Correlations between parameters across simulations:")
