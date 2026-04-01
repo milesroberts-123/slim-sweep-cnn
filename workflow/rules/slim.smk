@@ -39,18 +39,32 @@ rule msprime:
         R=lookup(query="ID == '{ID}'", within=parameters, cols="R"),
         N=lookup(query="ID == '{ID}'", within=parameters, cols="N"),
         L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
-        n=lookup(query="ID == '{ID}'", within=parameters, cols="n")
+        #n=lookup(query="ID == '{ID}'", within=parameters, cols="n"),
+        n=1000
     shell:
         """
         python scripts/burnin.py --mu {params.mu} -n {params.n} -N {params.N} -L {params.L} -R {params.R} --ID {wildcards.ID}
         """
 
+rule random_subset_individuals:
+    group: "simulation"
+    input: "msprime_results/{ID}.vcf"
+    output: 
+        vcf="random_subset/{ID}_{n}.vcf",
+        subset="random_subset/{ID}_{n}.txt"
+    conda: "../envs/bcftools.yaml"
+    shell:
+        """
+        bcftools query -l {input} | shuf | head -n {wildcards.n} > {output.subset}
+        bcftools view -S {output.subset} {input} > {output.vcf}
+        """
+
 rule vcf_to_table:
     group: "simulation"
     input:
-        "msprime_results/{ID}.vcf"
+        "random_subset/{ID}_{n}.vcf"
     output:
-        temp("tables/{ID}.txt")
+        temp("tables/{ID}_{n}.txt")
     shell:
         """
         # convert vcf to simple table
@@ -63,21 +77,19 @@ rule vcf_to_table:
 rule create_image:
     group: "simulation"
     input:
-        table="tables/{ID}.txt",
+        table="tables/{ID}_{n}.txt",
     output:
-        image="images/{ID}.png",
-        pos="positions/{ID}.pos",
-    log:
-        "logs/create_image/{ID}.log",
+        image="images/{ID}_{n}_{m}.png",
+        pos="positions/{ID}_{n}_{m}.pos",
     params:
         distMethod=config["distMethod"],
         clustMethod=config["clustMethod"],
-        nidv=lookup(query="ID == '{ID}'", within=parameters, cols="n"),
-        nloc=lookup(query="ID == '{ID}'", within=parameters, cols="m"),
+        #nidv=lookup(query="ID == '{ID}'", within=parameters, cols="n"),
+        #nloc=lookup(query="ID == '{ID}'", within=parameters, cols="m"),
     conda:
         "../envs/R.yml"
     shell:
-        "Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {params.nidv} {params.nloc} &> {log}"
+        "Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {wildcards.n} {wildcards.m}"
 
 def get_focus(wildcards):
     L = parameters.loc[parameters["ID"] == wildcards.ID, "L"]
@@ -86,18 +98,16 @@ def get_focus(wildcards):
 rule sweep_stats:
     group: "simulation"
     input:
-        "msprime_results/{ID}.vcf",
+        "random_subset/{ID}_{n}.vcf",
     output:
-        "sweep_stats/{ID}.tsv",
+        "sweep_stats/{ID}_{n}_{m}.tsv",
     params:
         prefix="sweep_stats/{ID}",
-        nloc=lookup(query="ID == '{ID}'", within=parameters, cols="m"),
+        #nloc=lookup(query="ID == '{ID}'", within=parameters, cols="m"),
         focus=get_focus
     conda:
         "../envs/sweeps.yml"
-    log:
-        "logs/sweeps_stats/{ID}.log",
     shell:
         """
-        python3 scripts/sweep_stats.py --vcf {input} --window-length {params.nloc} --focus {params.focus} --output-prefix {params.prefix} &> {log}
+        python3 scripts/sweep_stats.py --vcf {input} --window-length {wildcards.m} --focus {params.focus} --output-prefix {params.prefix}
         """

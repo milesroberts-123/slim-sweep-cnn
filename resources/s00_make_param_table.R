@@ -30,11 +30,11 @@ print("Building table of parameters...")
 
 params <- expand.grid(
   Q = 1,
-  L = c(1e6, 5e6),
-  m = c(51, 121, 241),
-  n = c(51, 121, 241),
+  #L = c(1e5, 5e5, 1e6),
+  #m = c(51, 121, 241),
+  #n = c(51, 121, 241),
   kappa = 10,
-  rep = 1:2700
+  rep = 1:50000
 )
 
 K <- nrow(params)

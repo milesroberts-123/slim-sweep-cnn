@@ -6,12 +6,24 @@ K: 50000
 # maximum number of sweep failures to tolerate before giving up
 failmax: 10000
 
+L: 5e6
+
+m:
+ - 51
+ - 121
+ - 241
+
+n:
+ - 51
+ - 121
+ - 241
+
 # Dimmension of images will be nidv*nloc*3
 # Number of individual genomes to sample
-nidv: 128
+#nidv: 128
 
 # Number of loci to sample
-nloc: 128
+#nloc: 128
 
 # Measurement of genetic distance between loci
 distMethod: "manhattan"

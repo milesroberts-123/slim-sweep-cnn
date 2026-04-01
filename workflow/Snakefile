@@ -21,16 +21,16 @@ wildcard_constraints:
 rule all:
     input:
         #expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID")),
-        expand("{ID}_{L}.done", ID=parameters.index.get_level_values("ID"), L = config["L"]),
-        "fixation_times.txt",
-        "sweep_ages.txt"
+        expand("finished/{ID}.done", ID=parameters.index.get_level_values("ID")),
+        #"fixation_times.txt",
+        #"sweep_ages.txt"
 
 rule all_per_sim:
     input:
-        expand("images/{{ID}}_{L}.png", L = config["L"]) 
-        expand("sweep_stats/{{ID}}_{L}.tsv", L = config["L"])
+        expand("images/{{ID}}_{n}_{m}.png", n = config["n"], m = config["m"]),
+        expand("sweep_stats/{{ID}}_{n}_{m}.tsv", n = config["n"], m = config["m"])
     output:
-        touch("{ID}.done")
+        touch("finished/{ID}.done")
 
 include: "rules/slim.smk"
 #include: "rules/create_image.smk"

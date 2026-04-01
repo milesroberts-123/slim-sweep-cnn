@@ -32,7 +32,32 @@ my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/resu
 #my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript/outcrossing_cycle/"
 #my_path = "/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/manuscript/outcrossing_chaos/"
 
-output_path = paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", "constant/",sep = "")
+input_path = "/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/"
+
+#output_path = paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/", "constant/",sep = "")
+
+output_path = paste(input_path, "results/", today, "/",sep = "")
+
+# frequency cutoff
+fc <- 0.1
+```
+
+# plotting theme
+```{r}
+# global ggplot2 theme
+theme_set(
+  theme_minimal() +
+    theme(
+      text = element_text(
+        size = 16,
+        family = "Helvetica",
+        colour = "black"
+      ),
+      axis.text = element_text(colour = "black"),
+      plot.title = element_text(hjust = 0.5),
+      strip.text = element_text(colour = "black")
+    )
+)
 ```
 
 # plotting functions
@@ -142,25 +167,55 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
 
 ```
 
+# compile fixation times and failures
+```{r}
+# extract time within allele frequency interval fc to 1-fc from
+# allele frequency trajectories
+freq_traj <- list.files(paste(input_path, "workflow/slim_results", sep = ""), pattern = ".log", full.names = T)
+
+extract_tf <- function(x, fc){
+  print(x)
+  x <- fread(x, data.table = F)
+  
+  max_attempt <- max(x$attempt)
+
+  x <- x[(x$attempt == max_attempt) & (x$p >= fc) & (x$p <= 1 - fc),]
+  
+  tf <- max(x$cycle) - min(x$cycle) + 1
+  
+  fails <- max_attempt
+
+  return(data.frame(tf = tf, fails = fails))
+}
+
+tf <- do.call("rbind",lapply(freq_traj, extract_tf, fc = fc))
+
+tf$ID <- gsub("slim_results/|.log", "", str_extract(freq_traj, "slim_results/.*.log"))
+
+write.table(tf, paste(output_path, "fixation_times.txt", sep = ""), quote = F, row.names = F)
+```
+
 # load data
 ```{r}
 # simulation parameters
-params = read.table(paste(my_path, "config/parameters.tsv", sep = ""), sep = "\t", header = T)
+params = read.table(paste(input_path, "config/parameters.tsv", sep = ""), sep = "\t", header = T)
 
 # merge in fixation times
-fix_times = read.table(paste(my_path, "workflow/fixation_times.txt", sep = ""), col.names = c("ID", "tf"))
+# fix_times = read.table(paste(my_path, "workflow/fixation_times.txt", sep = ""), col.names = c("ID", "tf"))
+# 
+# params = merge(params, fix_times, by = "ID")
 
-params = merge(params, fix_times, by = "ID")
+params = merge(params, tf, by = "ID")
 
 # merge in sweep ages
-sweep_ages = read.table(paste(my_path, "workflow/sweep_ages.txt", sep = ""), col.names = c("ID", "ta")) 
-
-params = merge(params, sweep_ages, by = "ID")
+# sweep_ages = read.table(paste(my_path, "workflow/sweep_ages.txt", sep = ""), col.names = c("ID", "ta")) 
+# 
+# params = merge(params, sweep_ages, by = "ID")
 
 # add in selective sweep statistics
-sweep_stats_files = list.files(path = paste(my_path, "workflow/data/sweep_stats", sep = ""), pattern = "*.tsv", full.names = T)
+sweep_stats_files = list.files(path = paste(input_path, "workflow/sweep_stats", sep = ""), pattern = "*.tsv", full.names = T)
 
-sweep_stats = suppressWarnings(lapply(sweep_stats_files, read.table, header = F))
+sweep_stats = suppressWarnings(lapply(sweep_stats_files, fread, header = F, data.table = F))
 
 sweep_stats = do.call("rbind", sweep_stats)
 
@@ -171,17 +226,44 @@ sweep_stats$ID = as.numeric(gsub(".tsv", "", gsub(".*sweep_stats/", "",sweep_sta
 params = merge(params, sweep_stats, by = "ID")
 
 # get simulation outputs
-mypics = list.files(paste(my_path, "workflow/data/images", sep= ""), full.names = T)
+# mypics = list.files(paste(my_path, "workflow/data/images", sep= ""), full.names = T)
 
 # get sim ids
-picids = as.integer(gsub(".png", "", gsub(paste(my_path, "workflow/data/images/slim_", sep = ""), "", mypics)))
-
-# only keep simulations that have images
-params = params[(params$ID %in% picids),]
+# picids = as.integer(gsub(".png", "", gsub(paste(my_path, "workflow/data/images/slim_", sep = ""), "", mypics)))
+# 
+# # only keep simulations that have images
+# params = params[(params$ID %in% picids),]
 ```
 
 # Exploratory data analysis
 
+## check tf against theoretical expectations
+
+```{r}
+integrand <- function(x, s, h) {1/(s*x*(1-x)*(x+h*(1-2*x)))}
+
+integrate(integrand, lower = fc, upper = 1 - fc, s = 0.01, h = 0.5)
+
+integrate(integrand, lower = fc, upper = 1 - fc, s = 0.01, h = 0.5)
+
+params <- params %>% rowwise %>% 
+       mutate(Etf = integrate(function(x, s, h) {1/(s*x*(1-x)*(x+h*(1-2*x)))}, lower = fc, upper = 1 - fc, s = sweepS, h = h)$value )
+
+ggplot(params, aes(x = tf, y = Etf)) +
+  geom_hex() +
+  geom_abline(slope = 1, intercept = 0, lwd = 1.5) +
+  geom_smooth(method = "loess", lwd = 1.5, color = "grey") +
+  scale_x_log10() +
+  scale_y_log10() +
+  stat_cor(label.x.npc = "left", label.y.npc = "center") +
+  scale_fill_scico(palette = "imola") +
+  labs(x = "Observed tf", y = "Theoretical expectation")
+
+ggsave(paste(output_path, "theory_vs_expected_tf.pdf", sep = ""))
+```
+
+
+## check variable distributions
 ```{r}
 # optionally load previously cached statistics
 #params = read.table(paste(my_path, "unstratified_sample.tsv", sep = ""), header = T, sep = "\t")
