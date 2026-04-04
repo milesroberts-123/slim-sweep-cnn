@@ -210,7 +210,7 @@ params = read.table(paste(input_path, "config/parameters.tsv", sep = ""), sep = 
 # 
 # params = merge(params, fix_times, by = "ID")
 
-tf <- read.table(paste(output_path, "fixation_times.txt", sep = ""), sep = " ", header = T)
+tf <- read.table("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/2026-04-03/fixation_times.txt", sep = " ", header = T)
 
 params = merge(params, tf, by = "ID")
 
@@ -877,6 +877,55 @@ for(results_file in results_files){
 # plot(mod_test)
 ```
 
+# diversity within vs outside the sweep
+```{r}
+pi_windows <- read.table(paste(input_path, "workflow/vcftools_results/100_241.windowed.pi", sep = ""), sep = "\t", header = T)
+
+pi_window_files <- list.files(path = paste(input_path, "workflow/vcftools_results", sep = ""), pattern = ".windowed.pi", full.names = T)
+
+sweep_fit <- function(x, c = 1e-8, t0 = 10, pi0 = 3e-4) {
+  x <- fread(x, data.table = F)
+  
+  x$distance <- abs( (x$BIN_START + x$BIN_END)/2 - max(x$BIN_END)/2 ) * c
+
+  nls_res <- tryCatch({
+    nls_res <- nls(PI ~ pi0 * (1-exp(-1 * distance * tf)), data = x, start = list(tf = t0, pi0 = pi0))
+    return(coef(nls_res))},
+  error = function(e) {
+  return(data.frame(tf = NA, pi0 = NA)) # Returns NA instead of an error
+})
+
+  #pi_windows$fitted <- nls_res$m$fitted()
+
+  return(nls_res)
+}
+
+pi_fits <- do.call("rbind", lapply(pi_window_files, sweep_fit))
+
+pi_fits$ID <- as.numeric(gsub("_|/", "", str_extract(pi_window_files, pattern = "/[0-9]*_")))
+
+pi_fits$n <- as.numeric(gsub("_|/|.windowed.pi", "", str_extract(pi_window_files, pattern = "_[0-9]*.windowed.pi")))
+
+pi_fits <- merge(pi_fits, params, by = "ID")
+
+ggplot(pi_fits, aes(x = tf.y, y = tf.x)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(x = "True tf", y = "Predicted tf")
+
+# plot example model fit
+ggplot(pi_windows, aes(x = (BIN_END + BIN_START)/2, y = PI)) +
+  geom_vline(xintercept = max(pi_windows$BIN_END)/2, lwd = 1.1, lty = 2, color = "red") +
+  geom_point() +
+  geom_line(lwd = 1.25) +
+  geom_line(mapping = aes(x = (BIN_END + BIN_START)/2, y = fitted), data = pi_windows, color = "blue", lwd = 1.25) +
+  scale_y_log10()
+
+# get diversity within sweep
+
+# get extent of sweep 
+```
 
 # approximate bayesian computation
 
