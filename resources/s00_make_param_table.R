@@ -29,21 +29,20 @@ print("Building table of parameters...")
 #)
 
 params <- expand.grid(
+  ID = 1:K,
   Q = 1,
   #L = c(1e5, 5e5, 1e6),
   #m = c(51, 121, 241),
   #n = c(51, 121, 241),
-  kappa = 10,
-  rep = 1:50000
+  kappa = 10
+  #rep = 1:K
 )
 
-K <- nrow(params)
-
-params$N <- sample(5000:20000, size = K, replace = T), # initial population size
-params$h <- runif(K, min = 0, max = 1), # dominance coefficient
+params$N <- sample(1000:10000, size = K, replace = T) # initial population size
+params$h <- runif(K, min = 0, max = 1) # dominance coefficient
 params$mu <- 10^runif(K, min = -8.5, max = -7.5)
-params$R <- 10^runif(K, min = -9, max = -7)
-params$tau <- round(10^runif(K, min = 0, max = 2)), # sweep ages
+params$R <- 10^runif(K, min = -8.5, max = -7.5)
+#params$ta <- round(10^runif(K, min = 0, max = 2)), # sweep ages
 
 # selection coefficient of sweep
 print("Sampling sweep selection coefficient...")
@@ -56,6 +55,13 @@ params$sweepS = unlist(lapply(params$N, FUN = sample_sel_coeff))
 
 all(params$sweepS > 1/params$N)
 
+# sample sweep age, based on N
+sample_sweep_age <- function(x){
+  round(10^runif(1, min = 0, max = log10(0.1*x)))
+}
+params$ta <- unlist(lapply(params$N, FUN = sample_sweep_age))
+
+# choose demography
 print("Sampling r and K based on demography...")
 
 if(demography == "constant"){

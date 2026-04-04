@@ -27,6 +27,7 @@ rule all:
 
 rule all_per_sim:
     input:
+        expand("vcftools_results/{{ID}}_{n}.windowed.pi", n = config["n"]),
         expand("images/{{ID}}_{n}_{m}.png", n = config["n"], m = config["m"]),
         expand("sweep_stats/{{ID}}_{n}_{m}.tsv", n = config["n"], m = config["m"])
     output:

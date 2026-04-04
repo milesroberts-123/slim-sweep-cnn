@@ -8,6 +8,7 @@ output:
 # load packages
 ```{r}
 rm(list = ls())
+library(tidyverse)
 library(data.table)
 #library(reshape)
 library(ggplot2)
@@ -168,13 +169,16 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
 ```
 
 # compile fixation times and failures
+
 ```{r}
+
 # extract time within allele frequency interval fc to 1-fc from
 # allele frequency trajectories
 freq_traj <- list.files(paste(input_path, "workflow/slim_results", sep = ""), pattern = ".log", full.names = T)
 
 extract_tf <- function(x, fc){
   print(x)
+  
   x <- fread(x, data.table = F)
   
   max_attempt <- max(x$attempt)
@@ -195,7 +199,8 @@ tf$ID <- gsub("slim_results/|.log", "", str_extract(freq_traj, "slim_results/.*.
 write.table(tf, paste(output_path, "fixation_times.txt", sep = ""), quote = F, row.names = F)
 ```
 
-# load data
+# combine simulation parameters with observations
+
 ```{r}
 # simulation parameters
 params = read.table(paste(input_path, "config/parameters.tsv", sep = ""), sep = "\t", header = T)
@@ -204,6 +209,8 @@ params = read.table(paste(input_path, "config/parameters.tsv", sep = ""), sep = 
 # fix_times = read.table(paste(my_path, "workflow/fixation_times.txt", sep = ""), col.names = c("ID", "tf"))
 # 
 # params = merge(params, fix_times, by = "ID")
+
+tf <- read.table(paste(output_path, "fixation_times.txt", sep = ""), sep = " ", header = T)
 
 params = merge(params, tf, by = "ID")
 
@@ -223,7 +230,13 @@ colnames(sweep_stats) = c("S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incompl
 
 sweep_stats$ID = as.numeric(gsub(".tsv", "", gsub(".*sweep_stats/", "",sweep_stats_files)))
 
-params = merge(params, sweep_stats, by = "ID")
+sweep_stats$ID <- as.numeric(gsub("/|_", "", str_extract(sweep_stats_files, "/[0-9]*_")))
+
+sweep_stats$n <- as.numeric(gsub("/|_", "", str_extract(sweep_stats_files, "_[0-9]*_")))
+
+sweep_stats$m <- as.numeric(gsub(".tsv|_", "", str_extract(sweep_stats_files, "_[0-9]*.tsv")))
+
+params <- merge(params, sweep_stats, by = "ID")
 
 # get simulation outputs
 # mypics = list.files(paste(my_path, "workflow/data/images", sep= ""), full.names = T)
@@ -240,11 +253,8 @@ params = merge(params, sweep_stats, by = "ID")
 ## check tf against theoretical expectations
 
 ```{r}
+# deterministic equation, assuming infinite population, for time spent between two frequency thresholds
 integrand <- function(x, s, h) {1/(s*x*(1-x)*(x+h*(1-2*x)))}
-
-integrate(integrand, lower = fc, upper = 1 - fc, s = 0.01, h = 0.5)
-
-integrate(integrand, lower = fc, upper = 1 - fc, s = 0.01, h = 0.5)
 
 params <- params %>% rowwise %>% 
        mutate(Etf = integrate(function(x, s, h) {1/(s*x*(1-x)*(x+h*(1-2*x)))}, lower = fc, upper = 1 - fc, s = sweepS, h = h)$value )
@@ -402,10 +412,19 @@ tf_cutoff = quantile(params$tf, probs = 0.50)
 ta_cutoff = quantile(params$ta, probs = 0.50)
 
 log10(tf_cutoff)
+
 log10(ta_cutoff)
 ```
 
 
+## is the full extent of the sweep captured?
+
+```{r}
+
+ggplot(params, aes(x = as.factor(n), y = tajd)) +
+  geom_boxplot() +
+  facet_grid(.~m)
+```
 
 # DEPRECATED: PCA
 ```{r}

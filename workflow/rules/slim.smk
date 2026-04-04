@@ -2,18 +2,17 @@ rule slim:
     group: "simulation"
     output:
         temp("slim_results/{ID}.trees"),
-    log:
-        "logs/slim/{ID}.log",
     params:
         failmax=config["failmax"],
         #mu=lookup(query="ID == '{ID}'", within=parameters, cols="mu"),
         R=lookup(query="ID == '{ID}'", within=parameters, cols="R"),
         N=lookup(query="ID == '{ID}'", within=parameters, cols="N"),
-        L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
+        L=config["L"],
+        #L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
         sweepS=lookup(query="ID == '{ID}'", within=parameters, cols="sweepS"),
         h=lookup(query="ID == '{ID}'", within=parameters, cols="h"),
         Q=lookup(query="ID == '{ID}'", within=parameters, cols="Q"),
-        tau=lookup(query="ID == '{ID}'", within=parameters, cols="tau"),
+        ta=lookup(query="ID == '{ID}'", within=parameters, cols="ta"),
         kappa=lookup(query="ID == '{ID}'", within=parameters, cols="kappa"),
         r=lookup(query="ID == '{ID}'", within=parameters, cols="r"),
         K=lookup(query="ID == '{ID}'", within=parameters, cols="K"),
@@ -23,7 +22,7 @@ rule slim:
     shell:
         """
         # run simulation
-        slim -d ID={wildcards.ID} -d failmax={params.failmax} -d L={params.L} -d demog={params.custom_demography} -d Q={params.Q} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d mu=0 -d R={params.R} -d tau={params.tau} -d kappa={params.kappa} -d r={params.r} -d K={params.K} scripts/simulation_custom_demography_any_age.slim &> {log}
+        slim -d ID={wildcards.ID} -d failmax={params.failmax} -d L={params.L} -d demog={params.custom_demography} -d Q={params.Q} -d sweepS={params.sweepS} -d h={params.h} -d N={params.N} -d mu=0 -d R={params.R} -d tau={params.ta} -d kappa={params.kappa} -d r={params.r} -d K={params.K} scripts/simulation_custom_demography_any_age.slim
         """
 
 rule msprime:
@@ -38,9 +37,10 @@ rule msprime:
         mu=lookup(query="ID == '{ID}'", within=parameters, cols="mu"),
         R=lookup(query="ID == '{ID}'", within=parameters, cols="R"),
         N=lookup(query="ID == '{ID}'", within=parameters, cols="N"),
-        L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
+        L=config["L"],
+        #L=lookup(query="ID == '{ID}'", within=parameters, cols="L"),
         #n=lookup(query="ID == '{ID}'", within=parameters, cols="n"),
-        n=1000
+        n=500
     shell:
         """
         python scripts/burnin.py --mu {params.mu} -n {params.n} -N {params.N} -L {params.L} -R {params.R} --ID {wildcards.ID}
@@ -50,8 +50,8 @@ rule random_subset_individuals:
     group: "simulation"
     input: "msprime_results/{ID}.vcf"
     output: 
-        vcf="random_subset/{ID}_{n}.vcf",
-        subset="random_subset/{ID}_{n}.txt"
+        vcf=temp("random_subset/{ID}_{n}.vcf"),
+        subset=temp("random_subset/{ID}_{n}.txt")
     conda: "../envs/bcftools.yaml"
     shell:
         """
@@ -59,8 +59,24 @@ rule random_subset_individuals:
         bcftools view -S {output.subset} {input} > {output.vcf}
         """
 
-rule vcf_to_table:
+rule pi_windows:
     group: "simulation"
+    input: "random_subset/{ID}_{n}.vcf"
+    output: 
+        "vcftools_results/{ID}_{n}.windowed.pi",
+    conda: 
+        "../envs/vcftools.yaml"
+    params:
+        window=config["window"],
+        step=config["step"],
+        prefix="vcftools_results/{ID}_{n}"
+    shell:
+        """
+        vcftools --vcf {input} --window-pi {params.window} --window-pi-step {params.step} --out {params.prefix}
+        """
+
+rule vcf_to_table:
+    group: "plotting"
     input:
         "random_subset/{ID}_{n}.vcf"
     output:
@@ -75,7 +91,7 @@ rule vcf_to_table:
         """
 
 rule create_image:
-    group: "simulation"
+    group: "plotting"
     input:
         table="tables/{ID}_{n}.txt",
     output:
@@ -92,17 +108,16 @@ rule create_image:
         "Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {wildcards.n} {wildcards.m}"
 
 def get_focus(wildcards):
-    L = parameters.loc[parameters["ID"] == wildcards.ID, "L"]
-    return int(L.iloc[0]/2)
+    return int(config["L"]/2)
 
 rule sweep_stats:
-    group: "simulation"
+    group: "plotting"
     input:
         "random_subset/{ID}_{n}.vcf",
     output:
         "sweep_stats/{ID}_{n}_{m}.tsv",
     params:
-        prefix="sweep_stats/{ID}",
+        prefix="sweep_stats/{ID}_{n}_{m}",
         #nloc=lookup(query="ID == '{ID}'", within=parameters, cols="m"),
         focus=get_focus
     conda:

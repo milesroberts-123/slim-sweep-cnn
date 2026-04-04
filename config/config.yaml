@@ -6,17 +6,25 @@ K: 50000
 # maximum number of sweep failures to tolerate before giving up
 failmax: 10000
 
-L: 5e6
+# genome length
+L: 5000000
 
+# number of loci nearest to sweep to include
 m:
  - 51
  - 121
  - 241
 
+# number of individuals to sample
 n:
  - 51
  - 121
  - 241
+
+# windows for calculating diversity
+window: 25000
+
+step: 5000
 
 # Dimmension of images will be nidv*nloc*3
 # Number of individual genomes to sample
