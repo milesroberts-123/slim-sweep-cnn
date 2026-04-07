@@ -25,6 +25,7 @@ slim_params = "stratified_sample.tsv"
 weightFolderName = "data/weights"
 finalModelName = "best_cnn.h5"
 outcome_variable = "tf"
+tuner_epochs = 10
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -38,11 +39,6 @@ test_params = slim_params[slim_params["split"] == "test"].copy().reset_index()
 print(train_params)
 print(val_params)
 print(test_params)
-
-#print("Splitting response variable into training, validation, and testing...")
-#train_y = train_params["sweepS"]
-#val_y = val_params["sweepS"]
-#test_y = test_params["sweepS"]
 
 train_ids = list(train_params["ID"])
 val_ids = list(val_params["ID"])
@@ -72,45 +68,6 @@ test_params['tf'] = test_params['tf'].apply(np.log10)
 train_params['ta'] = train_params['ta'].apply(np.log10)
 val_params['ta'] = val_params['ta'].apply(np.log10)
 test_params['ta'] = test_params['ta'].apply(np.log10)
-
-# load fixation times
-#print("Loading fixation times...")
-#train_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in train_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
-#val_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in val_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
-#test_y = np.asarray([float(open("data/fix_times/fix_time_" + str(x) + ".txt").read()) for x in test_ids if os.path.exists("data/fix_times/fix_time_" + str(x) + ".txt")])
-
-# transform fixation times
-#train_y = np.log10(train_y)
-#val_y = np.log10(val_y)
-#test_y = np.log10(test_y)
-#print(train_y)
-#print(val_y)
-#print(test_y)
-
-# subset to only simulations which you have images for
-#print("Subsetting response variable to only finished simulations...")
-#train_y = np.asarray([train_y[(x-1)] for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-#val_y = np.asarray([val_y[(x-1)] for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-#test_y = np.asarray([test_y[(x-1)] for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-#train_y = np.asarray([slim_params.iloc[(x-1), 5] for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-#val_y = np.asarray([slim_params.iloc[(x-1), 5] for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-#test_y = np.asarray([slim_params.iloc[(x-1), 5] for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
-
-#print(train_y.shape)
-#print(val_y.shape)
-#print(test_y.shape)
-
-#print(train_y)
-#print(val_y)
-#print(test_y)
-
-#print("Converting response to binary outcome...")
-#train_y[np.where(train_y == 0.5)] = 1
-#val_y[np.where(val_y == 0.5)] = 1
-#test_y[np.where(test_y == 0.5)] = 1
-#train_y = (train_y == 0.5)
-#val_y = (val_y == 0.5)
-#test_y = (test_y == 0.5)
 
 # load tables to get position information from slim
 print("Loading position information...")
@@ -170,7 +127,7 @@ tuner.search_space_summary()
 
 # Seach hyperparameter space
 print("Starting search...")
-tuner.search((train_images, train_pos), train_params[outcome_variable], epochs=2, validation_data=((val_images, val_pos), val_params[outcome_variable]))
+tuner.search((train_images, train_pos), train_params[outcome_variable], epochs=tuner_epochs, validation_data=((val_images, val_pos), val_params[outcome_variable]))
 
 # Get the top 2 models.
 print("Extract best model...")
@@ -223,13 +180,8 @@ def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
         batch+=1
         # Checks if we are at the end of the dataframe
         if idx==len(dff):
-            # print("END OF THE DATAFRAME\n")
+            print("END OF THE DATAFRAME\n")
             idx = 0
-
-        #print(X1[0].shape)
-        #print(X1[1].shape)
-        #print(X2.shape)
-
         yield [X1[0], X2], X1[1]  #Yield both images, metadata and their mutual label
 
 print("Test custom generator...")
@@ -237,19 +189,8 @@ print("Test custom generator...")
 train_generator = createGenerator(train_params, train_pos, batch_size, "data/images/", "ID", outcome_variable)
 val_generator = createGenerator(val_params, val_pos, batch_size, "data/images/", "ID", outcome_variable)
 
-#train_generator = mydatagen.flow_from_dataframe(dataframe=train_params, directory="data/images/", 
-#                                              x_col="ID", y_col="tf", has_ext=True, 
-#                                              class_mode="other", target_size=(128, 128), 
-#                                              batch_size=batch_size)
-
-#val_generator = mydatagen.flow_from_dataframe(dataframe=val_params, directory="data/images/",
-#                                              x_col="ID", y_col="tf", has_ext=True,
-#                                              class_mode="other", target_size=(128, 128),
-#                                              batch_size=batch_size)
-
 # fit model
 print("Fitting model...")
-#history = model.fit((train_images, train_pos), train_y, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=((val_images, val_pos), val_y), callbacks=callbacks)
 history = model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=val_generator, callbacks=callbacks, steps_per_epoch = int(np.ceil(train_pos.shape[0] / batch_size)), validation_steps = int(np.ceil(val_pos.shape[0] / batch_size)))
 
 # evaluate total error in model
@@ -271,40 +212,7 @@ train_pred_mean = train_pred.mean(axis=0)
 train_pred_std = train_pred.std(axis=0)
 np.savetxt('train_predicted_vs_actual.txt', np.c_[train_ids, train_params[outcome_variable], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
-# test model
-#print("Testing model...")
-#val_pred = model.predict(val_images)
-#test_pred = model.predict(test_images)
-
-#print(val_y)
-#print(val_pred)
-
-#print(test_y)
-#print(test_pred)
-#print(keras.metrics.confusion_matrix(test_y, test_pred))
-
-# plot predictions against real values
-#plt.scatter(test_y, final_pred)
-#plt.xlabel("Real selection coefficient")
-#plt.ylabel("Predicted selection coefficient")
-#plt.plot([0,0.05], [0,0.05], color='k', linestyle='-', linewidth=2)
-#plt.savefig('test_real_vs_predictions.png')
-#plt.close()
-
-# plot training data predictions against real values
-#train_pred = model.predict(train_images)
-#plt.scatter(train_y, train_pred)
-#plt.xlabel("Real selection coefficient")
-#plt.ylabel("Predicted selection coefficient")
-#plt.plot([0,0.05], [0,0.05], color='k', linestyle='-', linewidth=2)
-#plt.savefig('train_real_vs_predictions.png')
-#plt.close()
-
 # save model
 print("Saving final model...")
 model.save(finalModelName)
-
-# save comparison of predictions vs actual
-print("Saving comparison of predicted vs actual values...")
-
 print("Done! :)")
