@@ -17,30 +17,20 @@ import keras_tuner
 #tf.debugging.set_log_device_placement(True)
 
 # define parameters
-#path = "data/images/"
-path = "images/"
+path = "data/images/"
 batch_size = 32
 epochs = 200
 patience = 20
-#slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-04-19/partitioned_parameters.tsv"
-weightFolderName = "weights"
-finalModelName = "best_cnn.h5"
+slim_params = "stratified_sample.tsv"
+weightFolderName = "data/weights"
+finalModelName = "best_cnn_with_stats.h5"
 outcome_variable = "tf"
-tuner_max_trials = 5
-tuner_epochs = 2
-n = 121
-m = 121
+tuner_epochs = 10
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
 slim_params = pd.read_table(slim_params)
 
-# subset to just one size
-print("Subsetting to one image size...")
-slim_params = slim_params[(slim_params["n"] == n) & (slim_params["m"] == m)]
-
-# partition data
 print("Splitting table into training, validation, and testing...")
 train_params = slim_params[slim_params["split"] == "train"].copy().reset_index()
 val_params = slim_params[slim_params["split"] == "val"].copy().reset_index()
@@ -55,9 +45,9 @@ val_ids = list(val_params["ID"])
 test_ids = list(test_params["ID"])
 
 print("Loading images and converting to RGB...")
-train_images = np.asarray([np.asarray(Image.open(path + str(x) + "_" + str(n) + "_" + str(m) + ".png").convert('RGB'))/255 for x in train_ids if os.path.exists(path + str(x) + "_" + str(n) + "_" + str(m) + ".png")])
-val_images = np.asarray([np.asarray(Image.open(path + str(x) + "_" + str(n) + "_" + str(m) + ".png").convert('RGB'))/255 for x in val_ids if os.path.exists(path + str(x) + "_" + str(n) + "_" + str(m) + ".png")])
-test_images = np.asarray([np.asarray(Image.open(path + str(x) + "_" + str(n) + "_" + str(m) + ".png").convert('RGB'))/255 for x in test_ids if os.path.exists(path + str(x) + "_" + str(n) + "_" + str(m) + ".png")])
+train_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in train_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+val_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in val_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
+test_images = np.asarray([np.asarray(Image.open(path + "slim_" + str(x) + ".png").convert('RGB'))/255 for x in test_ids if os.path.exists(path + "slim_" + str(x) + ".png")])
 
 print("Shapes of training, validation, and testing images:")
 print(train_images.shape)
@@ -68,8 +58,8 @@ print(test_images.shape)
 train_params['ID'] = train_params['ID'].astype(str)
 val_params['ID'] = val_params['ID'].astype(str)
 
-train_params['ID'] = train_params["ID"].replace(to_replace = r"$", value = "_" + str(n) + "_" + str(m) + ".png", regex = True)
-val_params['ID'] = val_params["ID"].replace(to_replace = r"$", value = "_" + str(n) + "_" + str(m) + ".png", regex = True)
+train_params['ID'] = train_params["ID"].replace(to_replace = r"$", value = ".png", regex = True).replace(to_replace = r"^", value = "slim_", regex = True)
+val_params['ID'] = val_params["ID"].replace(to_replace = r"$", value = ".png", regex = True).replace(to_replace = r"^", value = "slim_", regex = True)
 
 train_params['tf'] = train_params['tf'].apply(np.log10)
 val_params['tf'] = val_params['tf'].apply(np.log10)
@@ -81,9 +71,9 @@ test_params['ta'] = test_params['ta'].apply(np.log10)
 
 # load tables to get position information from slim
 print("Loading position information...")
-train_pos = np.asarray([np.asarray(pd.read_table("positions/" + str(x) + "_" + str(n) + "_" + str(m) + ".pos")) for x in train_ids if os.path.exists("positions/" + str(x) + "_" + str(n) + "_" + str(m) + ".pos")])
-val_pos = np.asarray([np.asarray(pd.read_table("positions/" + str(x) + "_" + str(n) + "_" + str(m) + ".pos")) for x in val_ids if os.path.exists("positions/" + str(x) + "_" + str(n) + "_" + str(m) + ".pos")])
-test_pos = np.asarray([np.asarray(pd.read_table("positions/" + str(x) + "_" + str(n) + "_" + str(m) + ".pos")) for x in test_ids if os.path.exists("positions/" + str(x) + "_" + str(n) + "_" + str(m) + ".pos")])
+train_pos = np.asarray([np.asarray(pd.read_table("data/positions/slim_" + str(x) + ".pos")) for x in train_ids if os.path.exists("data/positions/slim_" + str(x) + ".pos")])
+val_pos = np.asarray([np.asarray(pd.read_table("data/positions/slim_" + str(x) + ".pos")) for x in val_ids if os.path.exists("data/positions/slim_" + str(x) + ".pos")])
+test_pos = np.asarray([np.asarray(pd.read_table("data/positions/slim_" + str(x) + ".pos")) for x in test_ids if os.path.exists("data/positions/slim_" + str(x) + ".pos")])
 
 print(train_pos.shape)
 print(val_pos.shape)
@@ -93,8 +83,9 @@ print(test_pos.shape)
 # https://keras.io/guides/keras_tuner/getting_started/
 def build_model(hp):
   print("Creating model...")
-  input_A = keras.layers.Input(shape = [121,121,3], name = "images")
-  input_B = keras.layers.Input(shape = [121], name = "positions")
+  input_A = keras.layers.Input(shape = [128,128,3], name = "images")
+  input_B = keras.layers.Input(shape = [128], name = "positions")
+  input_C = keras.layers.Input(shape = [17], name = "sweep_stats")
   conv1 = keras.layers.Conv2D(filters = hp.Int("conv1-filters", min_value=16, max_value=128, step=16), kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
   pool1 = keras.layers.MaxPooling2D(2)(conv1)
   pool1 = keras.layers.Dropout(hp.Float(name = "pool1-dropout", min_value=0, max_value=0.99))(pool1)
@@ -109,11 +100,13 @@ def build_model(hp):
   dense_A = keras.layers.Dropout(hp.Float(name = "denseA-dropout", min_value=0, max_value=0.99))(dense_A)
   dense_B = keras.layers.Dense(units=hp.Int("denseB-units", min_value=32, max_value=512, step=32), activation = "relu")(input_B)
   dense_B = keras.layers.Dropout(hp.Float(name = "denseB-dropout", min_value=0, max_value=0.99))(dense_B)
-  concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
+  dense_C = keras.layers.Densee(units=hp.Int("denseC-units", min_value=32, max_value=512, step=32), activation = "relu")(input_C)
+  dense_C = keras.layers.Dropout(hp.Float(name = "denseC-dropout", min_value=0, max_value=0.99))(dense_C)
+  concat = keras.layers.concatenate(inputs = [dense_A, dense_B, dense_C])
   full = keras.layers.Dense(units=hp.Int("full-units", min_value=32, max_value=512, step=32), activation = "relu")(concat)
   full = keras.layers.Dropout(hp.Float(name = "full-dropout", min_value=0, max_value=0.99))(full)
   output = keras.layers.Dense(1, name = "output")(full)
-  model = keras.Model(inputs = [input_A, input_B], outputs = [output])
+  model = keras.Model(inputs = [input_A, input_B, input_C], outputs = [output])
 
   # compile model
   print("Compiling model...")
@@ -126,7 +119,7 @@ def build_model(hp):
 tuner = keras_tuner.BayesianOptimization(
     hypermodel=build_model,
     objective="val_mean_squared_error",
-    max_trials=tuner_max_trials,
+    max_trials=60,
     overwrite=True,
     directory="tuning_dir",
     project_name="slimcnn",
@@ -153,8 +146,7 @@ callbacks = [earlystop, checkpoint]
 
 # add image generator
 print("Creating image generators...")
-
-def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn, n, m):
+def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn):
     # create image generator
     mydatagen = ImageDataGenerator(rescale = 1./255, horizontal_flip = True, vertical_flip = True)
 
@@ -171,7 +163,7 @@ def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn, 
                                         batch_size=batch_size,
                                         shuffle=False,
                                         class_mode="other",
-                                        target_size=(n,m)
+                                        target_size=(128,128)
                                       )
     idx = 0
     n = len(dff) - batch_size
@@ -196,8 +188,8 @@ def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn, 
 
 print("Test custom generator...")
 
-train_generator = createGenerator(train_params, train_pos, batch_size, "images/", "ID", outcome_variable, n, m)
-val_generator = createGenerator(val_params, val_pos, batch_size, "images/", "ID", outcome_variable, n, m)
+train_generator = createGenerator(train_params, train_pos, batch_size, "data/images/", "ID", outcome_variable)
+val_generator = createGenerator(val_params, val_pos, batch_size, "data/images/", "ID", outcome_variable)
 
 # fit model
 print("Fitting model...")

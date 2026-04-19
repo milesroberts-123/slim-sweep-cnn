@@ -108,7 +108,7 @@ s4 4000000 late() {
 			// first generation that mutation fixed
 			if (fixTracker == 0){
 				catn(ID + ": " + sim.cycle + " - FIXED");
-				defineGlobal("fixTime", asInteger(sim.cycle) - asInteger(kappa));
+				defineGlobal("fixTime", asInteger(sim.cycle));
                                 defineGlobal("stopTime", fixTime + asInteger(tau/Q));
 				catn(ID + ": " + sim.cycle + " - START: " + kappa + " END: " + sim.cycle + " FIXATION TIME: " + fixTime + " SCALED FIXATION TIME: " + fixTime*Q);
 			}

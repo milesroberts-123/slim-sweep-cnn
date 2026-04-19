@@ -1,3 +1,5 @@
+**/tuning_dir
+**.json
 **.pi
 **.done
 **.trees
