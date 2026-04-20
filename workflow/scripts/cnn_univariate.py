@@ -21,14 +21,15 @@ import keras_tuner
 path = "images/"
 batch_size = 32
 epochs = 200
+#patience = 20
 patience = 20
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-04-19/partitioned_parameters.tsv"
+slim_params = "../results/2026-04-20/partitioned_parameters.tsv"
 weightFolderName = "weights"
 finalModelName = "best_cnn.h5"
 outcome_variable = "tf"
-tuner_max_trials = 5
-tuner_epochs = 2
+tuner_max_trials = 60
+tuner_epochs = 8
 n = 121
 m = 121
 
@@ -185,7 +186,7 @@ def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn, 
         X2 = np_arrays[idx:end]
         X2 = np.squeeze(X2)
         # Updates the idx for the next batch
-        print(", batch: ", batch, ", batch size: ", X1[0].shape[0], ", batch start: ", idx, ", batch end: ", end)
+        #print(", batch: ", batch, ", batch size: ", X1[0].shape[0], ", batch start: ", idx, ", batch end: ", end)
         idx = end
         batch+=1
         # Checks if we are at the end of the dataframe
