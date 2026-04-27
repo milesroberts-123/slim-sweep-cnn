@@ -50,7 +50,7 @@ rule random_subset_individuals:
     group: "simulation"
     input: "msprime_results/{ID}.vcf"
     output: 
-        vcf=temp("random_subset/{ID}_{n}.vcf"),
+        vcf="random_subset/{ID}_{n}.vcf",
         subset=temp("random_subset/{ID}_{n}.txt")
     conda: "../envs/bcftools.yaml"
     shell:
@@ -100,12 +100,13 @@ rule create_image:
     params:
         distMethod=config["distMethod"],
         clustMethod=config["clustMethod"],
+        L=config["L"],
         #nidv=lookup(query="ID == '{ID}'", within=parameters, cols="n"),
         #nloc=lookup(query="ID == '{ID}'", within=parameters, cols="m"),
     conda:
         "../envs/R.yml"
     shell:
-        "Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {wildcards.n} {wildcards.m}"
+        "Rscript scripts/create-images.R {input.table} {output.image} {output.pos} {params.distMethod} {params.clustMethod} {wildcards.n} {wildcards.m} {params.L}"
 
 def get_focus(wildcards):
     return int(config["L"]/2)

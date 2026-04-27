@@ -11,15 +11,15 @@ L: 5000000
 
 # number of loci nearest to sweep to include
 m:
- - 51
- - 121
- - 241
+ - 64
+ - 128
+ - 256
 
 # number of individuals to sample
 n:
- - 51
- - 121
- - 241
+ - 64
+ - 128
+ - 256
 
 # windows for calculating diversity
 window: 25000

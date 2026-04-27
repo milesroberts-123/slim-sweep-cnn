@@ -15,6 +15,7 @@ distMethod = args[4]
 clustMethod = args[5]
 nidv = as.numeric(args[6])
 nloc = as.numeric(args[7])
+genome_length = as.numeric(args[8])
 
 print(input)
 print(output_image)
@@ -23,6 +24,7 @@ print(distMethod)
 print(clustMethod)
 print(nidv)
 print(nloc)
+print(genome_length)
 
 # load simulation output
 print("Reading in table...")
@@ -38,7 +40,7 @@ if(varCount > nloc){
  
  # Find distance from center, where beneficial mutation was
  print("Distances from center of simulated region:")
- dist_from_center = abs(simvar$POS - 50001)
+ dist_from_center = abs(simvar$POS - genome_length/2)
  #print(dist_from_center)
  
  print("Set of variants closest to beneficial mutation:")

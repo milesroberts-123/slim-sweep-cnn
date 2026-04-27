@@ -24,14 +24,14 @@ epochs = 200
 #patience = 20
 patience = 20
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-04-20/partitioned_parameters.tsv"
+slim_params = "../results/2026-04-26/partitioned_parameters.tsv"
 weightFolderName = "weights"
 finalModelName = "best_cnn.h5"
 outcome_variable = "tf"
 tuner_max_trials = 60
 tuner_epochs = 8
-n = 121
-m = 121
+n = 128
+m = 128
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -94,8 +94,8 @@ print(test_pos.shape)
 # https://keras.io/guides/keras_tuner/getting_started/
 def build_model(hp):
   print("Creating model...")
-  input_A = keras.layers.Input(shape = [121,121,3], name = "images")
-  input_B = keras.layers.Input(shape = [121], name = "positions")
+  input_A = keras.layers.Input(shape = [128,128,3], name = "images")
+  input_B = keras.layers.Input(shape = [128], name = "positions")
   conv1 = keras.layers.Conv2D(filters = hp.Int("conv1-filters", min_value=16, max_value=128, step=16), kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
   pool1 = keras.layers.MaxPooling2D(2)(conv1)
   pool1 = keras.layers.Dropout(hp.Float(name = "pool1-dropout", min_value=0, max_value=0.99))(pool1)
