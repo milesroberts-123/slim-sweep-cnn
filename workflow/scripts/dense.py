@@ -17,19 +17,27 @@ import keras_tuner
 #tf.debugging.set_log_device_placement(True)
 
 # define parameters
-path = "data/images/"
+#path = "data/images/"
+path = "images/"
 batch_size = 32
 epochs = 200
 patience = 20
-tune_trials = 60
-slim_params = "stratified_sample.tsv"
-weightFolderName = "data/weights"
-finalModelName = "best_dense.h5"
-summary_stats = ["ID", "S", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"]
+tuner_max_trials = 60
+tuner_epochs = 8
+#slim_params = "stratified_sample.tsv"
+slim_params = "../results/2026-04-30/partitioned_parameters.tsv"
+weightFolderName = "weights_dnn"
+finalModelName = "best_dnn.h5"
+summary_stats = ["ID", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"]
+n = 128
+m = 128
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
 slim_params = pd.read_table(slim_params)
+
+print("Subsetting to one image size...")
+slim_params = slim_params[(slim_params["n"] == n) & (slim_params["m"] == m)]
 
 print("Splitting table into training, validation, and testing...")
 train_params = slim_params[slim_params["split"] == "train"].copy().reset_index()
@@ -115,7 +123,7 @@ print(test_stats.shape)
 # https://keras.io/guides/keras_tuner/getting_started/
 def build_model(hp):
   print("Creating model...")
-  input = keras.layers.Input(shape = [17], name = "summaries")
+  input = keras.layers.Input(shape = [16], name = "summaries")
   dense_A = keras.layers.Dense(units=hp.Int("denseA-units", min_value=16, max_value=512, step=8), activation = "relu")(input)
   dense_A = keras.layers.Dropout(hp.Float(name = "denseA-dropout", min_value=0, max_value=0.99))(dense_A)
   dense_B = keras.layers.Dense(units=hp.Int("denseB-units", min_value=16, max_value=512, step=8), activation = "relu")(dense_A)
@@ -137,9 +145,9 @@ def build_model(hp):
 tuner = keras_tuner.BayesianOptimization(
     hypermodel=build_model,
     objective="val_mean_squared_error",
-    max_trials=tune_trials,
+    max_trials=tuner_max_trials,
     overwrite=True,
-    directory="tuning_dir",
+    directory="tuning_dir_dnn",
     project_name="slimcnn",
 )
 
@@ -148,7 +156,7 @@ tuner.search_space_summary()
 
 # Seach hyperparameter space
 print("Starting search...")
-tuner.search(train_stats, train_output, epochs=2, validation_data=(val_stats, val_output))
+tuner.search(train_stats, train_output, epochs=tuner_epochs, validation_data=(val_stats, val_output))
 
 # Get the top 2 models.
 print("Extract best model...")

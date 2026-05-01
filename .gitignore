@@ -1,4 +1,5 @@
-**/tuning_dir
+**/tuning_dir*
+**/weights*
 **.json
 **.pi
 **.done

@@ -161,7 +161,7 @@ compare_predictions_truth_scatter = function(predictions, truth, model_labels, t
   theme(text = element_text(size = 16)) +
   labs(x = truthlab, 
        y = predlab,
-       title = paste(model_labels, "\nr = ", cor_est, ", n = " ,cor_n, ", RMSE = ", rmse, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, sep = ""),
+       title = paste(model_labels, "\nr = ", cor_est, ", n = " , cor_n, "\n95 % CI = [",  cor_lwb, ", ", cor_upb, "]" , "\np = ", cor_pvalue, ", RMSE = ", rmse, sep = ""),
        color = colorlab)
   
   return(p)
@@ -212,7 +212,7 @@ params = read.table(paste(input_path, "config/parameters.tsv", sep = ""), sep = 
 # 
 # params = merge(params, fix_times, by = "ID")
 
-tf <- read.table("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/2026-04-26/fixation_times.txt", sep = " ", header = T)
+tf <- read.table("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/2026-04-30/fixation_times.txt", sep = " ", header = T)
 
 tf <- tf[is.finite(tf$tf),]
 
@@ -230,7 +230,8 @@ params <- merge(params, tf, by = "ID")
 # 
 # sweep_stats = do.call("rbind", sweep_stats)
 #sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-04-20.txt", sep = ""))
-sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-04-26.txt", sep = ""))
+#sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-04-26.txt", sep = ""))
+sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-04-30.txt", sep = ""))
 
 colnames(sweep_stats) = c("file", "S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "zns", "omega", "hscan")
 
@@ -914,6 +915,7 @@ for(results_file in results_files){
 ```
 
 # diversity within vs outside the sweep
+
 ```{r}
 pi_windows <- read.table(paste(input_path, "workflow/vcftools_results/100_241.windowed.pi", sep = ""), sep = "\t", header = T)
 
@@ -963,16 +965,18 @@ ggplot(pi_windows, aes(x = (BIN_END + BIN_START)/2, y = PI)) +
 # get extent of sweep 
 ```
 
+
+
 # approximate bayesian computation
 
 ## tune abc hyperparameters
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
-i = 128
-j = 128
+i = 64
+j = 64
 
 #strat_sample = read.table(paste(my_path, "stratified_sample.tsv", sep = ""), header = T, sep = "\t")
-strat_sample = read.table(paste(input_path, "results/2026-04-26/partitioned_parameters.tsv", sep = ""), header = T, sep = "\t")
+strat_sample = read.table(paste(input_path, "results/2026-04-30/partitioned_parameters.tsv", sep = ""), header = T, sep = "\t")
 
 strat_sample <- strat_sample %>% filter((n == i) & (m == j))
 
@@ -1047,15 +1051,18 @@ best_abc = train_abc(train_sample, test_sample, "tf", summary_stats, 0.025, "rej
 
 plot_best_abc = compare_predictions_truth_scatter(log10(best_abc$pred_median), log10(best_abc$truth), "ABC, rej., Med., tol = 0.025", "log10(True tf)", "log10(Predicted tf)", log10(test_sample$ta),"log10\nsweep\nage")
 
-plot_best_cnn = compare_predictions_truth_scatter(test_pred_vs_act$tf_mean, test_pred_vs_act$tf, "CNN", "log10(True tf)", "log10(Predicted tf)", log10(test_sample$ta),"log10\nsweep\nage")
+plot_best_cnn = compare_predictions_truth_scatter(test_pred_vs_act$tf_mean, test_pred_vs_act$tf, "CNN", "log10(True tf)", "log10(Predicted tf)", log10(test_pred_vs_act$ta),"log10\nsweep\nage")
 
-plot_best_dnn = compare_predictions_truth_scatter(test_pred_vs_act_dense$tf_mean, test_pred_vs_act_dense$tf, "DNN, test set", "log10(True tf)", "log10(Predicted tf)", log10(test_sample$ta), "log10\nsweep\nage")
+plot_best_dnn = compare_predictions_truth_scatter(test_pred_vs_act_dense$tf_mean, test_pred_vs_act_dense$tf, "DNN", "log10(True tf)", "log10(Predicted tf)", log10(test_pred_vs_act_dense$ta), "log10\nsweep\nage")
 
-#ggarrange(plot_best_cnn, plot_best_dnn, plot_best_abc, nrow = 1, ncol = 3, labels = c("A", "B", "C"), common.legend = T, legend = "right", font.label = list(size = 16))
+plot_best_cnndnn = compare_predictions_truth_scatter(test_pred_vs_act_cnndnn$tf_mean, test_pred_vs_act_cnndnn$tf, "CNN+DNN", "log10(True tf)", "log10(Predicted tf)", log10(test_pred_vs_act_cnndnn$ta), "log10\nsweep\nage")
 
-ggarrange(plot_best_cnn, plot_best_abc, nrow = 1, ncol = 2, labels = c("A", "B"), common.legend = T, legend = "right", font.label = list(size = 16))
+ggarrange(plot_best_abc, plot_best_dnn, plot_best_cnn, plot_best_cnndnn, nrow = 2, ncol = 2, labels = c("A", "B", "C", "D"), common.legend = T, legend = "right", font.label = list(size = 16))
 
-ggsave(paste(output_path, "best_models_", today, ".png", sep = ""), height = 5, width = 14, dpi = 600)
+#ggarrange(plot_best_cnn, plot_best_abc, nrow = 1, ncol = 2, labels = c("A", "B"), common.legend = T, legend = "right", font.label = list(size = 16))
+
+ggsave(paste(output_path, "best_models_", today, ".png", sep = ""), height = 11, width = 11, dpi = 600)
+ggsave(paste(output_path, "best_models_", today, ".pdf", sep = ""), height = 11, width = 11)
 ```
 
 ## DEPRECATED: cross-fold validation to choose a model
@@ -1400,6 +1407,27 @@ compare_predictions_truth(log10(strat_sample_abc$abc_est), log10(strat_sample_ab
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/abc_test_actual-vs-predicted_scatter_", today, ".png", sep = ""), height = 7, width = 7)
 ```
 
+# linear model of diversity vs tf
+```{r}
+
+tf_lm_mod <- lm(log10(tf) ~ log10(pi), data = rbind(train_sample, val_sample))
+
+plot(tf_lm_mod)
+
+ggplot(train_sample, aes(x = pi, y = tf)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_x_log10() +
+  scale_y_log10()
+
+#
+lm_pred <- as.data.frame(predict(tf_lm_mod, newdata = test_sample, interval = "prediction"))
+
+compare_predictions_truth_scatter(predictions = lm_pred$fit, log10(test_sample$tf), "LM, log10(tf) ~ log10(\u03C0)", "True log10(tf)", "Estimated log10(tf)", log10(test_sample$ta), "log10\nsweep\nage")
+
+ggsave(paste("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/", today, "/lm_pi_only", today, ".png", sep = ""), height = 7, width = 7, dpi = 600)
+```
+
 # Machine learning
 
 ## compare predictions to actual values on testing dataset
@@ -1579,7 +1607,8 @@ train_pred_vs_act_dense = read.table(paste(my_path,"workflow/train_predicted_vs_
 
 val_pred_vs_act_dense = read.table(paste(my_path,"workflow/val_predicted_vs_actual_dense.txt", sep = ""))
 
-test_pred_vs_act_dense = read.table(paste(my_path,"test_predicted_vs_actual_dense.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
+#test_pred_vs_act_dense = read.table(paste(my_path,"test_predicted_vs_actual_dense.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
+test_pred_vs_act_dense = read.table(paste(input_path,"workflow/test_predicted_vs_actual_dense.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
 
 # Add in sweep age
 test_pred_vs_act_dense = merge(params[,c("ID", "ta")], test_pred_vs_act_dense, by = "ID")
@@ -1602,6 +1631,14 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 compare_predictions_truth_scatter(test_pred_vs_act_dense$tf_mean, test_pred_vs_act_dense$tf, "Neural Net, test set", "log10(True tf)", "log10(Predicted tf)", log10(test_pred_vs_act_dense$ta), "Sweep age")
 
 ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/test_actual-vs-predicted_scatter_denseNet_", today, ".png", sep = ""), height = 7, width = 7)
+```
+## cnn combined with dnn
+
+```{r}
+test_pred_vs_act_cnndnn = read.table(paste(input_path,"workflow/test_predicted_vs_actual_cnndnn.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
+
+test_pred_vs_act_cnndnn = merge(params[,c("ID", "ta")], test_pred_vs_act_cnndnn, by = "ID")
+
 ```
 
 # Final figures

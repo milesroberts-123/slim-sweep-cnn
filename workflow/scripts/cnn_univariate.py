@@ -13,7 +13,8 @@ import scipy
 import keras_tuner
 
 # Check if GPUs are available
-#print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+print("Built with CUDA:", tf.test.is_built_with_cuda())
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 #tf.debugging.set_log_device_placement(True)
 
 # define parameters
@@ -24,8 +25,8 @@ epochs = 200
 #patience = 20
 patience = 20
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-04-26/partitioned_parameters.tsv"
-weightFolderName = "weights"
+slim_params = "../results/2026-04-30/partitioned_parameters.tsv"
+weightFolderName = "weights_cnn"
 finalModelName = "best_cnn.h5"
 outcome_variable = "tf"
 tuner_max_trials = 60
@@ -129,7 +130,7 @@ tuner = keras_tuner.BayesianOptimization(
     objective="val_mean_squared_error",
     max_trials=tuner_max_trials,
     overwrite=True,
-    directory="tuning_dir",
+    directory="tuning_dir_cnn",
     project_name="slimcnn",
 )
 
