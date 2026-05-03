@@ -972,8 +972,8 @@ ggplot(pi_windows, aes(x = (BIN_END + BIN_START)/2, y = PI)) +
 ## tune abc hyperparameters
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
-i = 64
-j = 64
+i = 128
+j = 128
 
 #strat_sample = read.table(paste(my_path, "stratified_sample.tsv", sep = ""), header = T, sep = "\t")
 strat_sample = read.table(paste(input_path, "results/2026-04-30/partitioned_parameters.tsv", sep = ""), header = T, sep = "\t")
@@ -1444,7 +1444,7 @@ train_pred_vs_act = merge(unique(params[,c("ID", "ta")]), train_pred_vs_act, by 
 
 val_pred_vs_act = merge(unique(params[,c("ID", "ta")]), val_pred_vs_act, by = "ID")
 
-test_pred_vs_act = merge(unique(params[,c("ID", "ta")]), test_pred_vs_act, by = "ID")
+test_pred_vs_act = merge(unique(strat_sample[,c("ID", "ta")]), test_pred_vs_act, by = "ID")
 
 # subset data to remove outliers
 #pred_vs_act = pred_vs_act[(pred_vs_act$V1 <= 5000),]
@@ -1611,7 +1611,7 @@ val_pred_vs_act_dense = read.table(paste(my_path,"workflow/val_predicted_vs_actu
 test_pred_vs_act_dense = read.table(paste(input_path,"workflow/test_predicted_vs_actual_dense.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
 
 # Add in sweep age
-test_pred_vs_act_dense = merge(params[,c("ID", "ta")], test_pred_vs_act_dense, by = "ID")
+test_pred_vs_act_dense = merge(strat_sample[,c("ID", "ta")], test_pred_vs_act_dense, by = "ID")
 
 ## Distribution of fixation times
 test_pred_vs_act_dense_melt = melt(as.data.table(test_pred_vs_act_dense), id = c("V1", "V4"))
@@ -1637,7 +1637,7 @@ ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/r
 ```{r}
 test_pred_vs_act_cnndnn = read.table(paste(input_path,"workflow/test_predicted_vs_actual_cnndnn.txt", sep = ""), col.names = c("ID", "tf", "tf_mean", "tf_std"))
 
-test_pred_vs_act_cnndnn = merge(params[,c("ID", "ta")], test_pred_vs_act_cnndnn, by = "ID")
+test_pred_vs_act_cnndnn = merge(strat_sample[,c("ID", "ta")], test_pred_vs_act_cnndnn, by = "ID")
 
 ```
 
