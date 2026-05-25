@@ -41,4 +41,4 @@ clustMethod: "complete"
 
 # demographic pattern if using logistic demography
 # options: constant, growth, decay, cycle, chaos, custom
-demography: "constant"
+demography: "decay"

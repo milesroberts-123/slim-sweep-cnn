@@ -25,12 +25,14 @@ patience = 20
 tuner_max_trials = 60
 tuner_epochs = 8
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-04-30/partitioned_parameters.tsv"
+slim_params = "../results/2026-05-14/partitioned_parameters.tsv"
 weightFolderName = "weights_dnn"
-finalModelName = "best_dnn.h5"
+#finalModelName = "best_dnn.h5"
 summary_stats = ["ID", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"]
-n = 128
-m = 128
+n = 256
+m = 256
+
+finalModelName='best_dnn' + '_' + str(n) + '_' + str(m) + '.h5'
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -146,9 +148,9 @@ tuner = keras_tuner.BayesianOptimization(
     hypermodel=build_model,
     objective="val_mean_squared_error",
     max_trials=tuner_max_trials,
-    overwrite=True,
-    directory="tuning_dir_dnn",
-    project_name="slimcnn",
+    overwrite=False,
+    directory="tuning_dir_dnn_" + str(n) + '_' + str(m),
+    project_name="slimdnn",
 )
 
 # print summary of search space
@@ -179,19 +181,19 @@ print("Evaluating model on testing data...")
 test_pred = np.stack([model(test_stats, training = True) for sample in range(100)])
 test_pred_mean = test_pred.mean(axis=0)
 test_pred_std = test_pred.std(axis=0)
-np.savetxt('test_predicted_vs_actual_dense.txt', np.c_[test_ids, test_output, test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std", fmt="%s")
+np.savetxt('test_predicted_vs_actual_dense' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[test_ids, test_output, test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std", fmt="%s")
 
 print("Evaluating model on validation data...")
 val_pred = np.stack([model(val_stats, training = True) for sample in range(100)])
 val_pred_mean = val_pred.mean(axis=0)
 val_pred_std = val_pred.std(axis=0)
-np.savetxt('val_predicted_vs_actual_dense.txt', np.c_[val_ids, val_output, val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std", fmt="%s")
+np.savetxt('val_predicted_vs_actual_dense' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[val_ids, val_output, val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std", fmt="%s")
 
 print("Evaluating model on training data...")
 train_pred = np.stack([model(train_stats, training = True) for sample in range(100)])
 train_pred_mean = train_pred.mean(axis=0)
 train_pred_std = train_pred.std(axis=0)
-np.savetxt('train_predicted_vs_actual_dense.txt', np.c_[train_ids, train_output, train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std", fmt="%s")
+np.savetxt('train_predicted_vs_actual_dense' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[train_ids, train_output, train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std", fmt="%s")
 
 # save model
 print("Saving final model...")

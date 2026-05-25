@@ -24,16 +24,18 @@ epochs = 200
 #epochs = 5
 patience = 20
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-04-30/partitioned_parameters.tsv"
+slim_params = "../results/2026-05-14/partitioned_parameters.tsv"
 weightFolderName = "weights_cnndnn"
-finalModelName = "best_cnndnn.h5"
+#finalModelName = "best_cnndnn.h5"
 outcome_variable = "tf"
 tuner_max_trials = 60
 #tuner_max_trials = 1
 tuner_epochs = 8
-n = 128
-m = 128
+n = 256
+m = 256
 summary_stats = ["pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"]
+
+finalModelName = "best_cnndnn_" + str(n) + "_" + str(m) + ".h5"
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -117,10 +119,10 @@ print(test_stats.shape)
 
 # Create model with functional API
 # https://keras.io/guides/keras_tuner/getting_started/
-def build_model(hp):
+def build_model(hp, n, m):
   print("Creating model...")
-  input_A = keras.layers.Input(shape = [128,128,3], name = "images")
-  input_B = keras.layers.Input(shape = [128], name = "positions")
+  input_A = keras.layers.Input(shape = [n,m,3], name = "images")
+  input_B = keras.layers.Input(shape = [m], name = "positions")
   input_C = keras.layers.Input(shape = [16], name = "sweep_stats")
   conv1 = keras.layers.Conv2D(filters = hp.Int("conv1-filters", min_value=16, max_value=128, step=16), kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
   pool1 = keras.layers.MaxPooling2D(2)(conv1)
@@ -157,12 +159,12 @@ def build_model(hp):
 
 # build hyperparameter tuner
 tuner = keras_tuner.BayesianOptimization(
-    hypermodel=build_model,
+    hypermodel=lambda hp: build_model(hp, n=n, m=m),
     objective="val_mean_squared_error",
     max_trials=tuner_max_trials,
-    overwrite=True,
-    directory="tuning_dir_cnndnn",
-    project_name="slimcnn",
+    overwrite=False,
+    directory="tuning_dir_cnndnn_" + str(n) + "_" + str(m),
+    project_name="slimcnndnn",
 )
 
 # print summary of search space
@@ -243,19 +245,19 @@ print("Evaluating model on testing data...")
 test_pred = np.stack([model((test_images, test_pos, test_stats), training = True) for sample in range(100)])
 test_pred_mean = test_pred.mean(axis=0)
 test_pred_std = test_pred.std(axis=0)
-np.savetxt('test_predicted_vs_actual_cnndnn.txt', np.c_[test_ids, test_params[outcome_variable], test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('test_predicted_vs_actual_cnndnn' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[test_ids, test_params[outcome_variable], test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 print("Evaluating model on validation data...")
 val_pred = np.stack([model((val_images, val_pos, val_stats), training = True) for sample in range(100)])
 val_pred_mean = val_pred.mean(axis=0)
 val_pred_std = val_pred.std(axis=0)
-np.savetxt('val_predicted_vs_actual_cnndnn.txt', np.c_[val_ids, val_params[outcome_variable], val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('val_predicted_vs_actual_cnndnn' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[val_ids, val_params[outcome_variable], val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 print("Evaluating model on training data...")
 train_pred = np.stack([model((train_images, train_pos, train_stats), training = True) for sample in range(100)])
 train_pred_mean = train_pred.mean(axis=0)
 train_pred_std = train_pred.std(axis=0)
-np.savetxt('train_predicted_vs_actual_cnndnn.txt', np.c_[train_ids, train_params[outcome_variable], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('train_predicted_vs_actual_cnndnn' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[train_ids, train_params[outcome_variable], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 # save model
 print("Saving final model...")
