@@ -31,7 +31,7 @@ finalModelName = "best_cnn.h5"
 outcome_variable = "tf"
 tuner_max_trials = 60
 tuner_epochs = 8
-n = 256
+n = 128
 m = 256
 
 # split data into training, testing, and validation
@@ -130,7 +130,7 @@ tuner = keras_tuner.BayesianOptimization(
     objective="val_mean_squared_error",
     max_trials=tuner_max_trials,
     overwrite=False,
-    directory="tuning_dir_cnn",
+    directory="tuning_dir_cnn_" + str(n) + str(m),
     project_name="slimcnn"
 )
 
@@ -205,6 +205,10 @@ val_generator = createGenerator(val_params, val_pos, batch_size, "images/", "ID"
 print("Fitting model...")
 history = model.fit(train_generator, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=val_generator, callbacks=callbacks, steps_per_epoch = int(np.ceil(train_pos.shape[0] / batch_size)), validation_steps = int(np.ceil(val_pos.shape[0] / batch_size)))
 
+# save model
+print("Saving final model...")
+model.save(finalModelName)
+
 # evaluate total error in model
 print("Evaluating model on testing data...")
 test_pred = np.stack([model((test_images, test_pos), training = True) for sample in range(100)])
@@ -224,7 +228,4 @@ train_pred_mean = train_pred.mean(axis=0)
 train_pred_std = train_pred.std(axis=0)
 np.savetxt('train_predicted_vs_actual_cnn' + "_" + str(n) + "_" + str(m) + '.txt', np.c_[train_ids, train_params[outcome_variable], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
-# save model
-print("Saving final model...")
-model.save(finalModelName)
-print("Done! :)")
+print("Done! :D")

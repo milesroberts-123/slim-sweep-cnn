@@ -213,7 +213,8 @@ params = read.table(paste(input_path, "config/parameters.tsv", sep = ""), sep = 
 # 
 # params = merge(params, fix_times, by = "ID")
 
-tf <- read.table("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/2026-05-13/fixation_times.txt", sep = " ", header = T)
+#tf <- read.table("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/2026-05-13/fixation_times.txt", sep = " ", header = T)
+tf <- read.table("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/2026-06-16/fixation_times.txt", sep = " ", header = T)
 
 tf <- tf[is.finite(tf$tf),]
 
@@ -233,7 +234,9 @@ params <- merge(params, tf, by = "ID")
 #sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-04-20.txt", sep = ""))
 #sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-04-26.txt", sep = ""))
 #sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-04-30.txt", sep = ""))
-sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-05-14.txt", sep = ""))
+#sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_2026-05-14.txt", sep = ""))
+sweep_stats <- fread(paste(input_path, "workflow/sweep_stats_chaos_2026-06-07.txt", sep = ""))
+
 
 colnames(sweep_stats) = c("file", "S", "pi", "thetaw", "tajd", "tajd_var", "tajd_incomplete", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "zns", "omega", "hscan")
 
@@ -983,7 +986,8 @@ i = 128
 j = 128
 
 #strat_sample = read.table(paste(my_path, "stratified_sample.tsv", sep = ""), header = T, sep = "\t")
-strat_sample = read.table(paste(input_path, "results/2026-04-30/partitioned_parameters.tsv", sep = ""), header = T, sep = "\t")
+#strat_sample = read.table(paste(input_path, "results/2026-04-30/partitioned_parameters.tsv", sep = ""), header = T, sep = "\t")
+strat_sample = read.table(paste(input_path, "results/2026-05-14/partitioned_parameters.tsv", sep = ""), header = T, sep = "\t")
 
 strat_sample <- strat_sample %>% filter((n == i) & (m == j))
 
