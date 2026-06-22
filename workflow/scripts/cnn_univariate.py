@@ -25,14 +25,16 @@ epochs = 200
 #patience = 20
 patience = 20
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-05-14/partitioned_parameters.tsv"
+slim_params = "../results/2026-06-16/partitioned_parameters.tsv"
 weightFolderName = "weights_cnn"
 finalModelName = "best_cnn.h5"
 outcome_variable = "tf"
 tuner_max_trials = 60
 tuner_epochs = 8
 n = 128
-m = 256
+m = 128
+
+finalModelName = "best_cnn_" + str(n) + "_" + str(m) + ".h5"
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")

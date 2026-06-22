@@ -25,12 +25,12 @@ patience = 20
 tuner_max_trials = 60
 tuner_epochs = 8
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-05-14/partitioned_parameters.tsv"
+slim_params = "../results/2026-06-16/partitioned_parameters.tsv"
 weightFolderName = "weights_dnn"
 #finalModelName = "best_dnn.h5"
 summary_stats = ["ID", "pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"]
 n = 128
-m = 256
+m = 128
 
 finalModelName='best_dnn' + '_' + str(n) + '_' + str(m) + '.h5'
 
