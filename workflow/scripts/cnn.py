@@ -13,7 +13,8 @@ import scipy
 import keras_tuner
 
 # Check if GPUs are available
-#print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+print("Built with CUDA:", tf.test.is_built_with_cuda())
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 #tf.debugging.set_log_device_placement(True)
 
 # define parameters
@@ -21,21 +22,20 @@ import keras_tuner
 path = "images/"
 batch_size = 32
 epochs = 200
-#epochs = 5
+#patience = 20
 patience = 20
 #slim_params = "stratified_sample.tsv"
-slim_params = "../results/2026-06-16/partitioned_parameters.tsv"
-weightFolderName = "weights_cnndnn"
-#finalModelName = "best_cnndnn.h5"
+#slim_params = "../results/2026-06-16/partitioned_parameters.tsv"
+#slim_params="../results/manuscript/revision_1/constant/partitioned_parameters.tsv"
+slim_params = "../results/manuscript/revision_1/cycle/partitioned_parameters.tsv"
+weightFolderName = "weights_cnn"
 outcome_variable = "tf"
 tuner_max_trials = 60
-#tuner_max_trials = 1
 tuner_epochs = 8
 n = 128
 m = 256
-summary_stats = ["pi", "thetaw", "tajd", "tajd_var", "num_haplos", "h1", "h2", "h12", "h123", "h2h1", "gkl_var", "gkl_skew", "gkl_kurt", "hscan", "zns", "omega"]
 
-finalModelName = "best_cnndnn_" + str(n) + "_" + str(m) + ".h5"
+finalModelName = "best_cnn_" + str(n) + "_" + str(m) + ".h5"
 
 # split data into training, testing, and validation
 print("Reading table of parameters...")
@@ -45,6 +45,7 @@ slim_params = pd.read_table(slim_params)
 print("Subsetting to one image size...")
 slim_params = slim_params[(slim_params["n"] == n) & (slim_params["m"] == m)]
 
+# partition data
 print("Splitting table into training, validation, and testing...")
 train_params = slim_params[slim_params["split"] == "train"].copy().reset_index()
 val_params = slim_params[slim_params["split"] == "val"].copy().reset_index()
@@ -93,38 +94,13 @@ print(train_pos.shape)
 print(val_pos.shape)
 print(test_pos.shape)
 
-# subset out features
-train_stats = train_params[summary_stats]
-val_stats = val_params[summary_stats]
-test_stats = test_params[summary_stats]
-
-print("Convert dataframes to numpy arrays...")
-train_stats = train_stats.to_numpy()
-val_stats = val_stats.to_numpy()
-test_stats = test_stats.to_numpy()
-
-# drop rows with nan values
-print("Drop nan rows...")
-print(train_stats.shape)
-print(val_stats.shape)
-print(test_stats.shape)
-
-#train_stats = train_stats.dropna()
-#val_stats = val_stats.dropna()
-#test_stats = test_stats.dropna()
-
-#print(train_stats.shape)
-#print(val_stats.shape)
-#print(test_stats.shape)
-
 # Create model with functional API
 # https://keras.io/guides/keras_tuner/getting_started/
 def build_model(hp, n, m):
   print("Creating model...")
   input_A = keras.layers.Input(shape = [n,m,3], name = "images")
   input_B = keras.layers.Input(shape = [m], name = "positions")
-  input_C = keras.layers.Input(shape = [16], name = "sweep_stats")
-  conv1 = keras.layers.Conv2D(filters = hp.Int("conv1-filters", min_value=16, max_value=128, step=16), kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [128,128,3])(input_A)
+  conv1 = keras.layers.Conv2D(filters = hp.Int("conv1-filters", min_value=16, max_value=128, step=16), kernel_size = 7, strides = 2, padding = "same", activation = "relu", input_shape = [n,m,3])(input_A)
   pool1 = keras.layers.MaxPooling2D(2)(conv1)
   pool1 = keras.layers.Dropout(hp.Float(name = "pool1-dropout", min_value=0, max_value=0.99))(pool1)
   conv2 = keras.layers.Conv2D(filters = hp.Int("conv2-filters", min_value=16, max_value=128, step=16), kernel_size = 3, strides = 1, padding = "same", activation = "relu")(pool1)
@@ -138,17 +114,11 @@ def build_model(hp, n, m):
   dense_A = keras.layers.Dropout(hp.Float(name = "denseA-dropout", min_value=0, max_value=0.99))(dense_A)
   dense_B = keras.layers.Dense(units=hp.Int("denseB-units", min_value=32, max_value=512, step=32), activation = "relu")(input_B)
   dense_B = keras.layers.Dropout(hp.Float(name = "denseB-dropout", min_value=0, max_value=0.99))(dense_B)
-  dense_C_1 = keras.layers.Dense(units=hp.Int("denseC-1-units", min_value=16, max_value=512, step=8), activation = "relu")(input_C)
-  dense_C_1 = keras.layers.Dropout(hp.Float(name = "denseC-1-dropout", min_value=0, max_value=0.99))(dense_C_1)
-  dense_C_2 = keras.layers.Dense(units=hp.Int("denseC-2-units", min_value=16, max_value=512, step=8), activation = "relu")(dense_C_1)
-  dense_C_2 = keras.layers.Dropout(hp.Float(name = "denseC-2-dropout", min_value=0, max_value=0.99))(dense_C_2)
-  dense_C_3 = keras.layers.Dense(units=hp.Int("denseC-3-units", min_value=16, max_value=512, step=8), activation = "relu")(dense_C_2)
-  dense_C_3 = keras.layers.Dropout(hp.Float(name = "denseC-3-dropout", min_value=0, max_value=0.99))(dense_C_3)
-  concat = keras.layers.concatenate(inputs = [dense_A, dense_B, dense_C_3])
+  concat = keras.layers.concatenate(inputs = [dense_A, dense_B])
   full = keras.layers.Dense(units=hp.Int("full-units", min_value=32, max_value=512, step=32), activation = "relu")(concat)
   full = keras.layers.Dropout(hp.Float(name = "full-dropout", min_value=0, max_value=0.99))(full)
   output = keras.layers.Dense(1, name = "output")(full)
-  model = keras.Model(inputs = [input_A, input_B, input_C], outputs = [output])
+  model = keras.Model(inputs = [input_A, input_B], outputs = [output])
 
   # compile model
   print("Compiling model...")
@@ -163,8 +133,8 @@ tuner = keras_tuner.BayesianOptimization(
     objective="val_mean_squared_error",
     max_trials=tuner_max_trials,
     overwrite=False,
-    directory="tuning_dir_cnndnn_" + str(n) + "_" + str(m),
-    project_name="slimcnndnn",
+    directory="tuning_dir_cnn_" + str(n) + "_" + str(m),
+    project_name="slimcnn"
 )
 
 # print summary of search space
@@ -172,7 +142,7 @@ tuner.search_space_summary()
 
 # Seach hyperparameter space
 print("Starting search...")
-tuner.search((train_images, train_pos, train_stats), train_params[outcome_variable], epochs=tuner_epochs, validation_data=((val_images, val_pos, val_stats), val_params[outcome_variable]))
+tuner.search((train_images, train_pos), train_params[outcome_variable], epochs=tuner_epochs, validation_data=((val_images, val_pos), val_params[outcome_variable]))
 
 # Get the top 2 models.
 print("Extract best model...")
@@ -188,14 +158,14 @@ callbacks = [earlystop, checkpoint]
 
 # add image generator
 print("Creating image generators...")
-def createGenerator(dff, np_arrays, np_arrays2, batch_size, my_directory, xcolumn, ycolumn, n, m):
+
+def createGenerator(dff, np_arrays, batch_size, my_directory, xcolumn, ycolumn, n, m):
     # create image generator
     mydatagen = ImageDataGenerator(rescale = 1./255, horizontal_flip = True, vertical_flip = True)
 
     # Shuffles the dataframe, and so the batches as well
     dff = dff.sample(frac=1)
     np_arrays = np_arrays[dff.index]
-    np_arrays2 = np_arrays2[dff.index]
 
     # Shuffle=False is EXTREMELY important to keep order of image and coord
     flow = mydatagen.flow_from_dataframe(
@@ -219,9 +189,6 @@ def createGenerator(dff, np_arrays, np_arrays2, batch_size, my_directory, xcolum
         # get next batch of lines from df
         X2 = np_arrays[idx:end]
         X2 = np.squeeze(X2)
-
-        X3 = np_arrays2[idx:end]
-        X3 = np.squeeze(X3)
         # Updates the idx for the next batch
         #print(", batch: ", batch, ", batch size: ", X1[0].shape[0], ", batch start: ", idx, ", batch end: ", end)
         idx = end
@@ -230,11 +197,12 @@ def createGenerator(dff, np_arrays, np_arrays2, batch_size, my_directory, xcolum
         if idx==len(dff):
             print("END OF THE DATAFRAME\n")
             idx = 0
-        yield [X1[0], X2, X3], X1[1]  #Yield both images, metadata and their mutual label
+        yield [X1[0], X2], X1[1]  #Yield both images, metadata and their mutual label
 
 print("Test custom generator...")
-train_generator = createGenerator(train_params, train_pos, train_stats, batch_size, "images/", "ID", outcome_variable, n, m)
-val_generator = createGenerator(val_params, val_pos, val_stats, batch_size, "images/", "ID", outcome_variable, n, m)
+
+train_generator = createGenerator(train_params, train_pos, batch_size, "images/", "ID", outcome_variable, n, m)
+val_generator = createGenerator(val_params, val_pos, batch_size, "images/", "ID", outcome_variable, n, m)
 
 # fit model
 print("Fitting model...")
@@ -246,21 +214,21 @@ model.save(finalModelName)
 
 # evaluate total error in model
 print("Evaluating model on testing data...")
-test_pred = np.stack([model((test_images, test_pos, test_stats), training = True) for sample in range(100)])
+test_pred = np.stack([model((test_images, test_pos), training = True) for sample in range(100)])
 test_pred_mean = test_pred.mean(axis=0)
 test_pred_std = test_pred.std(axis=0)
-np.savetxt('test_predicted_vs_actual_cnndnn' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[test_ids, test_params[outcome_variable], test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('test_predicted_vs_actual_cnn' + "_" + str(n) + "_" + str(m) + '.txt', np.c_[test_ids, test_params[outcome_variable], test_pred_mean, test_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 print("Evaluating model on validation data...")
-val_pred = np.stack([model((val_images, val_pos, val_stats), training = True) for sample in range(100)])
+val_pred = np.stack([model((val_images, val_pos), training = True) for sample in range(100)])
 val_pred_mean = val_pred.mean(axis=0)
 val_pred_std = val_pred.std(axis=0)
-np.savetxt('val_predicted_vs_actual_cnndnn' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[val_ids, val_params[outcome_variable], val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('val_predicted_vs_actual_cnn' + "_" + str(n) + "_" + str(m) + '.txt', np.c_[val_ids, val_params[outcome_variable], val_pred_mean, val_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
 print("Evaluating model on training data...")
-train_pred = np.stack([model((train_images, train_pos, train_stats), training = True) for sample in range(100)])
+train_pred = np.stack([model((train_images, train_pos), training = True) for sample in range(100)])
 train_pred_mean = train_pred.mean(axis=0)
 train_pred_std = train_pred.std(axis=0)
-np.savetxt('train_predicted_vs_actual_cnndnn' + '_' + str(n) + '_' + str(m) + '.txt', np.c_[train_ids, train_params[outcome_variable], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
+np.savetxt('train_predicted_vs_actual_cnn' + "_" + str(n) + "_" + str(m) + '.txt', np.c_[train_ids, train_params[outcome_variable], train_pred_mean, train_pred_std], header = "ID true_tf pred_tf_mean pred_tf_std")
 
-print("Done! :)")
+print("Done! :D")
