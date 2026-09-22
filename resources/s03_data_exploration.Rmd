@@ -1108,6 +1108,12 @@ ggsave(paste(output_path, "best_models_", target_n, "_", target_m, "_", target_d
 # Batch 2: Model prediction error
 
 ```{r}
+# all simulation parameters
+all_params <- list.files(path = "/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/manuscript/revision_1", pattern = "partition", full.names = T, recursive = T)
+
+all_params <- read_tsv(all_params, id = "source_file")
+
+all_params$demography <- gsub(".*revision_1/|/partitioned_parameters.tsv", "", all_params$source_file)
 
 # keras models
 all_test_keras_files <- list.files(path = "/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/manuscript/revision_1", pattern = "test_predicted_vs_actual_cnn_[0-9]+_[0-9]+|test_predicted_vs_actual_cnndnn_[0-9]+_[0-9]+|test_predicted_vs_actual_dense_[0-9]+_[0-9]+", full.names = T, recursive = T)
@@ -1135,43 +1141,56 @@ all_test_abc <- read_delim(all_test_abc_files[1], col_select = c("ID", "truth", 
 all_test_abc <- read_delim(all_test_abc_files[2:length(all_test_abc_files)], id = "source_file", delim = "\t", col_select = c("ID", "truth", "lwr_cred_int", "pred_median", "upr_cred_int")) %>% bind_rows(all_test_abc)
 
 # extract demography
-all_test_abc$model <- gsub("/|/test", "", str_extract(all_test_abc$source_file, "/[a-z]+/test"))
+all_test_abc$model <- "abc"
+all_test_abc$demography <- gsub("/|/test", "", str_extract(all_test_abc$source_file, "/[a-z]+/test"))
 all_test_abc$m <- gsub(".*_", "", str_extract(all_test_abc$source_file, "test_predicted_vs_actual_[a-z]+_[0-9]+"))
 all_test_abc$n <- gsub(".*_", "", str_extract(all_test_abc$source_file, "test_predicted_vs_actual_[a-z]+_[0-9]+_[0-9]+"))
 
 # merge model results
-head(all_tews)
 all_test_perf <- bind_rows(all_test_keras %>%
-                             dplyr::select(ID, model, m, n, true_tf, pred_tf_mean) %>%
+                             dplyr::select(demography, ID, model, m, n, true_tf, pred_tf_mean) %>%
                              rename(pred_tf = pred_tf_mean), 
                            all_test_abc %>% 
-                             dplyr::select(ID, model, m, n, truth, pred_median) %>%
+                             dplyr::select(demography, ID, model, m, n, truth, pred_median) %>%
                              rename(true_tf = truth,
                                     pred_tf = pred_median))
 
-#
-test_sample$abc_error <- (test_abc$pred_median - test_abc$truth)^2
-test_sample$cnn_error <- (10^test_cnn$pred_tf_mean - 10^test_cnn$true_tf)^2
-test_sample$dnn_error <- (10^test_dnn$pred_tf_mean - 10^test_dnn$true_tf)^2
-test_sample$cnndnn_error <- (10^test_cnndnn$pred_tf_mean - 10^test_cnndnn$true_tf)^2
 
-mod_abc <- lm(log10(abc_error + 1) ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
-summary(mod_abc)
-plot(mod_abc)
+all_test_perf <- all_test_perf %>%
+  mutate(pred_error = ifelse(model == "abc", (pred_tf - true_tf)^2, (10^pred_tf - 10^true_tf)^2))
 
-mod_cnn <- lm(cnn_error ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
-summary(mod_cnn)
-plot(mod_cnn)
+# merge with simulation parameters
+all_params_perf <- all_params %>% 
+  left_join(all_test_perf %>% mutate(n = as.numeric(n), m = as.numeric(m)), by = c("demography", "ID", "n", "m")) %>%
+  filter(split == "test")
 
-mod_dnn <- lm(dnn_error ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
-summary(mod_dnn)
-plot(mod_dnn)
+# test_sample$abc_error <- (test_abc$pred_median - test_abc$truth)^2
+# test_sample$cnn_error <- (10^test_cnn$pred_tf_mean - 10^test_cnn$true_tf)^2
+# test_sample$dnn_error <- (10^test_dnn$pred_tf_mean - 10^test_dnn$true_tf)^2
+# test_sample$cnndnn_error <- (10^test_cnndnn$pred_tf_mean - 10^test_cnndnn$true_tf)^2
 
-mod_cnndnn <- lm(cnndnn_error ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
-summary(mod_cnndnn)
-plot(mod_cnndnn)
+# mod_abc <- lm(log10(abc_error + 1) ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
+# summary(mod_abc)
+# plot(mod_abc)
+# 
+# mod_cnn <- lm(cnn_error ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
+# summary(mod_cnn)
+# plot(mod_cnn)
+# 
+# mod_dnn <- lm(dnn_error ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
+# summary(mod_dnn)
+# plot(mod_dnn)
+# 
+# mod_cnndnn <- lm(cnndnn_error ~ mu + R + N + h + log10(sweepS) + log10(ta), test_sample)
+# summary(mod_cnndnn)
+# plot(mod_cnndnn)
 
-loglogscatter <- function(data, var1, var2, xlab, ylab, title){
+loglogscatter <- function(data, var1, var2, xlab, ylab, title, demo_val, model_val, m_val, n_val){
+  data <- data %>% filter(demography == demo_val, 
+                          model == model_val, 
+                          m == m_val, 
+                          n == n_val)
+  print(nrow(data))
   # Capture unquoted variables as symbols for base R lm()
   x_sym <- ensym(var1)
   y_sym <- ensym(var2)
@@ -1191,28 +1210,30 @@ loglogscatter <- function(data, var1, var2, xlab, ylab, title){
   labs(x = xlab, y = ylab, title = paste0(title,"\n", p_label))
 }
 
+target_n <- 128
+target_m <- 128
+for(target_demo in c("constant", "growth", "decay", "cycle", "chaos")){
+  
+plot_abc_s_error <- loglogscatter(all_params_perf, sweepS, pred_error, "s", "Squared error", "ABC", demo_val = target_demo, model_val = "abc", m_val = target_m, n_val = target_n)
 
-plot_abc_s_error <- loglogscatter(test_sample, sweepS, abc_error, "s", "Squared error", "ABC")
+plot_dnn_s_error <- loglogscatter(all_params_perf, sweepS, pred_error, "s", "Squared error", "DNN", target_demo, "dense", target_m, target_n)
 
-plot_dnn_s_error <- loglogscatter(test_sample, sweepS, dnn_error, "s", "Squared error", "DNN")
+plot_cnn_s_error <- loglogscatter(all_params_perf, sweepS, pred_error, "s", "Squared error", "CNN", target_demo, "cnn", target_m, target_n)
 
-plot_cnn_s_error <- loglogscatter(test_sample, sweepS, cnn_error, "s", "Squared error", "CNN")
+plot_cnndnn_s_error <- loglogscatter(all_params_perf, sweepS, pred_error, "s", "Squared error", "CNN+DNN", target_demo, "cnndnn", target_m, target_n)
 
-plot_cnndnn_s_error <- loglogscatter(test_sample, sweepS, cnndnn_error, "s", "Squared error", "CNN+DNN")
+plot_abc_ta_error <- loglogscatter(all_params_perf, ta, pred_error, "Sweep age", "Squared error", "ABC", target_demo, "abc", target_m, target_n)
 
-plot_abc_ta_error <- loglogscatter(test_sample, ta, abc_error, "Sweep age", "Squared error", "ABC")
+plot_dnn_ta_error <- loglogscatter(all_params_perf, ta, pred_error, "Sweep age", "Squared error", "DNN", target_demo, "dense", target_m, target_n)
 
-plot_dnn_ta_error <- loglogscatter(test_sample, ta, dnn_error, "Sweep age", "Squared error", "DNN")
+plot_cnn_ta_error <- loglogscatter(all_params_perf, ta, pred_error, "Sweep age", "Squared error", "CNN", target_demo, "cnn", target_m, target_n)
 
-plot_cnn_ta_error <- loglogscatter(test_sample, ta, cnn_error, "Sweep age", "Squared error", "CNN")
-
-plot_cnndnn_ta_error <- loglogscatter(test_sample, ta, cnndnn_error, "Sweep age", "Squared error", "CNN+DNN")
-
+plot_cnndnn_ta_error <- loglogscatter(all_params_perf, ta, pred_error, "Sweep age", "Squared error", "CNN+DNN", target_demo, "cnndnn", target_m, target_n)
 
 ggarrange(plot_abc_s_error, plot_abc_ta_error, plot_dnn_s_error, plot_dnn_ta_error, plot_cnn_s_error, plot_cnn_ta_error, plot_cnndnn_s_error, plot_cnndnn_ta_error, ncol = 2, nrow = 4)
 
 ggsave(paste(output_path, "error_model_", target_n, "_", target_m, "_", target_demo, "_", today, ".pdf", sep = ""), height = 14, width = 8, dpi = 600)
-
+}
 ```
 
 ## DEPRECATED: cross-fold validation to choose a model
