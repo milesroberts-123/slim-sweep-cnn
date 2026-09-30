@@ -14,22 +14,26 @@ parameters = pd.read_table("../config/parameters.tsv", sep="\t", dtype={"ID": st
 # execute very simple rules on local machine
 localrules: all, all_per_sim
 
+wildcard_constraints:
+    ID="[a-zA-Z0-9]+"
+
 # gather all images for training CNN
 rule all:
     input:
         #expand("data/images/slim_{ID}.png", ID=parameters.index.get_level_values("ID")),
-        expand("{ID}.done", ID=parameters.index.get_level_values("ID")),
-        "fixation_times.txt",
-        "sweep_ages.txt"
+        expand("finished/{ID}.done", ID=parameters.index.get_level_values("ID")),
+        #"fixation_times.txt",
+        #"sweep_ages.txt"
 
 rule all_per_sim:
     input:
-        "data/images/slim_{ID}.png",
-        "data/sweep_stats/{ID}.tsv"
+        expand("vcftools_results/{{ID}}_{n}.windowed.pi", n = config["n"]),
+        expand("images/{{ID}}_{n}_{m}.png", n = config["n"], m = config["m"]),
+        expand("sweep_stats/{{ID}}_{n}_{m}.tsv", n = config["n"], m = config["m"])
     output:
-        touch("{ID}.done")
+        touch("finished/{ID}.done")
 
 include: "rules/slim.smk"
-include: "rules/create_image.smk"
-include: "rules/sweep_stats.smk"
+#include: "rules/create_image.smk"
+#include: "rules/sweep_stats.smk"
 include: "rules/extract_log_data.smk"

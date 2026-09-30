@@ -1,3 +1,9 @@
+**/tuning_dir*
+**/weights*
+**.json
+**.pi
+**.done
+**.trees
 **.fa
 **.gff3
 **.vcf
@@ -19,4 +25,5 @@
 **.tar.gz
 **/results
 **.csv
+**.tar
 results/2024-11-15/README.md
