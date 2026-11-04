@@ -1614,27 +1614,91 @@ total_r2_table_tfonly <- all_params %>%
 tinytable::tt(bind_rows(total_r2_table_tfta,total_r2_table_tfonly)) %>% tinytable::format_tt(digits = 3) %>% tinytable::save_tt("total_r2_table.tex", overwrite = T)
 
 ```
-
-# linear model of diversity vs tf
+# Batch 2: check distribution of hscan 
 
 ```{r}
 
-tf_lm_mod <- lm(log10(tf) ~ log10(pi), data = rbind(train_sample, val_sample))
+hscan_by_m <- ggplot(all_params %>% filter(n == 128), aes(x = sweepS, y = hscan)) +
+  geom_point(shape = 16) +
+  geom_smooth(color = "pink") +
+  facet_grid(m~demography) +
+  labs(x = "Selection coefficient (s)", y = "Messer's hscan\n(span normalized to max of 1)", title = "Batch 2 - check of sweep extent in window") +
+  scale_x_continuous(n.breaks = 2) 
 
-plot(tf_lm_mod)
 
-ggplot(train_sample, aes(x = pi, y = tf)) +
-  geom_point() +
-  geom_smooth(method = "lm") +
-  scale_x_log10() +
-  scale_y_log10()
+ggsave(paste(output_path, "s_vs_hscan_by_m_", today, ".pdf", sep = ""), hscan_by_m, height = 6, width = 9)
 
-#
-lm_pred <- as.data.frame(predict(tf_lm_mod, newdata = test_sample, interval = "prediction"))
+```
 
-compare_predictions_truth_scatter(predictions = lm_pred$fit, log10(test_sample$tf), "LM, log10(tf) ~ log10(\u03C0)", "True log10(tf)", "Estimated log10(tf)", log10(test_sample$ta), "log10\nsweep\nage")
+# Batch 2: linear model of diversity vs tf
 
-ggsave(paste("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/", today, "/lm_pi_only", today, ".png", sep = ""), height = 7, width = 7, dpi = 600)
+```{r}
+plots_lm <- list()
+target_n <- 128
+for(target_m in c(128, 256)){
+  for(demo in c("constant", "growth", "decay", "cycle", "chaos")){
+    
+    tf_lm_mod <- lm(log10(tf) ~ log10(pi), data = all_params %>% filter(n==target_n, m==target_m, demography == demo, split == "train"))
+    
+    pi_pred <- all_params %>% 
+      filter(n==target_n, m==target_m, demography == demo, split == "test") %>%
+      mutate(true_tf = log10(tf),
+             pred_tf = predict(tf_lm_mod, newdata = .)) %>%
+      dplyr::select(true_tf, pred_tf, ta)
+    
+    p <- compare_predictions_truth_scatter(pi_pred$true_tf, pi_pred$pred_tf, paste0(demo, ", ", target_m), "True log10(tf)", "Estimated log10(tf)", log10(pi_pred$ta), "log10\nsweep\nage")
+    
+    # Append to the end of the list
+    plots_lm[[length(plots_lm) + 1]] <- p
+    
+    ggsave(paste0("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/", today, "/lm_", demo, "_", target_n, "_", target_m, "_", today, ".png"), p, height = 6, width = 6, dpi = 600)
+  }
+}
+
+adjusted_plots <- lapply(plots_lm, function(p) {
+  p + theme(plot.title = element_text(size = 10)) # Changes all text (titles, axes, legends)
+})
+
+p <- ggarrange(plotlist = adjusted_plots, nrow = 2, ncol = 5, labels = LETTERS[1:10], common.legend = T) + theme(text = element_text(size = 8))
+
+p <- annotate_figure(p, top = text_grob("LM, log10(tf) ~ log10(\u03c0)", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste0("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/", today, "/lm_all.pdf"), p, width = 10, height = 7, device = cairo_pdf)
+
+#### HSCAN ####
+plots_lm_hscan <- list()
+target_n <- 128
+for(target_m in c(128, 256)){
+  for(demo in c("constant", "growth", "decay", "cycle", "chaos")){
+    
+    tf_lm_mod <- lm(log10(tf) ~ hscan, data = all_params %>% filter(n==target_n, m==target_m, demography == demo, split == "train"))
+    
+    pi_pred <- all_params %>% 
+      filter(n==target_n, m==target_m, demography == demo, split == "test") %>%
+      mutate(true_tf = log10(tf),
+             pred_tf = predict(tf_lm_mod, newdata = .)) %>%
+      dplyr::select(true_tf, pred_tf, ta)
+    
+    p <- compare_predictions_truth_scatter(pi_pred$true_tf, pi_pred$pred_tf, paste0(demo, ", ", target_m), "True log10(tf)", "Estimated log10(tf)", log10(pi_pred$ta), "log10\nsweep\nage")
+    
+    # Append to the end of the list
+    plots_lm_hscan[[length(plots_lm_hscan) + 1]] <- p
+    
+    ggsave(paste0("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/", today, "/lm_", demo, "_", target_n, "_", target_m, "_", today, ".png"), p, height = 6, width = 6, dpi = 600)
+  }
+}
+
+adjusted_plots <- lapply(plots_lm_hscan, function(p) {
+  p + theme(plot.title = element_text(size = 10)) # Changes all text (titles, axes, legends)
+})
+
+p <- ggarrange(plotlist = adjusted_plots, nrow = 2, ncol = 5, labels = LETTERS[1:10], common.legend = T) + theme(text = element_text(size = 8))
+
+p <- annotate_figure(p, top = text_grob("LM, log10(tf) ~ log10(hscan)", 
+               color = "black", face = "bold", size = 14))
+
+ggsave(paste0("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/", today, "/hscan_all.pdf"), p, width = 10, height = 7, device = cairo_pdf)
 ```
 
 # Machine learning
@@ -1892,21 +1956,28 @@ linewidth = 1.5
 
 annot_size = 5
 
-plot_tf_ta_def = ggplot(plotdata, aes(x = gen, y = value/N)) +
+sweep_established <- min(which(plotdata$value/N > 0.1)) - 1
+
+sweep_close <- min(which(plotdata$value/N > 0.9)) - 1
+
+plot_tf_ta_def <- ggplot(plotdata, aes(x = gen, y = value/N)) +
   geom_line(lwd = linewidth, color ="#1A1412" ) +
-  geom_segment(aes(x = 1, y = 1.01, xend = time_to_fixation, yend = 1.01), color = "#BEFDA5", lwd = linewidth) +
-  geom_segment(aes(x = time_to_fixation, y = 1.01, xend = max(gen), yend = 1.01), color = "#FFCCFD", lwd = linewidth) +
-  annotate("text", x=time_to_fixation/2, y=1.05, label= "Time to fixation (tf)", size = annot_size) + 
-  annotate("text", x=(time_to_fixation + max(gen))/2, y=1.05, label= "Sweep age (ta)", size = annot_size) + 
-  geom_vline(xintercept = time_to_fixation, lty = 2, lwd = linewidth) +
-  geom_vline(xintercept = max(gen), lty = 2, lwd = linewidth) + 
-  annotate("text", x=time_to_fixation-10, y=.5, label= "Sweep\nfixes", size = annot_size) + 
-  annotate("text", x=max(gen)-14, y=.75, label= "Population\nsampled", size = annot_size) + 
-  geom_vline(xintercept = 0, lty = 2, lwd = linewidth) +
-  annotate("text", x=9, y=.25, label= "Sweep\narises", size = annot_size) + 
+  geom_segment(aes(x = sweep_established, y = 1.01, xend = sweep_close, yend = 1.01), color = "#BEFDA5", lwd = linewidth) +
+  geom_segment(aes(x = sweep_close, y = 1.01, xend = max(gen), yend = 1.01), color = "#FFCCFD", lwd = linewidth) +
+  #geom_segment(aes(x = 0, y = 0.1, xend = sweep_established, yend = 0.1), color = "red") +
+  #geom_segment(aes(x = 0, y = 0.9, xend = sweep_close, yend = 0.9), color = "red") +
+  annotate("text", x=(sweep_close+sweep_established)/2, y=1.05, label= "tf", size = annot_size) + 
+  annotate("text", x=(sweep_close + max(gen))/2, y=1.05, label= "ta", size = annot_size) + 
+  geom_vline(xintercept = sweep_close, lty = 2, lwd = linewidth) + 
+  annotate("text", x=sweep_close+10, y=.5, label= "Sweep\nnearly\ncomplete", size = annot_size) + 
+  annotate("text", x=max(gen)-8, y=.9, label= "Population\nsampled", size = annot_size) + 
+  geom_vline(xintercept = sweep_established, lty = 2, lwd = linewidth) +
+  annotate("text", x=7, y=.25, label= "Sweep\nestablishes", size = annot_size) + 
   theme_classic() +
   theme(text = element_text(size=16)) +
   labs(y = "Sweep allele frequency", x = "time (generations)")
+
+ggsave(paste0("/global/scratch/users/milesroberts/josephs_lab_projects/slim-sweep-cnn/results/", today, "/definitions.pdf"), width = 6, height = 4)
 
 #ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/definitions.png", sep = ""), height = 7, width = 8, dpi = 700)
 
@@ -1981,7 +2052,7 @@ ggsave("/mnt/home/robe1195/tmp/neutral.png", dpi = 350, width = 5, height = 5, u
 
 ## Identifiability
 ```{r}
-ident_data = read.table(paste(my_path,"unstratified_sample.tsv", sep = ""), sep = "\t", header = T)
+ident_data = read.table(paste(input_path,"results/manuscript/revision_1/constant/partitioned_parameters.tsv", sep = ""), sep = "\t", header = T)
 
 tf_plus_ta = ggplot(ident_data, aes(x = log10(tf + ta), y = log10(pi))) +
   theme_classic() +
@@ -1999,7 +2070,7 @@ split_tf_ta = ggplot(ident_data, aes(x = log10(tf), y = log10(ta))) +
 
 ggarrange(plot_tf_ta_def,tf_plus_ta, split_tf_ta, ncol = 3, nrow = 1, labels = c("A", "B", "C"), font.label = list(size = 18))
 
-ggsave(paste("/mnt/home/robe1195/Josephs_Lab_Projects/selection-demography-cnn/results/", today, "/identifiability_constant_", today, ".png", sep = ""), height = 4, width = 16, dpi = 900)
+ggsave(paste(output_path, "identifiability_constant_", today, ".pdf", sep = ""), height = 4, width = 17, dpi = 900)
 
 # supplemental figure showing tf ta split for other statistics
 split_tf_ta_func = function(data,tf,ta,stat_values,statname,tflab,talab){
